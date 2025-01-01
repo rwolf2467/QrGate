@@ -1,4 +1,3 @@
-
 import quart
 import datetime as dt
 import config.conf as config
@@ -13,21 +12,43 @@ def validate_ticket(app: quart.Quart):
         try:
             tickets: dict = load_tickets()
             data: dict = await quart.request.get_json()
-            tid: str = data.get("tid") #? Ticket ID
+            tid: str = data.get("tid")  # ? Ticket ID
 
             if tid in tickets:
                 if bool(tickets[tid]["valid"]):
-                    if tickets[tid]["valid_date"] == str(dt.datetime.now().date()): #? JJJJ-MM-DD
+                    if tickets[tid]["valid_date"] == str(
+                        dt.datetime.now().date()
+                    ):  # ? JJJJ-MM-DD
                         tickets[tid]["valid"] = False
                         tickets[tid]["used_at"] = str(dt.datetime.now())
                         save_tickets(tickets)
-                        return quart.jsonify({"status": "success", "message": "Ticket is valid"}), 200
+                        return (
+                            quart.jsonify(
+                                {"status": "success", "message": "Ticket is valid"}
+                            ),
+                            200,
+                        )
                     else:
-                        return quart.jsonify({"status": "error", "message": "Ticket is not valid today."}), 400
+                        return (
+                            quart.jsonify(
+                                {
+                                    "status": "error",
+                                    "message": "Ticket is not valid today.",
+                                }
+                            ),
+                            400,
+                        )
                 else:
-                    return quart.jsonify({"status": "error", "message": "Ticket is already used."}), 400
+                    return (
+                        quart.jsonify(
+                            {"status": "error", "message": "Ticket is already used."}
+                        ),
+                        400,
+                    )
             else:
-                return quart.jsonify({"status": "error", "message": "Ticket not found."}), 404
+                return (
+                    quart.jsonify({"status": "error", "message": "Ticket not found."}),
+                    404,
+                )
         except Exception as e:
             return quart.jsonify({"status": "error", "message": str(e)}), 500
-
