@@ -1,0 +1,14 @@
+{
+    "status": "success",
+    "message": "Ticket loaded",
+    "data": {
+        "first_name": string,
+        "last_name": string,
+        "valid": boolean,
+        "valid_date": string,
+        "tid": string,
+        "used_at": string,
+        "paid": boolean,
+        "method": string
+    }
+}
