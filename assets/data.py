@@ -6,7 +6,7 @@ def load_date(date: str):
 
     dates = data.get("dates")
     if not isinstance(dates, dict):
-        raise ValueError("'dates' key in shows.json must contain a dictionary")
+        raise ValueError("dates key in shows.json must contain a dictionary")
 
     for key, value in dates.items():
         if value.get("date") == date:
@@ -21,7 +21,7 @@ def save_date(date: str, updated_data):
     data = load_show()
     dates = data.get("dates")
     if not isinstance(dates, dict):
-        raise ValueError("'dates' key in shows.json must contain a dictionary")
+        raise ValueError("dates key in shows.json must contain a dictionary")
 
     for key, value in dates.items():
         if value["date"] == date:

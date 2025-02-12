@@ -60,6 +60,8 @@ def validate_ticket(app: quart.Quart):
             ticket["used_at"] = str(dt.datetime.now())
             save_tickets(ticket)
 
+            
+
             return (
                 quart.jsonify({"status": "success", "message": "Ticket is valid", "data": load_ticket_id(ticket_id)}),
                 200,
