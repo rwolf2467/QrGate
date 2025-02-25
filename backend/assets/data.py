@@ -1,4 +1,10 @@
 import json
+import quart
+from typing import Dict, Optional
+from reds_simple_logger import Logger
+
+logger = Logger()
+logger.success("Data.py loaded")
 
 
 def load_date(date: str):
@@ -43,14 +49,14 @@ def save_show(data: dict):
         json.dump(data, f, indent=4)
 
 
-def load_ticket_id(tid: str):
-    tickets = load_tickets[tid]
-    return tickets
-
-
-def load_tickets():
+def load_tickets() -> Dict[str, Dict]:
     with open("data/tickets.json", "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def load_ticket_id(tid: str) -> Optional[Dict]:
+    tickets = load_tickets()  # Rufen Sie die Funktion auf, um die Tickets zu laden
+    return tickets.get(tid)
 
 
 def save_tickets(tid: str, new_ticket: dict):
@@ -59,3 +65,10 @@ def save_tickets(tid: str, new_ticket: dict):
 
     with open("data/tickets.json", "w", encoding="utf-8") as f:
         json.dump(tickets, f, indent=4, ensure_ascii=False)
+
+
+def img_show(app=quart.Quart):
+    @app.route("/image/show")
+    async def show_img():
+        tid = quart.request.args.get("img")
+        return await quart.send_file(f"./images/{tid}.png")

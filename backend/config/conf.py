@@ -1,5 +1,7 @@
+import datetime as dt
 version = 0.4
 
+utc_offset = 1
 
 class API:
     port = 1654
@@ -15,4 +17,5 @@ class Mail:
     smtp_user = "user@example.com"
     smtp_password = "smtp_password"
     mail_title = "Your QrGate Ticket - {id}"
+    mail_paid_title = "Ticket paid"
     

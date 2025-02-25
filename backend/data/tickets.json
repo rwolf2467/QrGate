@@ -1,0 +1,13 @@
+{
+    "Z3VR-5UOZ-9YM4": {
+        "tid": "Z3VR-5UOZ-9YM4",
+        "first_name": "Max",
+        "last_name": "Mustermann",
+        "paid": true,
+        "valid_date": "2025-01-12",
+        "seats": 2,
+        "valid": true,
+        "used_at": null,
+        "access_attempts":[]
+    }
+}

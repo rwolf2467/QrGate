@@ -1,8 +1,13 @@
 import quart
 import config.conf as config
 from assets.data import load_show, save_show
+from reds_simple_logger import Logger
 
-def edit_show(app = quart.Quart):
+logger = Logger()
+logger.success("Manage_show.py loaded")
+
+
+def edit_show(app=quart.Quart):
     @app.route("/api/show/edit", methods=["POST"])
     async def edit_show():
         if config.Auth.auth_key != (key := quart.request.headers.get("Authorization")):
@@ -11,10 +16,16 @@ def edit_show(app = quart.Quart):
             data: dict = await quart.request.get_json()
             show: dict = load_show()
 
-            orga_name: str = data.get("orga_name") if data.get("orga_name") else show.get("orga_name")
+            orga_name: str = (
+                data.get("orga_name")
+                if data.get("orga_name")
+                else show.get("orga_name")
+            )
             title: str = data.get("title") if data.get("title") else show.get("title")
             dates: dict = data.get("dates") if data.get("dates") else show.get("dates")
-            banner: str = data.get("banner") if data.get("banner") else show.get("banner")
+            banner: str = (
+                data.get("banner") if data.get("banner") else show.get("banner")
+            )
 
             show["orga_name"] = orga_name
             show["banner"] = banner
@@ -22,11 +33,15 @@ def edit_show(app = quart.Quart):
             show["dates"] = dates
 
             save_show(show)
-            return quart.jsonify({"status": "success", "message": "Show config saved"}), 200
+            return (
+                quart.jsonify({"status": "success", "message": "Show config saved"}),
+                200,
+            )
         except Exception as e:
             return quart.jsonify({"status": "error", "message": str(e)}), 500
-        
-def get_show(app = quart.Quart):
+
+
+def get_show(app=quart.Quart):
     @app.route("/api/show/get", methods=["POST", "GET"])
     async def get_show():
         if config.Auth.auth_key != (key := quart.request.headers.get("Authorization")):

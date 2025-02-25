@@ -1,0 +1,7 @@
+{
+    "require": {
+        "paypal/paypal-checkout-sdk": "^1.0",
+        "paypal/rest-api-sdk-php": "^1.14",
+        "compwright/php-session": "^3.3"
+    }
+}
