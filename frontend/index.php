@@ -520,7 +520,7 @@ $shows = getShows();
                 modal.classList.add('modal-enter');
                 setTimeout(() => {
                     modal.classList.add('modal-enter-active');
-                }, 10); // Verzögerung für die Animation
+                }, 10);
 
                 document.getElementById('validDate').value = date;
                 document.getElementById('ticketPrice').value = price;
@@ -528,12 +528,12 @@ $shows = getShows();
                 document.body.style.overflow = 'hidden';
 
                 const seatsSelect = document.querySelector('select[name="seats"]');
-                seatsSelect.innerHTML = ''; // Dropdown leeren
-                const maxSeats = Math.min(seatsAvailable, 10); // Maximal 10 oder die verfügbaren Plätze
+                seatsSelect.innerHTML = '';
+                const maxSeats = Math.min(seatsAvailable, 10);
                 for (let i = 1; i <= maxSeats; i++) {
                     const option = document.createElement('option');
                     option.value = i;
-                    option.textContent = `${i} Ticket${i > 1 ? 's' : ''}`; // Dynamische Textanzeige
+                    option.textContent = `${i} Ticket${i > 1 ? 's' : ''}`;
                     seatsSelect.appendChild(option);
                 }
             }
@@ -547,7 +547,7 @@ $shows = getShows();
                     modal.classList.remove('modal-exit');
                     document.body.style.overflow = 'auto';
                     location.reload();
-                }, 300); // Zeit für die Animation
+                }, 300);
             }
 
             function showError(message) {
@@ -555,7 +555,7 @@ $shows = getShows();
                 errorDiv.textContent = message;
                 errorDiv.classList.remove('hidden');
 
-                // Automatisch ausblenden nach 5 Sekunden
+
                 setTimeout(() => {
                     errorDiv.classList.add('hidden');
                 }, 5000);
@@ -655,14 +655,14 @@ $shows = getShows();
                 }
             });
 
-            // Schließen Modal mit Escape-Taste
+
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
                     closeModal();
                 }
             });
 
-            // Schließen Modal beim Klick außerhalb
+
             document.getElementById('bookingModal').addEventListener('click', function(e) {
                 if (e.target === this) {
                     closeModal();
@@ -674,12 +674,12 @@ $shows = getShows();
                 const nameFieldsContainer = document.getElementById('nameFieldsContainer');
                 const numberOfSeats = parseInt(seatsSelect.value);
 
-                // Clear existing name fields
+
                 nameFieldsContainer.innerHTML = '';
 
-                // If only one ticket is selected, do not show additional field
+
                 if (numberOfSeats > 1) {
-                    for (let i = 1; i < numberOfSeats; i++) { // Start at 1, as the first ticket already has a name
+                    for (let i = 1; i < numberOfSeats; i++) {
                         const inputField = document.createElement('div');
                         inputField.className = 'space-y-2';
                         inputField.innerHTML = `
@@ -692,18 +692,18 @@ $shows = getShows();
             }
 
             async function processPayment(paymentDetails) {
-                // Überprüfen der Verfügbarkeit der Plätze
+
                 const available = await checkAvailability(paymentDetails.showId, paymentDetails.ticketCount);
                 if (!available) {
                     throw new Error("Nicht genügend Plätze verfügbar.");
                 }
 
-                // Wenn Plätze verfügbar sind, dann PayPal-Button initialisieren
+
                 initPayPalButton(paymentDetails.price);
             }
 
             async function checkAvailability(showId, ticketCount) {
-                // API-Anfrage an das Backend mit der Show-ID
+
                 const response = await fetch(`/api/ticket/available_seats/${showId}`);
                 const data = await response.json();
 
@@ -711,7 +711,7 @@ $shows = getShows();
                     throw new Error(data.message);
                 }
 
-                // Überprüfen, ob genügend Plätze verfügbar sind
+
                 return data.available_seats >= ticketCount;
             }
         </script>

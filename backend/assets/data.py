@@ -56,7 +56,7 @@ def load_tickets() -> Dict[str, Dict]:
 
 def load_ticket_id(tid: str) -> Optional[Dict]:
     try:
-        tickets = load_tickets()  # Rufen Sie die Funktion auf, um die Tickets zu laden
+        tickets = load_tickets()
         if tickets.get(tid) is None:
             return None
         return tickets.get(tid)

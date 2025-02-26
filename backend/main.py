@@ -16,7 +16,7 @@ import datetime as dt
 app = quart.Quart(__name__)
 app = quart_cors.cors(app, allow_origin="*")
 
-time = dt.datetime.now(tz=dt.timezone(dt.timedelta(hours=config.utc_offset))) 
+time = dt.datetime.now(tz=dt.timezone(dt.timedelta(hours=config.utc_offset)))
 
 logger.working("Enabling systems...")
 validate_ticket(app)

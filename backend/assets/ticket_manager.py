@@ -30,7 +30,7 @@ def create_ticket(app=quart.Quart):
             print(data)
 
             paid: bool = data.get("paid", False)
-            valid_date: str = data.get("valid_date")  # Format: YYYY-MM-DD
+            valid_date: str = data.get("valid_date")
             first_name: str = data.get("first_name")
             last_name: str = data.get("last_name")
             email: str = data.get("email")
@@ -58,7 +58,6 @@ def create_ticket(app=quart.Quart):
             date["seats_available"] -= seats
             save_date(valid_date, date)
 
-            # Erstelle ein Ticket für den Hauptnamen
             tid_parts = [
                 "".join(
                     random.choice(string.ascii_uppercase + string.digits)
@@ -79,10 +78,8 @@ def create_ticket(app=quart.Quart):
             }
             save_tickets(tid, ticket)
 
-            # Sende E-Mail für den Hauptnamen
             await send_email(first_name, last_name, email, tid, paid)
 
-            # Erstelle Tickets und sende E-Mails für zusätzliche Personen
             for person in add_people:
                 tid_parts = [
                     "".join(
@@ -95,17 +92,16 @@ def create_ticket(app=quart.Quart):
                 ticket = {
                     "tid": tid,
                     "first_name": person,
-                    "last_name": "",  # Optional, falls kein Nachname vorhanden ist
+                    "last_name": "",
                     "paid": paid,
                     "valid_date": valid_date,
-                    "seats": 1,  # Angenommen, jede zusätzliche Person hat ein Ticket
+                    "seats": 1,
                     "valid": paid,
                     "used_at": None,
                     "access_attempts": [],
                 }
                 save_tickets(tid, ticket)
 
-                # Sende E-Mail für die zusätzliche Person
                 await send_email(person, "", email, tid, paid)
 
             return (
@@ -123,9 +119,7 @@ async def send_email(first_name, last_name, email, tid, paid):
     message = MIMEMultipart()
     message["From"] = config.Mail.smtp_user
     message["To"] = email
-    message["Subject"] = (config.Mail.mail_title).format(
-        id=str(first_name)
-    )  # ID anpassen, falls nötig
+    message["Subject"] = (config.Mail.mail_title).format(id=str(first_name))
 
     paid_message = (
         ""
@@ -252,7 +246,6 @@ async def send_email(first_name, last_name, email, tid, paid):
         )
         message.attach(part)
 
-    # E-Mail senden
     with smtplib.SMTP(config.Mail.smtp_server, config.Mail.smtp_port) as server:
         server.starttls()
         server.login(config.Mail.smtp_user, config.Mail.smtp_password)
@@ -351,18 +344,16 @@ def get_available_seats(app=quart.Quart):
     @app.route("/api/ticket/available_seats/<show_id>", methods=["GET"])
     async def available_seats(show_id):
         try:
-            # Lade die Shows-Daten
+
             with open("backend/data/shows.json", "r") as f:
                 shows_data = json.load(f)
 
-            # Überprüfe, ob die show_id existiert
             if show_id not in shows_data["dates"]:
                 return (
                     quart.jsonify({"status": "error", "message": "Show ID not found"}),
                     404,
                 )
 
-            # Extrahiere die verfügbaren Plätze für die angegebene ID
             available_seats = shows_data["dates"][show_id]["seats_available"]
 
             return (

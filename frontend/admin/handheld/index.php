@@ -1,6 +1,6 @@
 <?php
-// Backend (PHP)
-require_once '../../config.php'; 
+
+require_once '../../config.php';
 
 $API_KEY = API_KEY;
 $API_ENDPOINT = API_BASE_URL . 'api/ticket/validate';
@@ -27,13 +27,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        // Gib die API-Antwort immer als JSON zurück
+
         header('Content-Type: application/json');
-        http_response_code($httpCode); // Setze den HTTP-Statuscode
-        echo $response; // Gib die API-Antwort direkt zurück
+        http_response_code($httpCode);
+        echo $response;
         exit;
     } else {
-        // Falls keine ticketId gesendet wurde
+
         header('Content-Type: application/json');
         http_response_code(400);
         echo json_encode([
@@ -216,7 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             /* Dunkelgrün */
             100% {
                 border-color: #4caf50;
-                }
+            }
 
             /* Hellgrün */
         }
@@ -225,7 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border: 10px solid #f44336;
             /* Roter Rand für ungültig */
             animation: blink-red 1s infinite;
-            
+
             /* Blinken Animation für ungültig */
             width: 95%;
         }
@@ -287,8 +287,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         /* Spinner Popup */
         .popup#spinnerPopup {
-            border: 10px solid yellow; /* Gelber Rand */
-            animation: blink-yellow 1s infinite; /* Blinkende Animation */
+            border: 10px solid yellow;
+            /* Gelber Rand */
+            animation: blink-yellow 1s infinite;
+            /* Blinkende Animation */
         }
 
         @keyframes blink-yellow {
@@ -297,7 +299,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             50% {
-                border-color: rgba(255, 255, 0, 0.5); /* Halbtransparentes Gelb */
+                border-color: rgba(255, 255, 0, 0.5);
+                /* Halbtransparentes Gelb */
             }
 
             100% {
@@ -307,13 +310,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .spinner {
             border: 8px solid rgba(255, 255, 255, 0.3);
-            border-top: 8px solid yellow; /* Gelber Spinner */
+            border-top: 8px solid yellow;
+            /* Gelber Spinner */
             border-radius: 50%;
-            width: 60px; /* Breite des Spinners erhöhen */
-            height: 60px; /* Höhe des Spinners erhöhen */
-            animation: spin 0.8s linear infinite; /* Schnelleres Drehen */
-            margin: 20px auto; /* Zentrieren */
-            box-shadow: 0 0 15px rgb(168, 127, 5); /* Schatten hinzufügen */
+            width: 60px;
+            /* Breite des Spinners erhöhen */
+            height: 60px;
+            /* Höhe des Spinners erhöhen */
+            animation: spin 0.8s linear infinite;
+            /* Schnelleres Drehen */
+            margin: 20px auto;
+            /* Zentrieren */
+            box-shadow: 0 0 15px rgb(168, 127, 5);
+            /* Schatten hinzufügen */
         }
 
         @keyframes spin {
@@ -327,9 +336,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .attempts-summary {
-            margin-top: 10px; /* Abstand nach oben */
-            border-top: 1px solid #ddd; /* Trennlinie */
-            padding-top: 10px; /* Innenabstand oben */
+            margin-top: 10px;
+            /* Abstand nach oben */
+            border-top: 1px solid #ddd;
+            /* Trennlinie */
+            padding-top: 10px;
+            /* Innenabstand oben */
         }
     </style>
 </head>
@@ -358,7 +370,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-        // Frontend (JavaScript)
         let lastScannedCode = '';
         let lastScanTime = 0;
         const SCAN_COOLDOWN = 1000;
@@ -374,7 +385,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         function onScanSuccess(decodedText) {
             const currentTime = Date.now();
 
-            // Prüfe Cooldown und ob es der gleiche Code ist
+
             if (currentTime - lastScanTime < SCAN_COOLDOWN || decodedText === lastScannedCode) {
                 return;
             }
@@ -382,11 +393,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             lastScannedCode = decodedText;
             lastScanTime = currentTime;
 
-            // Spinner Popup anzeigen
-            document.getElementById('blurBackground').style.display = 'block'; // Hintergrund anzeigen
-            document.getElementById('spinnerPopup').style.display = 'block'; // Spinner Popup anzeigen
 
-            // API-Anfrage
+            document.getElementById('blurBackground').style.display = 'block';
+            document.getElementById('spinnerPopup').style.display = 'block';
+
+
             fetch(window.location.href, {
                     method: 'POST',
                     headers: {
@@ -397,32 +408,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     })
                 })
                 .then(response => {
-                    // Spinner Popup ausblenden
+
                     document.getElementById('spinnerPopup').style.display = 'none';
-                    document.getElementById('blurBackground').style.display = 'none'; // Hintergrund ausblenden
+                    document.getElementById('blurBackground').style.display = 'none';
                     return response.json().then(data => {
                         if (!response.ok) {
-                            // Wenn die Antwort nicht ok ist, werfen Sie einen Fehler mit der Nachricht aus den Daten
+
                             throw new Error(data.message || 'API-Fehler');
                         }
-                        return data; // Geben Sie die Daten zurück, wenn die Antwort ok ist
+                        return data;
                     });
                 })
                 .then(data => {
-                    // Spinner Popup ausblenden
+
                     document.getElementById('spinnerPopup').style.display = 'none';
-                    document.getElementById('blurBackground').style.display = 'none'; // Hintergrund ausblenden
+                    document.getElementById('blurBackground').style.display = 'none';
                     const resultPopup = document.getElementById('resultPopup');
                     const blurBackground = document.getElementById('blurBackground');
-                    blurBackground.style.display = 'block'; // Hintergrund anzeigen
-                    resultPopup.style.display = 'block'; // Popup anzeigen
+                    blurBackground.style.display = 'block';
+                    resultPopup.style.display = 'block';
 
                     let resultHTML = `
                     <div class="timestamp">Scan Time: ${formatDateTime(new Date())}</div>
                 `;
 
                     if (data.status === 'success') {
-                        // Audio für Erfolg abspielen
+
                         const successAudio = new Audio('success.mp3');
                         successAudio.play().catch(error => {
                             console.error('Fehler beim Abspielen von success.mp3:', error);
@@ -452,18 +463,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                         </div>
                     `;
-                        resultPopup.classList.add('valid'); // Add valid class
-                        resultPopup.classList.remove('invalid'); // Remove invalid class
+                        resultPopup.classList.add('valid');
+                        resultPopup.classList.remove('invalid');
                     } else {
-                        // Audio für Fehler abspielen
+
                         const errorAudio = new Audio('error.mp3');
                         errorAudio.play().catch(error => {
                             console.error('Fehler beim Abspielen von error.mp3:', error);
                         });
-                        resultPopup.classList.add('invalid'); // Add invalid class
-                        resultPopup.classList.remove('valid'); // Remove valid class
+                        resultPopup.classList.add('invalid');
+                        resultPopup.classList.remove('valid');
 
-                        // Fehlerdaten anzeigen
+
                         resultHTML += `
                         <lord-icon
                             src="https://cdn.lordicon.com/zxvuvcnc.json"
@@ -494,34 +505,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     resultContent.innerHTML = resultHTML;
                 })
                 .catch(error => {
-                    // Spinner Popup ausblenden
+
                     document.getElementById('spinnerPopup').style.display = 'none';
-                    document.getElementById('blurBackground').style.display = 'none'; // Hintergrund ausblenden
+                    document.getElementById('blurBackground').style.display = 'none';
                     const errorAudio = new Audio('error.mp3');
                     errorAudio.play().catch(error => {
                         console.error('Fehler beim Abspielen von error.mp3:', error);
                     });
                     const resultPopup = document.getElementById('resultPopup');
                     const blurBackground = document.getElementById('blurBackground');
-                    blurBackground.style.display = 'block'; // Hintergrund anzeigen
-                    resultPopup.style.display = 'block'; // Popup anzeigen
+                    blurBackground.style.display = 'block';
+                    resultPopup.style.display = 'block';
                     resultContent.innerHTML = `
                     <strong><i class="fa-solid fa-circle-xmark" style="color:rgb(199, 38, 38);"></i> ${error.message}</strong>
                     <div class="timestamp">Time: ${formatDateTime(new Date())}</div>
                 `;
 
-                    resultPopup.classList.add('invalid'); // Add invalid class
-                    resultPopup.classList.remove('valid'); // Remove valid class
+                    resultPopup.classList.add('invalid');
+                    resultPopup.classList.remove('valid');
                 });
         }
 
         function closePopup() {
             const resultPopup = document.getElementById('resultPopup');
             const blurBackground = document.getElementById('blurBackground');
-            blurBackground.style.display = 'none'; // Hintergrund ausblenden
-            resultPopup.style.display = 'none'; // Popup ausblenden
-            lastScannedCode = ''; // Letzten gescannten Code zurücksetzen
-            lastScanTime = 0; // Letzte Scanzeit zurücksetzen
+            blurBackground.style.display = 'none';
+            resultPopup.style.display = 'none';
+            lastScannedCode = '';
+            lastScanTime = 0;
         }
 
         function updateDateTime() {
@@ -533,11 +544,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             document.getElementById('currentDateTime').innerText = formattedDateTime;
         }
 
-        // Datum und Uhrzeit jede Sekunde aktualisieren
-        setInterval(updateDateTime, 1000);
-        updateDateTime(); // Initiale Anzeige
 
-        // Scanner initialisieren
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+
+
         const html5QrcodeScanner = new Html5QrcodeScanner(
             "reader", {
                 fps: 1,
@@ -551,7 +562,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
         html5QrcodeScanner.render(onScanSuccess);
 
-        // Dropdown-Menü für den Seitenwechsel
+
         function navigateToApp() {
             const selectedApp = document.getElementById('appSelector').value;
             if (selectedApp) {

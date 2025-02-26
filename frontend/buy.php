@@ -1,5 +1,5 @@
 <?php
-// buy.php
+
 require_once 'config.php';
 require 'vendor/autoload.php';
 
@@ -12,7 +12,7 @@ session_start();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        // Validiere die Eingabedaten
+
         $requiredFields = ['first_name', 'last_name', 'seats', 'valid_date', 'payment_method', 'price'];
         foreach ($requiredFields as $field) {
             if (!isset($_POST[$field]) || empty($_POST[$field])) {
@@ -32,50 +32,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'add_people' => isset($_POST['add_people']) ? $_POST['add_people'] : []
         ];
 
-        // Validiere Anzahl der Sitze
+
         if ($ticketData['seats'] < 1 || $ticketData['seats'] > 11) {
             throw new Exception('Invalid number of people! Please do not play around with the code of this page, otherwise your access to this page will be denied.');
         }
 
-        // Barzahlung
+
         if ($ticketData['method'] === 'bar') {
             $result = makeApiCall('/api/ticket/create', 'POST', $ticketData);
-            
+
             if (isset($result['error'])) {
                 throw new Exception($result['error']);
             }
-            
+
             if ($result['status'] === 'success') {
                 $_SESSION['success'] = "Your tickets have been successfully submitted to the system. You will receive your tickets by email shortly. Please pay your tickets on the day of the event at our ticket counter.";
             } else {
                 throw new Exception('Ticket could not be created!');
             }
-            
+
             header('Location: index.php');
             exit;
-        } 
-        // PayPal Zahlung
-        elseif ($ticketData['method'] === 'paypal') {
-            $ticketData['paid'] = true; // PayPal Zahlung wurde bereits im Frontend bestätigt
-            
+        } elseif ($ticketData['method'] === 'paypal') {
+            $ticketData['paid'] = true;
+
             $result = makeApiCall('/api/ticket/create', 'POST', $ticketData);
-            
+
             if (isset($result['error'])) {
                 throw new Exception($result['error']);
             }
-            
+
             if ($result['status'] === 'success') {
                 $_SESSION['success'] = "Your tickets have been successfully entered and paid for. You will receive your tickets by email shortly.";
             } else {
                 throw new Exception('Ticket could not be created');
             }
-            
+
             header('Location: index.php');
             exit;
         } else {
             throw new Exception('Unknown payment method! Please do not play around with the code of this page, otherwise your access to this page will be denied.');
         }
-        
     } catch (Exception $e) {
         $_SESSION['error'] = $e->getMessage();
         header('Location: index.php');
@@ -83,7 +80,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Wenn keine POST-Anfrage, zurück zur Hauptseite
+
 header('Location: index.php');
 exit;
-?>
