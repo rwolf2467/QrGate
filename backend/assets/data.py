@@ -55,8 +55,13 @@ def load_tickets() -> Dict[str, Dict]:
 
 
 def load_ticket_id(tid: str) -> Optional[Dict]:
-    tickets = load_tickets()  # Rufen Sie die Funktion auf, um die Tickets zu laden
-    return tickets.get(tid)
+    try:
+        tickets = load_tickets()  # Rufen Sie die Funktion auf, um die Tickets zu laden
+        if tickets.get(tid) is None:
+            return None
+        return tickets.get(tid)
+    except Exception:
+        return None
 
 
 def save_tickets(tid: str, new_ticket: dict):

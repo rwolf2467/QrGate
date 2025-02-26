@@ -60,9 +60,12 @@ def create_ticket(app=quart.Quart):
 
             # Erstelle ein Ticket für den Hauptnamen
             tid_parts = [
-                    "".join(random.choice(string.ascii_uppercase + string.digits) for _ in range(4))
-                    for _ in range(3)
-                ]
+                "".join(
+                    random.choice(string.ascii_uppercase + string.digits)
+                    for _ in range(4)
+                )
+                for _ in range(3)
+            ]
             tid: str = "-".join(tid_parts)
             ticket = {
                 "tid": tid,
@@ -82,7 +85,10 @@ def create_ticket(app=quart.Quart):
             # Erstelle Tickets und sende E-Mails für zusätzliche Personen
             for person in add_people:
                 tid_parts = [
-                    "".join(random.choice(string.ascii_uppercase + string.digits) for _ in range(4))
+                    "".join(
+                        random.choice(string.ascii_uppercase + string.digits)
+                        for _ in range(4)
+                    )
                     for _ in range(3)
                 ]
                 tid: str = "-".join(tid_parts)
@@ -117,10 +123,20 @@ async def send_email(first_name, last_name, email, tid, paid):
     message = MIMEMultipart()
     message["From"] = config.Mail.smtp_user
     message["To"] = email
-    message["Subject"] = (config.Mail.mail_title).format(id=str(first_name))  # ID anpassen, falls nötig
+    message["Subject"] = (config.Mail.mail_title).format(
+        id=str(first_name)
+    )  # ID anpassen, falls nötig
 
-    paid_message = "" if paid else "As your ticket has not yet been paid for, it cannot yet be used."
-    paid_message_html = "Your ticket is paid and ready to use." if paid else """As your ticket <span style="background-color: rgba(234, 51, 51, 0.2);padding: 2px 8px;color: rgb(254, 180, 180);border-radius: 4px;transition: all 0.3s ease;">has not yet been paid</span> for, it cannot yet be used. We therefore ask you to pay for your tickets on the day of the event at the entrence in order to activate it"""
+    paid_message = (
+        ""
+        if paid
+        else "As your ticket has not yet been paid for, it cannot yet be used."
+    )
+    paid_message_html = (
+        "Your ticket is paid and ready to use."
+        if paid
+        else """As your ticket <span style="background-color: rgba(234, 51, 51, 0.2);padding: 2px 8px;color: rgb(254, 180, 180);border-radius: 4px;transition: all 0.3s ease;">has not yet been paid</span> for, it cannot yet be used. We therefore ask you to pay for your tickets on the day of the event at the entrence in order to activate it"""
+    )
 
     qr = qrcode.QRCode(
         version=1,
@@ -134,7 +150,9 @@ async def send_email(first_name, last_name, email, tid, paid):
     img = qr.make_image(fill_color="black", back_color="white")
     img.save(f"./codes/{tid}.png")
 
-    message.attach(MIMEText(f"""
+    message.attach(
+        MIMEText(
+            f"""
     <!DOCTYPE html>
     <html lang="de">
     <head>
@@ -163,7 +181,10 @@ async def send_email(first_name, last_name, email, tid, paid):
     </html>
     </body>
     </html>
-    """, "html"))
+    """,
+            "html",
+        )
+    )
 
     qr_image_path = f"./codes/{tid}.png"
     pdf_filename = f"./codes/{tid}.pdf"
@@ -219,17 +240,13 @@ async def send_email(first_name, last_name, email, tid, paid):
     elements.append(closing_message)
     elements.append(Spacer(1, 12))
 
-    managed_by = Paragraph(
-        "Managed by QrGate - avocloud.net", styles["Normal"]
-    )
+    managed_by = Paragraph("Managed by QrGate - avocloud.net", styles["Normal"])
     elements.append(managed_by)
 
     pdf.build(elements)
 
     with open(pdf_filename, "rb") as pdf_file:
-        part = MIMEApplication(
-            pdf_file.read(), Name=os.path.basename(pdf_filename)
-        )
+        part = MIMEApplication(pdf_file.read(), Name=os.path.basename(pdf_filename))
         part["Content-Disposition"] = (
             f'attachment; filename="{os.path.basename(pdf_filename)}"'
         )
@@ -296,6 +313,25 @@ def view_ticket(app=quart.Quart):
             tid: str = data.get("tid")
 
             ticket = load_ticket_id(tid)
+            if ticket == None:
+                data = {
+                    "tid": f"{tid}",
+                    "first_name": "Unknown",
+                    "last_name": "Unknown",
+                    "paid": None,
+                    "valid_date": "Unknown",
+                    "seats": None,
+                    "valid": None,
+                    "used_at": None,
+                    "access_attempts": [],
+                }
+                logger.debug.info(f"Ticket not found: {data}")
+                return (
+                    quart.jsonify(
+                        {"status": "error", "message": "Ticket not found", "data": data}
+                    ),
+                    200,
+                )
             return (
                 quart.jsonify(
                     {"status": "success", "message": "Ticket loaded", "data": ticket}
@@ -316,16 +352,24 @@ def get_available_seats(app=quart.Quart):
     async def available_seats(show_id):
         try:
             # Lade die Shows-Daten
-            with open('backend/data/shows.json', 'r') as f:
+            with open("backend/data/shows.json", "r") as f:
                 shows_data = json.load(f)
 
             # Überprüfe, ob die show_id existiert
-            if show_id not in shows_data['dates']:
-                return quart.jsonify({"status": "error", "message": "Show ID not found"}), 404
+            if show_id not in shows_data["dates"]:
+                return (
+                    quart.jsonify({"status": "error", "message": "Show ID not found"}),
+                    404,
+                )
 
             # Extrahiere die verfügbaren Plätze für die angegebene ID
-            available_seats = shows_data['dates'][show_id]['seats_available']
+            available_seats = shows_data["dates"][show_id]["seats_available"]
 
-            return quart.jsonify({"status": "success", "available_seats": available_seats}), 200
+            return (
+                quart.jsonify(
+                    {"status": "success", "available_seats": available_seats}
+                ),
+                200,
+            )
         except Exception as e:
             return quart.jsonify({"status": "error", "message": str(e)}), 500
