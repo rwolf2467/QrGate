@@ -36,7 +36,7 @@ def create_ticket(app=quart.Quart):
             email: str = data.get("email")
             seats: int = data.get("seats")
             add_people: list = data.get("add_people", [])
-
+            t_type: str = data.get("type") if data.get("type") else "visitor"
             date = load_date(valid_date)
             if not date:
                 return (
@@ -68,13 +68,14 @@ def create_ticket(app=quart.Quart):
             tid: str = "-".join(tid_parts)
             ticket = {
                 "tid": tid,
-                "first_name": first_name,
-                "last_name": last_name,
+                "first_name": person,
+                "last_name": "",
                 "paid": paid,
                 "valid_date": valid_date,
-                "seats": seats,
+                "type": t_type,
                 "valid": paid,
                 "used_at": None,
+                "access_attempts": [],
             }
             save_tickets(tid, ticket)
 
@@ -95,7 +96,7 @@ def create_ticket(app=quart.Quart):
                     "last_name": "",
                     "paid": paid,
                     "valid_date": valid_date,
-                    "seats": 1,
+                    "type": t_type,
                     "valid": paid,
                     "used_at": None,
                     "access_attempts": [],

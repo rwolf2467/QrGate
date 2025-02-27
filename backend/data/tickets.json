@@ -5,7 +5,7 @@
         "last_name": "Mustermann",
         "paid": true,
         "valid_date": "2025-01-12",
-        "seats": 2,
+        "type": "vip",
         "valid": true,
         "used_at": null,
         "access_attempts":[]

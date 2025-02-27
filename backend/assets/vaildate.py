@@ -59,6 +59,46 @@ def validate_ticket(app: quart.Quart):
                     ),
                     200,
                 )
+            
+            if ticket.get("type") == "admin":
+                ticket["access_attempts"].append(
+                    {
+                        "status": "success",
+                        "type": "valid",
+                        "time": str(time.strftime("%Y.%m.%d - %H:%M:%S")),
+                    }
+                )
+                save_tickets(ticket_id, ticket)
+                return (
+                    quart.jsonify(
+                        {
+                            "status": "success",
+                            "message": "Ticket is valid - ADMIN",
+                            "data": ticket,
+                        }
+                    ),
+                    200,
+                )
+            
+            if ticket.get("type") == "vip":
+                ticket["access_attempts"].append(
+                    {
+                        "status": "success",
+                        "type": "valid",
+                        "time": str(time.strftime("%Y.%m.%d - %H:%M:%S")),
+                    }
+                )
+                save_tickets(ticket_id, ticket)
+                return (
+                    quart.jsonify(
+                        {
+                            "status": "success",
+                            "message": "Ticket is valid - VIP",
+                            "data": ticket,
+                        }
+                    ),
+                    200,
+                )
 
             if not ticket.get("paid", False):
                 logger.debug.info(f"Ticket is not paid: {ticket_id}")
