@@ -549,12 +549,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         updateDateTime();
 
 
+        setInterval(() => {
+            const selectElement = document.getElementById('html5-qrcode-select-camera');
+            if (selectElement) {
+                document.querySelectorAll("#html5-qrcode-select-camera option").forEach(option => {
+                    if (option.textContent.includes("front")) {
+                        option.remove();
+                    }
+                });
+                selectElement.selectedIndex = 0; 
+                clearInterval(this);
+            }
+        }, 1000);
+
         const html5QrcodeScanner = new Html5QrcodeScanner(
             "reader", {
                 fps: 1,
                 qrbox: {
-                    width: 250,
-                    height: 250
+                    width: 200,
+                    height: 200
                 },
                 aspectRatio: 1.0,
                 rememberLastUsedCamera: true
