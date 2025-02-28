@@ -11,11 +11,11 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
     $showTitle = "Unbekannte Vorstellung";
 }
 
-// Den Wert von VOTE_URL zuweisen
-$vote_url = defined('VOTE_URL') ? VOTE_URL : 'https://example.com/vote'; // Fallback-URL
 
-// QR-Code URL generieren
-$qrcode_url = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" . urlencode($vote_url); // QR-Code URL
+$vote_url = defined('VOTE_URL') ? VOTE_URL : 'https://example.com/vote'; 
+
+
+$qrcode_url = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" . urlencode($vote_url); 
 ?>
 
 <!DOCTYPE html>

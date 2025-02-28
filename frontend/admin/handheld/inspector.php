@@ -59,7 +59,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.lordicon.com/lordicon.js"></script>
     <style>
-        /* Allgemeine Stile */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
@@ -387,7 +386,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             document.getElementById('blurBackground').style.display = 'block';
             document.getElementById('spinnerPopup').style.display = 'block';
 
-            // Scroll to top when opening the result popup
+
             window.scrollTo(0, 0);
 
             fetch(window.location.href, {
@@ -568,7 +567,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         option.remove();
                     }
                 });
-                selectElement.selectedIndex = 0; 
+                selectElement.selectedIndex = 0;
                 clearInterval(this);
             }
         }, 1000);

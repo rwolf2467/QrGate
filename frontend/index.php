@@ -234,7 +234,6 @@ $shows = getShows();
             color: black;
         }
 
-        /* Neue CSS-Animationen für das Modal */
         .modal-enter {
             opacity: 0;
             transform: scale(0.9);

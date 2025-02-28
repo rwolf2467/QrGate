@@ -10,13 +10,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ratingValue = $_POST['rating'] ?? 0;
     $comment = $_POST['comment'] ?? '';
 
-    // Überprüfen, ob der Benutzer bereits abgestimmt hat
+
     if (isset($_SESSION['has_voted']) && $_SESSION['has_voted'] === true) {
         $error = 'You have already voted.';
     } elseif ($ratingValue == 0) {
         $error = 'Please select a rating.';
     } else {
-        // API-Anfrage an die Vote-API
+
         $ch = curl_init(API_BASE_URL . 'api/vote');
         $requestData = json_encode(['value' => $ratingValue, 'comment' => $comment]);
 
@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($httpCode === 200) {
             $result = json_decode($response, true);
             $message = $result['message'] ?? 'Feedback submitted successfully.';
-            $_SESSION['has_voted'] = true; // Abstimmungsstatus speichern
+            $_SESSION['has_voted'] = true;
         } else {
             $message = 'Error while submitting feedback.';
         }
@@ -56,8 +56,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* Hier können Sie Ihre benutzerdefinierten Stile hinzufügen */
-
         :root {
             --background-color: #0a0a0a;
             --card-background: #111111;
@@ -89,7 +87,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .container {
             max-width: 800px;
             width: 90%;
-            /* Responsive width */
             margin: auto;
             padding: 20px;
             background: var(--card-background);
@@ -106,26 +103,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .icon {
             margin-right: 8px;
-            /* Abstand zwischen Icon und Text */
         }
 
         .fa-star {
             font-size: 2rem;
-            /* Größe der Sterne erhöhen */
         }
 
         @media (max-width: 600px) {
             .container {
                 padding: 10px;
-                /* Weniger Padding auf kleinen Bildschirmen */
             }
         }
 
         .blur-sm {
             filter: blur(4px);
-            /* Verwenden Sie einen Blur-Effekt */
             pointer-events: none;
-            /* Verhindert Interaktionen mit dem Formular */
         }
 
 
@@ -134,7 +126,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            /* Zentriert das Element */
             text-align: center;
             z-index: 1000;
         }
@@ -143,8 +134,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background-color: var(--border-color);
             color: var(--text-color);
         }
-
-        /* Weitere CSS-Regeln aus welcome.php können hier hinzugefügt werden */
     </style>
 </head>
 
