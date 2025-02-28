@@ -32,6 +32,13 @@ QrGate is a modular ticket control system for live events to manage free tickets
     <img src="https://github.com/user-attachments/assets/bddf2ece-0448-4949-afc9-3e7cdcd8146f" alt="Welcome Screen 2" width="45%" />
 </div>
 
+### Feedback Screen (for public monitors at the entrance)
+<div style="display: flex; justify-content: space-around;">
+    <img src="https://github.com/user-attachments/assets/65e6531f-2c99-430f-9d10-0863998c9ccc" alt="Feedbackscreen">
+    <img src="https://github.com/user-attachments/assets/9b29345c-e0cc-47a9-967a-0866f38bba26" alt="Feedbackscreen">
+    <img src="https://github.com/user-attachments/assets/6895fc6d-9dc7-47ae-9fea-68f13c2e9c39" alt="Feedbackscreen">
+</div>
+
 ### Mobile Handheld (Ticket Validator & Inspector)
 <div style="display: flex; justify-content: space-around;">
     <img src="https://github.com/user-attachments/assets/f73c137c-ea4c-458d-81a0-e8de1f8fcdc4" alt="Mobile Handheld (Ticket Validator)" width="45%" />
