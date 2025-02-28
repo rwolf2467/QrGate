@@ -27,13 +27,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-
         header('Content-Type: application/json');
         http_response_code($httpCode);
         echo $response;
         exit;
     } else {
-
         header('Content-Type: application/json');
         http_response_code(400);
         echo json_encode([
@@ -453,7 +451,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <h3 style="color:black;"><b>Ticket Details:</b></h3>
                             <p><strong><i class="fa-solid fa-ticket"></i> Ticket ID:</strong> ${data.data.tid}</p>
                             <p><strong><i class="fa-solid fa-user"></i> Name:</strong> ${data.data.first_name} ${data.data.last_name}</p>
-                            <p><strong><i class="fa-solid fa-coins"></i> Type:</strong> ${data.data.type}</p>
+                            <p><strong><i class="fa-solid fa-filter"></i> Type:</strong> ${data.data.type}</p>
                             <p><strong><i class="fa-solid fa-coins"></i> Paid:</strong> ${data.data.paid ? 'Yes' : 'No'}</p>
                             <p><strong><i class="fa-solid fa-calendar-days"></i> Valid Until:</strong> ${data.data.valid_date}</p>
                             <p><strong><i class="fa-solid fa-clock"></i> Used At:</strong> ${data.data.used_at || 'Not Used Yet'}</p>
@@ -491,13 +489,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <h3 style="color:black;"><b>Ticket Details:</h3>
                             <p><strong><i class="fa-solid fa-ticket"></i> Ticket ID:</strong> ${data.data.tid}</p>
                             <p><strong><i class="fa-solid fa-user"></i> Name:</strong> ${data.data.first_name} ${data.data.last_name}</p>
-                            <p><strong><i class="fa-solid fa-coins"></i> Type:</strong> ${data.data.type}</p>
+                            <p><strong><i class="fa-solid fa-filter"></i> Type:</strong> ${data.data.type}</p>
                             <p><strong><i class="fa-solid fa-coins"></i> Paid:</strong> ${data.data.paid ? 'Yes' : 'No'}</p>
                             <p><strong><i class="fa-solid fa-calendar-days"></i> Valid Until:</strong> ${data.data.valid_date}</p>
                             <p><strong><i class="fa-solid fa-clock"></i> Used At:</strong> ${data.data.used_at || 'Not Used Yet'}</p>
                             <div class="attempts-summary">
                                 <p><strong><i class="fa-solid fa-exclamation-circle"></i> Access Attempts:</strong> ${data.data.access_attempts.length || "N/A"}</p>
-                                <p><strong><i class="fa-solid fa-check-circle"></i> Successful Attempts:</strong> ${data.data.access_attempts.filter(attempt => attempt.status === 'success').length}</p>
+                                <p><strong><i class="fa-solid fa-check-circle"></i> Successful Attempts:</strong> ${data.data.access_attempts.filter(attempt => attempt.status === 'success').length || "N/A"}</p>
                                 <p><strong><i class="fa-solid fa-times-circle"></i> Failed Attempts:</strong> ${data.data.access_attempts.filter(attempt => attempt.status === 'error').length || "N/A"}</p>
                             </div>
                         </div>
@@ -576,6 +574,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         );
         html5QrcodeScanner.render(onScanSuccess);
+        setTimeout(() => {
+            html5QrcodeScanner.start();
+        }, 1500);
 
 
         function navigateToApp() {

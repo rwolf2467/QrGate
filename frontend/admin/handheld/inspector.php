@@ -444,7 +444,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <h3 style="color:black;"><b>Ticket Details:</b></h3>
                             <p><strong><i class="fa-solid fa-ticket"></i> Ticket ID:</strong> ${data.data.tid}</p>
                             <p><strong><i class="fa-solid fa-user"></i> Name:</strong> ${data.data.first_name} ${data.data.last_name}</p>
-                            <p><strong><i class="fa-solid fa-coins"></i> Type:</strong> ${data.data.type}</p>
+                            <p><strong><i class="fa-solid fa-filter"></i> Type:</strong> ${data.data.type}</p>
                             <p><strong><i class="fa-solid fa-coins"></i> Paid:</strong> ${data.data.paid ? 'Yes' : 'No'}</p>
                             <p><strong><i class="fa-solid fa-calendar-days"></i> Valid Until:</strong> ${data.data.valid_date}</p>
                             <p><strong><i class="fa-solid fa-clock"></i> Used At:</strong> ${data.data.used_at || 'Not Used Yet'}</p>
@@ -491,7 +491,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <h3 style="color:black;"><b>Ticket Details:</b></h3>
                             <p><strong><i class="fa-solid fa-ticket"></i> Ticket ID:</strong> ${data.data.tid}</p>
                             <p><strong><i class="fa-solid fa-user"></i> Name:</strong> ${data.data.first_name} ${data.data.last_name}</p>
-                            <p><strong><i class="fa-solid fa-coins"></i> Type:</strong> ${data.data.type}</p>
+                            <p><strong><i class="fa-solid fa-filter"></i> Type:</strong> ${data.data.type}</p>
                             <p><strong><i class="fa-solid fa-coins"></i> Paid:</strong> ${data.data.paid ? 'Yes' : 'No'}</p>
                             <p><strong><i class="fa-solid fa-calendar-days"></i> Valid Until:</strong> ${data.data.valid_date}</p>
                             <p><strong><i class="fa-solid fa-clock"></i> Used At:</strong> ${data.data.used_at || 'Not Used Yet'}</p>
@@ -585,7 +585,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         );
         html5QrcodeScanner.render(onScanSuccess);
-
+        setTimeout(() => {
+            html5QrcodeScanner.start();
+        }, 1500);
 
         function navigateToApp() {
             const selectedApp = document.getElementById('appSelector').value;

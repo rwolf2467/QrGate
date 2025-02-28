@@ -10,6 +10,7 @@ from assets.vaildate import validate_ticket
 from assets.ticket_manager import create_ticket, edit_ticket, view_ticket
 from assets.manage_show import get_show, edit_show
 from assets.data import img_show
+from assets.vote import vote
 from config import conf as config
 import datetime as dt
 
@@ -26,6 +27,7 @@ view_ticket(app)
 get_show(app)
 edit_show(app)
 img_show(app)
+vote(app)
 logger.success("Systems enabled.")
 
 qr_gate = """

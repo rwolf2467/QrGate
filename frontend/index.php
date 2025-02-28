@@ -39,8 +39,9 @@ $shows = getShows();
             background-color: var(--background-color);
             color: var(--text-color);
             line-height: 1.6;
-            background-size: 23px 23px;
-            background-image: repeating-linear-gradient(45deg, #222222 0, #222222 2.3px, #0a0a0a 0, #0a0a0a 50%);
+            background-color: #0a0a0a;
+            background-size: 31px 31px;
+            background-image: repeating-linear-gradient(45deg, #222222 0, #222222 3.1px, #0a0a0a 0, #0a0a0a 50%);
             background-attachment: fixed;
         }
 

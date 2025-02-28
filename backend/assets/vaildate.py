@@ -40,14 +40,15 @@ def validate_ticket(app: quart.Quart):
             if not ticket:
                 logger.debug.info(f"Ticket not found: {ticket_id}")
                 temp_data = {
-                    "tid": "N/A",
-                    "first_name": "N/A",
-                    "last_name": "N/A",
-                    "paid": "N/A",
-                    "valid_date": "N/A",
-                    "seats": "N/A",
-                    "valid": "N/A",
-                    "used_at": "N/A",
+                    "tid": "Unknown",
+                    "first_name": "Unknown",
+                    "last_name": "Unknown",
+                    "paid": "Unknown",
+                    "valid_date": "Unknown",
+                    "type": "Unknown",
+                    "valid": "Unknown",
+                    "used_at": "Unknown",
+                    "access_attempts": [],
                 }
                 return (
                     quart.jsonify(
@@ -68,6 +69,7 @@ def validate_ticket(app: quart.Quart):
                         "time": str(time.strftime("%Y.%m.%d - %H:%M:%S")),
                     }
                 )
+                ticket["used_at"] = str(time.strftime("%Y.%m.%d - %H:%M:%S"))
                 save_tickets(ticket_id, ticket)
                 return (
                     quart.jsonify(
@@ -88,6 +90,7 @@ def validate_ticket(app: quart.Quart):
                         "time": str(time.strftime("%Y.%m.%d - %H:%M:%S")),
                     }
                 )
+                ticket["used_at"] = str(time.strftime("%Y.%m.%d - %H:%M:%S"))
                 save_tickets(ticket_id, ticket)
                 return (
                     quart.jsonify(

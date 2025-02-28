@@ -312,11 +312,11 @@ def view_ticket(app=quart.Quart):
                     "tid": f"{tid}",
                     "first_name": "Unknown",
                     "last_name": "Unknown",
-                    "paid": None,
+                    "type": "Unknown",
+                    "paid": "Unknown",
                     "valid_date": "Unknown",
-                    "seats": None,
-                    "valid": None,
-                    "used_at": None,
+                    "valid": "Unknown",
+                    "used_at": "Unknown",
                     "access_attempts": [],
                 }
                 logger.debug.info(f"Ticket not found: {data}")
