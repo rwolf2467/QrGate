@@ -12,9 +12,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Überprüfen, ob der Benutzer bereits abgestimmt hat
     if (isset($_SESSION['has_voted']) && $_SESSION['has_voted'] === true) {
-        $error = 'Sie haben bereits abgestimmt.';
+        $error = 'You have already voted.';
     } elseif ($ratingValue == 0) {
-        $error = 'Bitte wählen Sie eine Bewertung aus.';
+        $error = 'Please select a rating.';
     } else {
         // API-Anfrage an die Vote-API
         $ch = curl_init(API_BASE_URL . 'api/vote');
@@ -36,10 +36,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($httpCode === 200) {
             $result = json_decode($response, true);
-            $message = $result['message'] ?? 'Bewertung erfolgreich abgegeben.';
+            $message = $result['message'] ?? 'Feedback submitted successfully.';
             $_SESSION['has_voted'] = true; // Abstimmungsstatus speichern
         } else {
-            $message = 'Fehler bei der Abgabe der Bewertung.';
+            $message = 'Error while submitting feedback.';
         }
     }
 }
@@ -139,6 +139,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             z-index: 1000;
         }
 
+        textarea {
+            background-color: var(--border-color);
+            color: var(--text-color);
+        }
+
         /* Weitere CSS-Regeln aus welcome.php können hier hinzugefügt werden */
     </style>
 </head>
@@ -147,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="container mx-auto px-4 py-8 <?php echo isset($_SESSION['has_voted']) && $_SESSION['has_voted'] === true ? 'blur-sm' : ''; ?>" style="position: relative;">
         <h1 class="text-3xl font-bold mb-4">
             <i class="fas fa-pencil-alt icon"></i>
-            Submit your vote
+            Submit your feedback
         </h1>
         <p class="text-lg mb-4">Average rating: <?php echo $stars; ?> stars</p>
         <form method="POST" action="">
@@ -168,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded" <?php echo isset($_SESSION['has_voted']) && $_SESSION['has_voted'] === true ? 'disabled' : ''; ?>>
                 <i class="fas fa-paper-plane icon"></i>
-                Submit vote
+                Submit feedback
             </button>
         </form>
 

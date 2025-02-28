@@ -9,6 +9,7 @@ define('API_BASE_URL', 'https://qrgate-backend.avocloud.net/');
 define('PAYPAL_CLIENT_ID', 'YourPayPalClientIdHere');
 define('PAYPAL_CLIENT_SECRET', 'YourPayPalClientSecretHere');
 define('PAYPAL_MODE', 'sandbox');
+define('VOTE_URL', 'https://qrgate.avocloud.net/vote/');
 
 
 function makeApiCall($endpoint, $method = 'GET', $data = null)
