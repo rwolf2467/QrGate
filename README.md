@@ -6,7 +6,7 @@ QrGate is a modular ticket control system for live events to manage free tickets
 
 ## Authors
 
-- Project manager and leading developer: [@rwolf2467](https://www.github.com/rwolf2467)
+- Project manager and backend developer: [@rwolf2467](https://www.github.com/rwolf2467)
 - Frontend developer: [@matti_evt](https://discordapp.com/users/1068602876110315530) & [@rwolf2467](https://www.github.com/rwolf2467)
 
 
