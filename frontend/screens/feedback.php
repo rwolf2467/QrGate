@@ -12,7 +12,7 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
 }
 
 
-$vote_url = defined('VOTE_URL') ? VOTE_URL : 'https://example.com/vote'; 
+$vote_url = defined('ORIGIN_URL') . 'vote/'; 
 
 
 $qrcode_url = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" . urlencode($vote_url); 

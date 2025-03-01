@@ -1,15 +1,63 @@
 <?php
 require_once 'config.php';
-require "translate.php";
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['language'])) {
+    $_SESSION['language'] = $_POST['language'];
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit();
+}
+
+$languages = [
+    'en' => [
+        'flag' => '🇬🇧',
+        'name' => 'English',
+        'error_loading_shows' => 'Error loading shows',
+        'try_again' => 'Please try again later or contact support.',
+        'buy_tickets' => 'Buy Tickets',
+        'first_name' => 'First Name',
+        'last_name' => 'Last Name',
+        'email' => 'Email',
+        'number_of_tickets' => 'Number of Tickets',
+        'payment_method' => 'Payment Method',
+        'cash_payment' => 'Cash payment',
+        'online_payment' => 'Online payment',
+        'book_tickets' => 'Book Tickets',
+        'need_help' => 'Do you need help?',
+        'sold_out' => 'Sold out',
+        'seats_left' => 'Only {count} seats left!',
+        'seats_available' => '{available} of {total} seats available.',
+    ],
+    'de' => [
+        'flag' => '🇩🇪',
+        'name' => 'Deutsch',
+        'error_loading_shows' => 'Fehler beim Laden der Shows',
+        'try_again' => 'Bitte versuche es später erneut oder kontaktiere den Support.',
+        'buy_tickets' => 'Tickets kaufen',
+        'first_name' => 'Vorname',
+        'last_name' => 'Nachname',
+        'email' => 'E-Mail',
+        'number_of_tickets' => 'Anzahl der Tickets',
+        'payment_method' => 'Zahlungsmethode',
+        'cash_payment' => 'Barzahlung',
+        'online_payment' => 'Online-Zahlung',
+        'book_tickets' => 'Tickets buchen',
+        'need_help' => 'Brauchen Sie Hilfe?',
+        'sold_out' => 'Ausverkauft',
+        'seats_left' => 'Nur {count} Plätze frei!',
+        'seats_available' => '{available} von {total} Plätzen verfügbar.',
+    ],
+];
+
+$current_language = $_SESSION['language'] ?? 'de';
 $shows = getShows();
 ?>
 <!DOCTYPE html>
-<html lang="de">
+<html lang="<?php echo $current_language; ?>">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Gate - Theater Tickets</title>
+    <title><?php echo htmlspecialchars($shows['orga_name']); ?> - Tickets</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -284,7 +332,7 @@ $shows = getShows();
             <select name="language" onchange="this.form.submit()">
                 <?php foreach ($languages as $code => $lang): ?>
                     <option value="<?php echo $code; ?>"
-                        <?php echo ($_SESSION['language'] == $code) ? 'selected' : ''; ?>>
+                        <?php echo ($current_language == $code) ? 'selected' : ''; ?>>
                         <span class="flag"><?php echo $lang['flag']; ?></span>
                         <?php echo $lang['name']; ?>
                     </option>
@@ -298,28 +346,28 @@ $shows = getShows();
                 <svg class="w-16 h-16 mx-auto text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <h2 class="text-2xl font-bold mb-4" data-translate>Error loading shows</h2>
-                <p class="text-gray-300" data-translate>Please try again later or contact support.</p>
-                <button onclick="location.reload()" class="mt-6 px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg transition-colors" data-translate>
+                <h2 class="text-2xl font-bold mb-4"><?php echo $languages[$current_language]['error_loading_shows']; ?></h2>
+                <p class="text-gray-300"><?php echo $languages[$current_language]['try_again']; ?></p>
+                <button onclick="location.reload()" class="mt-6 px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg transition-colors">
                     Try again
                 </button>
             </div>
         </div>
 
     <?php else: ?>
-        <!-- Smooth loading animation container -->
+        
         <div class="animate-fade-in">
-            <!-- Hero Section with Banner -->
+            
             <div class="relative min-h-[60vh] flex items-center justify-center mb-12">
                 <div class="absolute inset-0 bg-black opacity-50"></div>
                 <div class="absolute inset-0 bg-cover bg-center transform scale-100 transition-transform duration-700"
                     style="background-image: url('<?php echo htmlspecialchars($shows['banner']); ?>')"></div>
                 <div class="relative z-10 text-center px-4 py-16 backdrop-blur-sm bg-black/30 rounded-xl mx-4">
                     <h1 class="orga-name animate-fade-in-up">
-                        <b><span data-translate><?php echo htmlspecialchars($shows['orga_name']); ?></span></b>
+                        <b><span><?php echo htmlspecialchars($shows['orga_name']); ?></span></b>
                     </h1>
                     <h2 class="animate-fade-in-up">
-                        <span class="show-name"><b><span data-translate><?php echo htmlspecialchars($shows['title']); ?></span></b></span>
+                        <span class="show-name"><b><span><?php echo htmlspecialchars($shows['title']); ?></span></b></span>
                     </h2>
                 </div>
             </div>
@@ -352,11 +400,11 @@ $shows = getShows();
                                         echo $date->format('d.m.Y'); ?>
                                     </span>
                                     <?php if ($show['seats_available'] <= 20 && $show['seats_available'] > 0): ?>
-                                        <span class="soon-sold-out font-semibold animate-pulse" data-translate>
-                                            Only <?php echo $show['seats_available']; ?> seats left!
+                                        <span class="soon-sold-out font-semibold animate-pulse">
+                                            <?php echo str_replace('{count}', $show['seats_available'], $languages[$current_language]['seats_left']); ?>
                                         </span>
                                     <?php elseif ($show['seats_available'] == 0): ?>
-                                        <span class="sold-out font-bold animate-pulse" data-translate>Sold out</span>
+                                        <span class="sold-out font-bold animate-pulse"><?php echo $languages[$current_language]['sold_out']; ?></span>
                                     <?php endif; ?>
                                 </div>
 
@@ -370,8 +418,8 @@ $shows = getShows();
                                     <div class="relative pt-1">
                                         <div class="flex mb-2 items-center justify-between">
                                             <div class="text-right">
-                                                <span class="text-xs font-semibold inline-block bar-text" data-translate>
-                                                    <?php echo htmlspecialchars($show['seats_available']); ?> of <?php echo htmlspecialchars($show['seats']); ?> seats available.
+                                                <span class="text-xs font-semibold inline-block bar-text">
+                                                    <?php echo str_replace(['{available}', '{total}'], [htmlspecialchars($show['seats_available']), htmlspecialchars($show['seats'])], $languages[$current_language]['seats_available']); ?>
                                                 </span>
                                             </div>
                                         </div>
@@ -389,7 +437,7 @@ $shows = getShows();
                                     <button
                                         onclick="showBookingForm('<?php echo $id; ?>', '<?php echo $show['date']; ?>', '<?php echo $show['price']; ?>', '<?php echo $show['seats_available']; ?>')"
                                         class="w-full text-gray-900 py-4 px-6 rounded-lg font-bold transform hover:-translate-y-1 transition-all duration-300">
-                                        <span data-translate>Buy Tickets</span>
+                                        <span><?php echo $languages[$current_language]['buy_tickets']; ?></span>
                                     </button>
                                 <?php endif; ?>
                             </div>
@@ -413,35 +461,36 @@ $shows = getShows();
                     }
                 </style>
 
-                <!-- Modernized Booking Modal -->
+                
                 <div id="bookingModal" class="hidden fixed inset-0 overflow-y-auto h-full w-full z-50 modal">
                     <div class="relative min-h-screen flex items-center justify-center p-4">
                         <div class="relative w-full max-w-md border rounded-2xl shadow-2xl p-8 nichtunsichbarbittediggi">
                             <div id="modalError" class="hidden bg-red-900/50 backdrop-blur-md border border-red-700 text-red-100 px-4 py-3 rounded-lg relative mb-6">
                             </div>
                             <form id="bookingForm" action="buy.php" method="POST" class="space-y-6">
+                                <p><i class="fa-solid fa-circle-question"></i><a href="/help/buy_ticket.php" class="text-gray-200" target="_blank"> <span><?php echo $languages[$current_language]['need_help']; ?></span></a></p>
                                 <input type="hidden" name="valid_date" id="validDate">
                                 <input type="hidden" name="price" id="ticketPrice">
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-gray-200" data-translate>First Name</label>
+                                    <label class="block text-sm font-medium text-gray-200"><?php echo $languages[$current_language]['first_name']; ?></label>
                                     <input type="text" name="first_name" placeholder="Max" required
                                         class="w-full p-4 rounded-lg text-white inputs transition-all">
                                 </div>
 
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-gray-200" data-translate>Last Name</label>
+                                    <label class="block text-sm font-medium text-gray-200"><?php echo $languages[$current_language]['last_name']; ?></label>
                                     <input type="text" name="last_name" placeholder="Mustermann" required
                                         class="w-full p-4 rounded-lg text-white inputs transition-all">
                                 </div>
 
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-gray-200" data-translate>Email</label>
+                                    <label class="block text-sm font-medium text-gray-200"><?php echo $languages[$current_language]['email']; ?></label>
                                     <input type="text" name="email" placeholder="max.mustermann@example.com" required
                                         class="w-full p-4 rounded-lg text-white inputs transition-all">
                                 </div>
 
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-gray-200" data-translate>Number of Tickets</label>
+                                    <label class="block text-sm font-medium text-gray-200"><?php echo $languages[$current_language]['number_of_tickets']; ?></label>
                                     <select name="seats" required class="w-full p-4 rounded-lg text-white inputs transition-all" onchange="updateNameFields()">
                                     </select>
                                 </div>
@@ -449,19 +498,19 @@ $shows = getShows();
                                 <div id="nameFieldsContainer" class="space-y-2"></div>
 
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-gray-200" data-translate>Payment Method</label>
+                                    <label class="block text-sm font-medium text-gray-200"><?php echo $languages[$current_language]['payment_method']; ?></label>
                                     <select name="payment_method" id="paymentMethod" required
                                         class="w-full p-4 rounded-lg text-white inputs transition-all">
-                                        <option value="bar" data-translate>Cash payment</option>
-                                        <option value="paypal" data-translate>PayPal</option>
+                                        <option value="bar"><?php echo $languages[$current_language]['cash_payment']; ?></option>
+                                        <option value="paypal"><?php echo $languages[$current_language]['online_payment']; ?></option>
                                     </select>
                                 </div>
 
                                 <div id="paypalButtons" class="hidden mt-6"></div>
 
                                 <button type="submit" id="submitButton"
-                                    class="w-full text-gray-900 py-4 px-6 rounded-lg font-bold transform hover:-translate-y-1 transition-all duration-300" data-translate>
-                                    Buy Tickets
+                                    class="w-full text-gray-900 py-4 px-6 rounded-lg font-bold transform hover:-translate-y-1 transition-all duration-300">
+                                    <?php echo $languages[$current_language]['book_tickets']; ?>
                                 </button>
 
                                 <button type="button" onclick="closeModal()"
