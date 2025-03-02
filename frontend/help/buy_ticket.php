@@ -53,7 +53,7 @@ $languages = [
         'step12' => 'Du erhälst dein Ticket per E-Mail.',
     ],
 ];
-
+$current_language = $_SESSION['language'] ?? 'en';
 ?>
 
 <!DOCTYPE html>
@@ -360,7 +360,6 @@ $languages = [
 
 <body>
     <div id="gradientbar"></div>
-    <div id="particles-js"></div>
     <div class="language-selector">
         <form method="post" id="langForm">
             <select name="language" onchange="changeLanguage(this.value)">
@@ -443,7 +442,6 @@ $languages = [
         </main>
     </div>
 </body>
-<script src="./assets/js/main.js"></script>
 <script>
     function changeLanguage(language) {
         document.getElementById('langForm').submit();

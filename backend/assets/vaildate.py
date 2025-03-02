@@ -60,7 +60,7 @@ def validate_ticket(app: quart.Quart):
                     ),
                     200,
                 )
-            
+
             if ticket.get("type") == "admin":
                 ticket["access_attempts"].append(
                     {
@@ -81,7 +81,7 @@ def validate_ticket(app: quart.Quart):
                     ),
                     200,
                 )
-            
+
             if ticket.get("type") == "vip":
                 ticket["access_attempts"].append(
                     {

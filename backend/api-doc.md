@@ -41,7 +41,7 @@
 >     "first_name": "Max",
 >     "last_name": "Mustermann",
 >     "email": "max.mustermann@example.com",
->     "seats": 3
+>     "tickets": 3
 > }
 > ```
 > 
@@ -57,7 +57,7 @@
 > 
 > {
 >     "status": "error", 
->     "message": "Not enough seats available""
+>     "message": "Not enough tickets available""
 > }
 > ```
 
@@ -76,7 +76,7 @@
 >     "valid_date": "2025-02-10", #optinal
 >     "first_name": "Max", #optional
 >     "last_name": "Mustermann", #optional
->     "seats": 3
+>     "tickets": 3
 > }
 > ```
 > 
@@ -112,15 +112,15 @@
 >         "1": {
 >             "date": "2025-02-12",
 >             "time": "hh:mm",
->             "seats": 200,
->             "seats_available": 130,
+>             "tickets": 200,
+>             "tickets_available": 130,
 >             "price": "12"
 >         },
 >         "2": {
 >             "date": "2025-02-11",
 >             "time": "hh:mm",
->             "seats": 200,
->             "seats_available": 10,
+>             "tickets": 200,
+>             "tickets_available": 10,
 >             "price": "18"
 >         }
 >     } #optional
@@ -162,15 +162,15 @@
 >         "1": {
 >             "date": "2025-02-12",
 >             "time": "hh:mm",
->             "seats": 200,
->             "seats_available": 130,
+>             "tickets": 200,
+>             "tickets_available": 130,
 >             "price": "12"
 >         },
 >         "2": {
 >             "date": "2025-02-11",
 >             "time": "hh:mm",
->             "seats": 200,
->             "seats_available": 10,
+>             "tickets": 200,
+>             "tickets_available": 10,
 >             "price": "18"
 >         }
 >     }

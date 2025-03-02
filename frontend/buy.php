@@ -13,7 +13,7 @@ session_start();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
 
-        $requiredFields = ['first_name', 'last_name', 'seats', 'valid_date', 'payment_method', 'price'];
+        $requiredFields = ['first_name', 'last_name', 'tickets', 'valid_date', 'payment_method', 'price'];
         foreach ($requiredFields as $field) {
             if (!isset($_POST[$field]) || empty($_POST[$field])) {
                 throw new Exception("Feld '$field' ist erforderlich");
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'first_name' => trim($_POST['first_name']),
             'last_name' => trim($_POST['last_name']),
             'email' => trim($_POST['email']),
-            'seats' => (int)$_POST['seats'],
+            'tickets' => (int)$_POST['tickets'],
             'valid_date' => $_POST['valid_date'],
             'price' => (float)$_POST['price'],
             'paid' => false,
@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
 
 
-        if ($ticketData['seats'] < 1 || $ticketData['seats'] > 11) {
+        if ($ticketData['tickets'] < 1 || $ticketData['tickets'] > 11) {
             throw new Exception('Invalid number of people! Please do not play around with the code of this page, otherwise your access to this page will be denied.');
         }
 

@@ -21,6 +21,6 @@ def vote(app: quart.Quart):
             if "comments" not in vote_data:
                 vote_data["comments"] = []
             vote_data["comments"].append(str(comment))
-        
+
         save_show(show)
         return quart.jsonify({"status": "success", "message": "Vote received"}), 200

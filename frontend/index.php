@@ -24,8 +24,8 @@ $languages = [
         'book_tickets' => 'Book Tickets',
         'need_help' => 'Do you need help?',
         'sold_out' => 'Sold out',
-        'seats_left' => 'Only {count} seats left!',
-        'seats_available' => '{available} of {total} seats available.',
+        'tickets_left' => 'Only {count} tickets left!',
+        'tickets_available' => '{available} of {total} tickets available.',
     ],
     'de' => [
         'flag' => '🇩🇪',
@@ -43,12 +43,12 @@ $languages = [
         'book_tickets' => 'Tickets buchen',
         'need_help' => 'Brauchen Sie Hilfe?',
         'sold_out' => 'Ausverkauft',
-        'seats_left' => 'Nur {count} Plätze frei!',
-        'seats_available' => '{available} von {total} Plätzen verfügbar.',
+        'tickets_left' => 'Nur {count} Plätze frei!',
+        'tickets_available' => '{available} von {total} Plätzen verfügbar.',
     ],
 ];
 
-$current_language = $_SESSION['language'] ?? 'de';
+$current_language = $_SESSION['language'] ?? 'en';
 $shows = getShows();
 ?>
 <!DOCTYPE html>
@@ -323,6 +323,11 @@ $shows = getShows();
         .language-selector .flag {
             margin-right: 5px;
         }
+
+        .help-question {
+            font-size: larger;
+            margin-top: -10px;
+        }
     </style>
 </head>
 
@@ -355,9 +360,9 @@ $shows = getShows();
         </div>
 
     <?php else: ?>
-        
+
         <div class="animate-fade-in">
-            
+
             <div class="relative min-h-[60vh] flex items-center justify-center mb-12">
                 <div class="absolute inset-0 bg-black opacity-50"></div>
                 <div class="absolute inset-0 bg-cover bg-center transform scale-100 transition-transform duration-700"
@@ -399,11 +404,11 @@ $shows = getShows();
                                         <?php $date = new DateTime($show['date']);
                                         echo $date->format('d.m.Y'); ?>
                                     </span>
-                                    <?php if ($show['seats_available'] <= 20 && $show['seats_available'] > 0): ?>
+                                    <?php if ($show['tickets_available'] <= 20 && $show['tickets_available'] > 0): ?>
                                         <span class="soon-sold-out font-semibold animate-pulse">
-                                            <?php echo str_replace('{count}', $show['seats_available'], $languages[$current_language]['seats_left']); ?>
+                                            <?php echo str_replace('{count}', $show['tickets_available'], $languages[$current_language]['tickets_left']); ?>
                                         </span>
-                                    <?php elseif ($show['seats_available'] == 0): ?>
+                                    <?php elseif ($show['tickets_available'] == 0): ?>
                                         <span class="sold-out font-bold animate-pulse"><?php echo $languages[$current_language]['sold_out']; ?></span>
                                     <?php endif; ?>
                                 </div>
@@ -419,23 +424,23 @@ $shows = getShows();
                                         <div class="flex mb-2 items-center justify-between">
                                             <div class="text-right">
                                                 <span class="text-xs font-semibold inline-block bar-text">
-                                                    <?php echo str_replace(['{available}', '{total}'], [htmlspecialchars($show['seats_available']), htmlspecialchars($show['seats'])], $languages[$current_language]['seats_available']); ?>
+                                                    <?php echo str_replace(['{available}', '{total}'], [htmlspecialchars($show['tickets_available']), htmlspecialchars($show['tickets'])], $languages[$current_language]['tickets_available']); ?>
                                                 </span>
                                             </div>
                                         </div>
                                         <div class="overflow-hidden h-2 text-xs flex rounded bar-dark">
                                             <?php
-                                            $occupiedSeats = $show['seats'] - $show['seats_available'];
-                                            $percentage = ($occupiedSeats / $show['seats']) * 100;
+                                            $occupiedtickets = $show['tickets'] - $show['tickets_available'];
+                                            $percentage = ($occupiedtickets / $show['tickets']) * 100;
                                             echo "<div style='width: {$percentage}%' class='shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bar'></div>";
                                             ?>
                                         </div>
                                     </div>
                                 </div>
 
-                                <?php if ($show['seats_available'] > 0): ?>
+                                <?php if ($show['tickets_available'] > 0): ?>
                                     <button
-                                        onclick="showBookingForm('<?php echo $id; ?>', '<?php echo $show['date']; ?>', '<?php echo $show['price']; ?>', '<?php echo $show['seats_available']; ?>')"
+                                        onclick="showBookingForm('<?php echo $id; ?>', '<?php echo $show['date']; ?>', '<?php echo $show['price']; ?>', '<?php echo $show['tickets_available']; ?>')"
                                         class="w-full text-gray-900 py-4 px-6 rounded-lg font-bold transform hover:-translate-y-1 transition-all duration-300">
                                         <span><?php echo $languages[$current_language]['buy_tickets']; ?></span>
                                     </button>
@@ -459,16 +464,21 @@ $shows = getShows();
                     .nichtunsichbarbittediggi select {
                         color: black;
                     }
+
+                    .help-question {
+                        font-size: larger;
+                        margin-top: -10px;
+                    }
                 </style>
 
-                
+
                 <div id="bookingModal" class="hidden fixed inset-0 overflow-y-auto h-full w-full z-50 modal">
                     <div class="relative min-h-screen flex items-center justify-center p-4">
                         <div class="relative w-full max-w-md border rounded-2xl shadow-2xl p-8 nichtunsichbarbittediggi">
                             <div id="modalError" class="hidden bg-red-900/50 backdrop-blur-md border border-red-700 text-red-100 px-4 py-3 rounded-lg relative mb-6">
                             </div>
                             <form id="bookingForm" action="buy.php" method="POST" class="space-y-6">
-                                <p><i class="fa-solid fa-circle-question"></i><a href="/help/buy_ticket.php" class="text-gray-200" target="_blank"> <span><?php echo $languages[$current_language]['need_help']; ?></span></a></p>
+                                <p class="animate-pulse help-question flex items-center"><i class="fa-solid fa-circle-question"></i> <a href="/help/buy_ticket.php" class="text-gray-200" target="_blank"> <span><?php echo $languages[$current_language]['need_help']; ?></span></a></p>
                                 <input type="hidden" name="valid_date" id="validDate">
                                 <input type="hidden" name="price" id="ticketPrice">
                                 <div class="space-y-2">
@@ -491,7 +501,7 @@ $shows = getShows();
 
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-gray-200"><?php echo $languages[$current_language]['number_of_tickets']; ?></label>
-                                    <select name="seats" required class="w-full p-4 rounded-lg text-white inputs transition-all" onchange="updateNameFields()">
+                                    <select name="tickets" required class="w-full p-4 rounded-lg text-white inputs transition-all" onchange="updateNameFields()">
                                     </select>
                                 </div>
 
@@ -563,7 +573,7 @@ $shows = getShows();
         </style>
 
         <script>
-            function showBookingForm(showId, date, price, seatsAvailable) {
+            function showBookingForm(showId, date, price, ticketsAvailable) {
                 const modal = document.getElementById('bookingModal');
                 modal.classList.remove('hidden');
                 modal.classList.add('modal-enter');
@@ -576,14 +586,14 @@ $shows = getShows();
                 initPayPalButton(price);
                 document.body.style.overflow = 'hidden';
 
-                const seatsSelect = document.querySelector('select[name="seats"]');
-                seatsSelect.innerHTML = '';
-                const maxSeats = Math.min(seatsAvailable, 10);
-                for (let i = 1; i <= maxSeats; i++) {
+                const ticketsSelect = document.querySelector('select[name="tickets"]');
+                ticketsSelect.innerHTML = '';
+                const maxtickets = Math.min(ticketsAvailable, 10);
+                for (let i = 1; i <= maxtickets; i++) {
                     const option = document.createElement('option');
                     option.value = i;
                     option.textContent = `${i} Ticket${i > 1 ? 's' : ''}`;
-                    seatsSelect.appendChild(option);
+                    ticketsSelect.appendChild(option);
                 }
             }
 
@@ -624,10 +634,10 @@ $shows = getShows();
             });
 
             function initPayPalButton(price) {
-                const seatsSelect = document.querySelector('select[name="seats"]');
+                const ticketsSelect = document.querySelector('select[name="tickets"]');
                 let currentPrice = parseFloat(price);
 
-                seatsSelect.addEventListener('change', function() {
+                ticketsSelect.addEventListener('change', function() {
                     currentPrice = parseFloat(price) * parseInt(this.value);
                     if (window.paypalButtons) {
                         window.paypalButtons.close();
@@ -677,7 +687,7 @@ $shows = getShows();
                 const firstName = this.elements['first_name'].value.trim();
                 const lastName = this.elements['last_name'].value.trim();
                 const email = this.elements['email'].value.trim();
-                const seats = this.elements['seats'].value;
+                const tickets = this.elements['tickets'].value;
 
                 let errors = [];
 
@@ -693,7 +703,7 @@ $shows = getShows();
                     errors.push('Please enter your email.');
                 }
 
-                if (!seats || seats < 1) {
+                if (!tickets || tickets < 1) {
                     errors.push('Please select the number of tickets.');
                 }
 
@@ -719,16 +729,16 @@ $shows = getShows();
             });
 
             function updateNameFields() {
-                const seatsSelect = document.querySelector('select[name="seats"]');
+                const ticketsSelect = document.querySelector('select[name="tickets"]');
                 const nameFieldsContainer = document.getElementById('nameFieldsContainer');
-                const numberOfSeats = parseInt(seatsSelect.value);
+                const numberOftickets = parseInt(ticketsSelect.value);
 
 
                 nameFieldsContainer.innerHTML = '';
 
 
-                if (numberOfSeats > 1) {
-                    for (let i = 1; i < numberOfSeats; i++) {
+                if (numberOftickets > 1) {
+                    for (let i = 1; i < numberOftickets; i++) {
                         const inputField = document.createElement('div');
                         inputField.className = 'space-y-2';
                         inputField.innerHTML = `
@@ -753,7 +763,7 @@ $shows = getShows();
 
             async function checkAvailability(showId, ticketCount) {
 
-                const response = await fetch(`/api/ticket/available_seats/${showId}`);
+                const response = await fetch(`/api/ticket/available_tickets/${showId}`);
                 const data = await response.json();
 
                 if (data.status === "error") {
@@ -761,7 +771,7 @@ $shows = getShows();
                 }
 
 
-                return data.available_seats >= ticketCount;
+                return data.available_tickets >= ticketCount;
             }
         </script>
     <?php endif; ?>

@@ -12,15 +12,15 @@
         "1": {
             "date": "2025-01-12",
             "time": "hh:mm",
-            "seats": 200,
-            "seats_available": 26,
+            "tickets": 200,
+            "tickets_available": 26,
             "price": "12"
         },
         "2": {
             "date": "2025-01-11",
             "time": "hh:mm",
-            "seats": 200,
-            "seats_available": 10,
+            "tickets": 200,
+            "tickets_available": 10,
             "price": "18"
         }
     }

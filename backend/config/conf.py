@@ -17,5 +17,6 @@ class Mail:
     smtp_user = "user@example.com"
     smtp_password = "smtp_password"
     mail_title = "Your QrGate Ticket - {id}"
+    mail_title_paid = "Your Ticket has been paid - {id}"
     mail_paid_title = "Ticket paid"
     
