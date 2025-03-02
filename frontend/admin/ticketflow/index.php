@@ -16,6 +16,26 @@ $languages = [
         'section_title_edit' => 'EDIT TICKET',
         'title_edit' => 'Edit a existing ticket.',
         'title_create' => 'Create a new ticket.',
+        'first_name' => 'First Name',
+        'last_name' => 'Last Name',
+        'email' => 'Email',
+        'number_of_tickets' => 'Number of Tickets',
+        'valid_date' => 'Valid Date',
+        'paid' => 'Paid',
+        'used' => 'Used',
+        'type' => 'Type',
+        'create_ticket' => 'Create Ticket',
+        'cancel' => 'Cancel',
+        'save' => 'Save',
+        'send_request' => 'Send Request',   
+        'please_enter_ticket_id' => 'Please enter a ticket ID to edit a ticket',
+        'ticket_id' => 'Ticket ID',
+        'create_new' => 'Create New',
+        'visitor' => 'Visitor',
+        'admin' => 'Admin',
+        'vip' => 'VIP',
+        'true' => 'True',
+        'false' => 'False',
     ],
     'de' => [
         'flag' => '🇩🇪',
@@ -24,6 +44,26 @@ $languages = [
         'section_title_edit' => 'TICKET EDITIEREN',
         'title_edit' => 'Einen vorhandenes Ticket bearbeiten.',
         'title_create' => 'Ein neues Ticket erstellen.',
+        'first_name' => 'Vorname',
+        'last_name' => 'Nachname',
+        'email' => 'Email',
+        'number_of_tickets' => 'Anzahl der Tickets',
+        'valid_date' => 'Gültigkeitsdatum',
+        'paid' => 'Bezahlt',
+        'used' => 'Verwendet',
+        'type' => 'Typ',
+        'create_ticket' => 'Ticket erstellen',
+        'cancel' => 'Abbrechen',
+        'save' => 'Speichern',
+        'send_request' => 'Anfrage senden', 
+        'please_enter_ticket_id' => 'Bitte geben Sie eine Ticket ID ein, um ein Ticket zu bearbeiten',
+        'ticket_id' => 'Ticket ID',
+        'create_new' => 'Neu erstellen',
+        'visitor' => 'Besucher',
+        'admin' => 'Admin',
+        'vip' => 'VIP',
+        'true' => 'Wahr',
+        'false' => 'Falsch',
     ]
 ];
 
@@ -65,7 +105,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ticket_id']) && !isset
     $response = titleedit($ticket_id);
     $ticket_data = json_decode($response, true);
 
-
     if (isset($ticket_data['data'])) {
         $firstname = $ticket_data['data']['first_name'] ?? '';
         $lastname = $ticket_data['data']['last_name'] ?? '';
@@ -74,10 +113,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ticket_id']) && !isset
         $valid_date = $ticket_data['data']['valid_date'] ?? '';
     }
 } else {
-
     $ticket_id = '';
 }
-
 
 $firstname = $firstname ?? '';
 $lastname = $lastname ?? '';
@@ -93,7 +130,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
     $paid = $_POST['paid'] === 'true';
     $valid_date = $_POST['valid_date'];
 
-
     $data = [
         'tid' => $ticket_id,
         'first_name' => $firstname,
@@ -102,7 +138,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
         'paid' => $paid,
         'valid_date' => $valid_date
     ];
-
 
     $baseurl = API_BASE_URL;
     $ch = curl_init($baseurl . "api/ticket/edit");
@@ -115,34 +150,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
         ],
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => json_encode($data),
-
     ]);
 
     $response = curl_exec($ch);
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-
     $response_data = json_decode($response, true);
     echo $response_data['message'];
 
     if ($http_code === 200) {
-
         echo "<script>alert('Ticket erfolgreich gespeichert!');</script>";
-
-
+        
+        
+        $ticket_id = '';
         $firstname = '';
         $lastname = '';
         $type = '';
         $paid = 'false';
         $valid_date = '';
-        $ticket_id = '';
-
 
         header("Location: " . $_SERVER['PHP_SELF']);
         exit();
     } else {
-
         $error_message = $response_data['message'] ?? 'Unbekannter Fehler';
         echo "<script>alert('Fehler beim Speichern des Tickets: $error_message');</script>";
     }
@@ -192,6 +222,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
     if ($http_code === 200) {
         echo "<script>alert('Ticket erfolgreich erstellt!');</script>";
         
+        
+        $ticket_id = '';
+        $email = '';
+        $firstname = '';
+        $lastname = '';
+        $type = '';
+        $paid = 'false';
+        $valid_date = '';
+
+        
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit();
     } else {
         $error_message = $response_data['message'] ?? 'Unbekannter Fehler';
         echo "<script>alert('Fehler beim Erstellen des Tickets: $error_message');</script>";
@@ -545,7 +587,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
             border-radius: 4px;
             padding: 8px;
             min-width: 80px;
-            max-width: 100px;
+            max-width: 150px;
             margin-top: 10px;
         }
 
@@ -599,7 +641,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
                     </h3>
                     <form action="" method="POST">
                         <input class="inputs" type="text" placeholder="Enter Ticket ID Here" id="idinput" name="ticket_id" required>
-                        <button type="submit">Send Request</button>
+                        <button type="submit"><?php echo $languages[$current_language]['send_request']; ?></button>
                     </form>
                     <br>
                     <?php if (!empty($ticket_id)): ?>
@@ -608,36 +650,36 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
                             <input type="hidden" name="ticket_id" value="<?php echo htmlspecialchars($ticket_id); ?>">
 
                             <div id="ticketinfo">
-                                <label for="firstname">Firstname</label> <br>
+                                <label for="firstname"><?php echo $languages[$current_language]['first_name']; ?></label> <br>
                                 <input class="inputs" type="text" name="firstname" value="<?php echo htmlspecialchars($firstname); ?>"> <br>
-                                <label for="lastname">Lastname</label> <br>
+                                <label for="lastname"><?php echo $languages[$current_language]['last_name']; ?></label> <br>
                                 <input class="inputs" type="text" name="lastname" value="<?php echo htmlspecialchars($lastname); ?>"> <br>
-                                <label for="type">Type</label> <br>
+                                <label for="type"><?php echo $languages[$current_language]['type']; ?></label> <br>
                                 <select class="inputs" name="type">
                                     <option value="visitor" <?php echo ($type === 'visitor') ? 'selected' : ''; ?>>Visitor</option>
                                     <option value="admin" <?php echo ($type === 'admin') ? 'selected' : ''; ?>>Admin</option>
                                     <option value="vip" <?php echo ($type === 'vip') ? 'selected' : ''; ?>>VIP</option>
                                 </select> <br>
-                                <label for="paid">Paid</label> <br>
+                                <label for="paid"><?php echo $languages[$current_language]['paid']; ?></label> <br>
                                 <select class="inputs" name="paid">
                                     <option value="true" <?php echo ($paid === 'true') ? 'selected' : ''; ?>>True</option>
                                     <option value="false" <?php echo ($paid === 'false') ? 'selected' : ''; ?>>False</option>
                                 </select> <br>
-                                <label for="used">Used</label> <br>
+                                <label for="used"><?php echo $languages[$current_language]['used']; ?></label> <br>
                                 <select class="inputs" name="used">
                                     <option value="true" <?php echo ($used === 'true') ? 'selected' : ''; ?>>True</option>
                                     <option value="false" <?php echo ($used === 'false') ? 'selected' : ''; ?>>False</option>
                                 </select> <br>
-                                <label for="valid_date">Valid Date</label> <br>
+                                <label for="valid_date"><?php echo $languages[$current_language]['valid_date']; ?></label> <br>
                                 <input class="inputs" type="date" name="valid_date" value="<?php echo htmlspecialchars($valid_date); ?>"> <br>
                             </div>
                             <br>
-                            <button type="submit">Save</button>
-                            <button type="button" onclick="window.location.href='<?php echo $_SERVER['PHP_SELF']; ?>'">Cancel</button>
+                            <button type="submit"><?php echo $languages[$current_language]['save']; ?></button>
+                            <button type="button" onclick="window.location.href='<?php echo $_SERVER['PHP_SELF']; ?>'"><?php echo $languages[$current_language]['cancel']; ?></button>
                         </form>
                     <?php else: ?>
                         <div id="ticketinfo">
-                            <p>Please enter a ticket ID to edit a ticket</p>
+                            <p><?php echo $languages[$current_language]['please_enter_ticket_id']; ?></p>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -649,35 +691,35 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
                     <h3 class="project-title">
                         <i class="fa-solid fa-plus"></i> <span><?php echo $languages[$current_language]['title_create']; ?></span>
                     </h3>
-                    <button id="createNewButton" onclick="showCreateTicketForm()">Create New</button>
+                    <button id="createNewButton" onclick="showCreateTicketForm()"><?php echo $languages[$current_language]['create_new']; ?></button>
                     <div id="createTicketForm" style="display: none;">
                         <form action="" method="POST" id="createForm">
                             <input type="hidden" name="action" value="create_ticket">
-                            <label for="tid">Ticket ID (optional)</label> <br>
+                            <label for="tid"><?php echo $languages[$current_language]['ticket_id']; ?></label> <br>
                             <input class="inputs" type="text" name="tid" placeholder="Enter Ticket ID Here"> <br>
-                            <label for="email">Email (optional)</label> <br>
+                            <label for="email"><?php echo $languages[$current_language]['email']; ?></label> <br>
                             <input class="inputs" type="email" name="email" placeholder="Enter Email Here"> <br>
-                            <label for="firstname">Firstname</label> <br>
+                            <label for="firstname"><?php echo $languages[$current_language]['first_name']; ?></label> <br>
                             <input class="inputs" type="text" name="firstname" required> <br>
-                            <label for="lastname">Lastname</label> <br>
+                            <label for="lastname"><?php echo $languages[$current_language]['last_name']; ?></label> <br>
                             <input class="inputs" type="text" name="lastname" required> <br>
-                            <label for="tickets">Tickets</label> <br>
+                            <label for="tickets"><?php echo $languages[$current_language]['number_of_tickets']; ?></label> <br>
                             <input class="inputs" type="number" name="tickets" value="1" required> <br>
-                            <label for="type">Type</label> <br>
+                            <label for="type"><?php echo $languages[$current_language]['type']; ?></label> <br>
                             <select class="inputs" name="type" required>
-                                <option value="visitor">Visitor</option>
-                                <option value="admin">Admin</option>
-                                <option value="vip">VIP</option>
+                                <option value="visitor"><?php echo $languages[$current_language]['visitor']; ?></option>
+                                <option value="admin"><?php echo $languages[$current_language]['admin']; ?></option>
+                                <option value="vip"><?php echo $languages[$current_language]['vip']; ?></option>
                             </select> <br>
-                            <label for="paid">Paid</label> <br>
+                            <label for="paid"><?php echo $languages[$current_language]['paid']; ?></label> <br>
                             <select class="inputs" name="paid" required>
-                                <option value="true">True</option>
-                                <option value="false">False</option>
+                                <option value="true"><?php echo $languages[$current_language]['true']; ?></option>
+                                <option value="false"><?php echo $languages[$current_language]['false']; ?></option>
                             </select> <br>
-                            <label for="valid_date">Valid Date</label> <br>
+                            <label for="valid_date"><?php echo $languages[$current_language]['valid_date']; ?></label> <br>
                             <input class="inputs" type="date" name="valid_date" required> <br>
-                            <button type="submit">Create Ticket</button>
-                            <button type="button" onclick="showCreateTicketForm()">Cancel</button>
+                            <button type="submit"><?php echo $languages[$current_language]['create_ticket']; ?></button>
+                            <button type="button" onclick="showCreateTicketForm()"><?php echo $languages[$current_language]['cancel']; ?></button>
                         </form>
                     </div>
                 </div>

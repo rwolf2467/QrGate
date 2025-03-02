@@ -18,6 +18,8 @@ $languages = [
         'book_ticket' => 'How do I book a ticket?',
         'buy_ticket' => 'How do I buy a ticket?',
         'subtitle' => 'Here you can find all the information you need to buy a ticket for the event.',
+        '1_subtitle' => 'Here you can find all the information you need to book a ticket for the event.',
+        '2_subtitle' => 'Here you can find all the information you need to buy a ticket for the event.',
         'step1' => 'Choose your date and click on "Buy Tickets".',
         'step2' => 'Fill in the fields with the correct information.',
         'step3' => 'For payment method, select "Cash payment".',
@@ -39,6 +41,8 @@ $languages = [
         'book_ticket' => 'Wie buche ich ein Ticket?',
         'buy_ticket' => 'Wie kaufe ich ein Ticket?',
         'subtitle' => 'Hier findest du alle Informationen, die du benötigst, um ein Ticket für die Veranstaltung zu kaufen.',
+        '1_subtitle' => 'Hier findest du alle Informationen, die du benötigst, um ein Ticket für die Veranstaltung zu buchen.',
+        '2_subtitle' => 'Hier findest du alle Informationen, die du benötigst, um ein Ticket für die Veranstaltung zu kaufen.',
         'step1' => 'Wählen dein Datum aus und klick auf "Tickets kaufen".',
         'step2' => 'Füll die Felder mit den richtigen Informationen aus.',
         'step3' => 'Wähle als Zahlungsmethode "Barzahlung".',
@@ -402,7 +406,7 @@ $current_language = $_SESSION['language'] ?? 'en';
                         <i class="fa-solid fa-money-bill"></i> <span><?php echo $languages[$current_language]['book_ticket']; ?></span>
                     </h3>
                     <p class="project-description">
-                        <span><?php echo $languages[$current_language]['step1']; ?></span>
+                        <span><?php echo $languages[$current_language]['1_subtitle']; ?></span>
                         <br>
                     <ol class="project-list">
                         <li><?php echo $languages[$current_language]['step1']; ?></li>
@@ -422,7 +426,7 @@ $current_language = $_SESSION['language'] ?? 'en';
                         <i class="fa-solid fa-credit-card"></i> <span><?php echo $languages[$current_language]['buy_ticket']; ?></span>
                     </h3>
                     <p class="project-description">
-                        <span><?php echo $languages[$current_language]['step6']; ?></span>
+                        <span><?php echo $languages[$current_language]['2_subtitle']; ?></span>
                         <br>
                     <ol class="project-list">
                         <li><?php echo $languages[$current_language]['step6']; ?></li>
