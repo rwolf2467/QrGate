@@ -22,7 +22,7 @@ $languages = [
         'number_of_tickets' => 'Number of Tickets',
         'valid_date' => 'Valid Date',
         'paid' => 'Paid',
-        'used' => 'Used',
+        'used' => 'Usable',
         'type' => 'Type',
         'create_ticket' => 'Create Ticket',
         'cancel' => 'Cancel',
@@ -50,7 +50,7 @@ $languages = [
         'number_of_tickets' => 'Anzahl der Tickets',
         'valid_date' => 'Gültigkeitsdatum',
         'paid' => 'Bezahlt',
-        'used' => 'Verwendet',
+        'used' => 'Benutzbar',
         'type' => 'Typ',
         'create_ticket' => 'Ticket erstellen',
         'cancel' => 'Abbrechen',
@@ -111,6 +111,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ticket_id']) && !isset
         $type = $ticket_data['data']['type'] ?? '';
         $paid = isset($ticket_data['data']['paid']) ? ($ticket_data['data']['paid'] ? 'true' : 'false') : 'false';
         $valid_date = $ticket_data['data']['valid_date'] ?? '';
+        $valid = isset($ticket_data['data']['valid']) ? ($ticket_data['data']['valid'] ? 'true' : 'false') : 'false';
     }
 } else {
     $ticket_id = '';
@@ -121,6 +122,7 @@ $lastname = $lastname ?? '';
 $type = $type ?? '';
 $paid = $paid ?? 'false';
 $valid_date = $valid_date ?? '';
+$valid = $valid ?? 'false';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] === 'save_ticket') {
     $ticket_id = $_POST['ticket_id'];
@@ -129,6 +131,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
     $type = $_POST['type'];
     $paid = $_POST['paid'] === 'true';
     $valid_date = $_POST['valid_date'];
+    $valid = $_POST['valid'] === 'true';
 
     $data = [
         'tid' => $ticket_id,
@@ -136,6 +139,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
         'last_name' => $lastname,
         'type' => $type,
         'paid' => $paid,
+        'valid' => $valid,
         'valid_date' => $valid_date
     ];
 
@@ -169,7 +173,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
         $type = '';
         $paid = 'false';
         $valid_date = '';
-
+        $valid = 'false';
         header("Location: " . $_SERVER['PHP_SELF']);
         exit();
     } else {
@@ -195,6 +199,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
         'last_name' => $lastname,
         'type' => $type,
         'paid' => $paid,
+        'valid' => $used,
         'valid_date' => $valid_date,
         'tickets' => $tickets
     ];
@@ -665,10 +670,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
                                     <option value="true" <?php echo ($paid === 'true') ? 'selected' : ''; ?>>True</option>
                                     <option value="false" <?php echo ($paid === 'false') ? 'selected' : ''; ?>>False</option>
                                 </select> <br>
-                                <label for="used"><?php echo $languages[$current_language]['used']; ?></label> <br>
-                                <select class="inputs" name="used">
-                                    <option value="true" <?php echo ($used === 'true') ? 'selected' : ''; ?>>True</option>
-                                    <option value="false" <?php echo ($used === 'false') ? 'selected' : ''; ?>>False</option>
+                                <label for="valid"><?php echo $languages[$current_language]['used']; ?></label> <br>
+                                <select class="inputs" name="valid">
+                                    <option value="true" <?php echo ($valid === 'true') ? 'selected' : ''; ?>>True</option>
+                                    <option value="false" <?php echo ($valid === 'false') ? 'selected' : ''; ?>>False</option>
                                 </select> <br>
                                 <label for="valid_date"><?php echo $languages[$current_language]['valid_date']; ?></label> <br>
                                 <input class="inputs" type="date" name="valid_date" value="<?php echo htmlspecialchars($valid_date); ?>"> <br>

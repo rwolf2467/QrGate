@@ -10,7 +10,6 @@ class API:
 class Auth:
     auth_key = "YourGeneratedKeyHere"
 
-
 class Mail:
     smtp_server = "smtp.example.com"
     smtp_port = 587

@@ -374,7 +374,8 @@ def edit_ticket(app=quart.Quart):
                     quart.jsonify({"status": "error", "message": "Ticket not found"}),
                     404,
                 )
-
+            
+            print(data.get("valid"))
             print(data.get("paid"))
             print(data.get("valid_date"))
             print(data.get("first_name"))
@@ -386,7 +387,7 @@ def edit_ticket(app=quart.Quart):
             valid_date: str = data.get("valid_date", ticket["valid_date"])
             first_name: str = data.get("first_name", ticket["first_name"])
             last_name: str = data.get("last_name", ticket["last_name"])
-            used: bool = data.get("used", ticket["valid"])
+            valid: bool = data.get("valid", ticket["valid"])
 
             ticket.update(
                 {
@@ -394,10 +395,13 @@ def edit_ticket(app=quart.Quart):
                     "valid_date": valid_date,
                     "first_name": first_name,
                     "last_name": last_name,
-                    "valid": used,
+                    "valid": valid,
                     "type": data.get("type", ticket["type"]),
                 }
             )
+
+            if paid and not paid_old:
+                ticket["valid"] = True
 
             save_tickets(tid, ticket)
             if paid and not paid_old:
