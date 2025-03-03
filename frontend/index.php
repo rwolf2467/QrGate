@@ -367,6 +367,7 @@ $shows = getShows();
                 <div class="absolute inset-0 bg-black opacity-50"></div>
                 <div class="absolute inset-0 bg-cover bg-center transform scale-100 transition-transform duration-700"
                     style="background-image: url('<?php echo htmlspecialchars($shows['banner']); ?>')"></div>
+                <div class="absolute inset-0 bg-black opacity-50"></div>
                 <div class="relative z-10 text-center px-4 py-16 backdrop-blur-sm bg-black/30 rounded-xl mx-4">
                     <h1 class="orga-name animate-fade-in-up">
                         <b><span><?php echo htmlspecialchars($shows['orga_name']); ?></span></b>
@@ -374,6 +375,9 @@ $shows = getShows();
                     <h2 class="animate-fade-in-up">
                         <span class="show-name"><b><span><?php echo htmlspecialchars($shows['title']); ?></span></b></span>
                     </h2>
+                    <h3 class="animate-fade-in-up">
+                        <b><?php echo htmlspecialchars($shows['subtitle']); ?></b>
+                    </h3>
                 </div>
             </div>
 

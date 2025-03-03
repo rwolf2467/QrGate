@@ -1,7 +1,7 @@
 import quart
 import config.conf as config
 from assets.data import load_tickets, save_tickets, load_ticket_id
-from assets.data import load_date, save_date
+from assets.data import load_date, save_date, load_show
 import os
 import json
 
@@ -59,7 +59,7 @@ def create_ticket(app=quart.Quart):
             date["tickets_available"] -= tickets
             save_date(valid_date, date)
 
-            tid = generate_ticket_id()
+            tid = generate_ticket_id(valid_date)
             ticket = {
                 "tid": tid,
                 "first_name": first_name,
@@ -77,7 +77,7 @@ def create_ticket(app=quart.Quart):
             await send_email(first_name, last_name, email, tid, paid)
 
             for person in add_people:
-                tid = generate_ticket_id()
+                tid = generate_ticket_id(valid_date)
                 ticket = {
                     "tid": tid,
                     "first_name": person,
@@ -146,7 +146,7 @@ def create_ticket(app=quart.Quart):
         date["tickets_available"] -= tickets
         save_date(valid_date, date)
 
-        tid = generate_ticket_id()
+        tid = generate_ticket_id(valid_date)
         ticket = {
             "tid": tid,
             "first_name": first_name,
@@ -173,6 +173,7 @@ def create_ticket(app=quart.Quart):
 
 
 async def send_email(first_name, last_name, email, tid, paid, type="normal"):
+    show_data = load_show()
     message = MIMEMultipart()
     message["From"] = config.Mail.smtp_user
     message["To"] = email
@@ -328,7 +329,8 @@ async def send_email(first_name, last_name, email, tid, paid, type="normal"):
         elements.append(Spacer(1, 12))
 
         closing_message = Paragraph(
-            "We wish you lots of fun during your stay.", styles["Normal"]
+            f"We wish you lots of fun during your stay at {show_data['orga_name']}.",
+            styles["Normal"],
         )
         elements.append(closing_message)
         elements.append(Spacer(1, 12))
@@ -490,16 +492,16 @@ def get_available_tickets(app=quart.Quart):
             return quart.jsonify({"status": "error", "message": str(e)}), 500
 
 
-def generate_ticket_id():
-
-    now = datetime.now()
-    year = now.strftime("%Y")
-    month = now.strftime("%m")
-    day = now.strftime("%d")
+def generate_ticket_id(valid_date):
+    # Das Datum wird in das gewünschte Format umgewandelt
+    date_parts = valid_date.split("-")
+    year = date_parts[0]
+    month = date_parts[1]
+    day = date_parts[2]
 
     letters = string.ascii_uppercase
     digits = string.digits
     random_part = "".join(random.choice(letters + digits) for _ in range(4))
 
-    ticket_id = f"{year}-{month}{day}-{random_part}"
+    ticket_id = f"{year}-{day}{month}-{random_part}"
     return ticket_id

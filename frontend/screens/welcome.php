@@ -6,9 +6,11 @@ $shows = getShows();
 if ($shows && isset($shows['orga_name'], $shows['title'])) {
     $orgaName = htmlspecialchars($shows['orga_name']);
     $showTitle = htmlspecialchars($shows['title']);
+    $showSubtitle = htmlspecialchars($shows['subtitle']);
 } else {
-    $orgaName = "Unbekannte Organisation";
-    $showTitle = "Unbekannte Vorstellung";
+    $orgaName = "Error loading show data";
+    $showTitle = "Error loading show title";
+    $showSubtitle = "Error loading show subtitle";
 }
 ?>
 
@@ -295,6 +297,11 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
             transition: width 0.4s ease, opacity 1s ease;
         }
 
+
+        .show-subtitle {
+            font-size: 0.5em;
+            color: var(--text-secondary);
+        }
     </style>
 
 </head>
@@ -319,7 +326,8 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
             <i class="fas fa-theater-masks" style="animation: bounce 1s infinite;"></i>
 
             <br>
-            <?php echo $showTitle; ?>
+            <span class="show-title"><?php echo $showTitle; ?></span></br>
+            <span class="show-subtitle"><?php echo $showSubtitle; ?></span>
         </h1>
         <h1 class="welcome-text" id="welcomeText1" style="display: none;">
             <i class="fas fa-heart" style="animation: pulse 1s infinite;"> </i>
@@ -376,13 +384,13 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
             const translations = {
                 en: {
                     welcome: `<i class='fas fa-smile' style="animation: laugh 0.5s infinite;"></i> <br>Welcome to<br><span class='orga-name-span'><?php echo $orgaName; ?></span>`,
-                    show: `<i class="fas fa-theater-masks" style="animation: bounce 1s infinite;"></i> <br><?php echo $showTitle; ?>`,
+                    show: `<i class="fas fa-theater-masks" style="animation: bounce 1s infinite;"></i> <br><span class="show-title"><?php echo $showTitle; ?></span> <br> <span class="show-subtitle"><?php echo $showSubtitle; ?></span>`,
                     welcomeText1: `<i class='fas fa-heart' style="animation: pulse 1s infinite;"> </i> <br>We are so happy to see you here!`,
                     ticket: `<i class="fa-solid fa-ticket" style="animation: wobble 1s infinite;"> </i> <br>To ensure a quick and smooth check-in,<br>please have your ticket ready before entering.`
                 },
                 de: {
                     welcome: `<i class="fas fa-smile" style="animation: laugh 0.5s infinite;"></i> <br>Willkommen bei der <br><span class='orga-name-span'><?php echo $orgaName; ?></span>`,
-                    show: `<i class="fas fa-theater-masks" style="animation: bounce 1s infinite;"></i> <br><?php echo $showTitle; ?>`,
+                    show: `<i class="fas fa-theater-masks" style="animation: bounce 1s infinite;"></i> <br><span class="show-title"><?php echo $showTitle; ?></span> <br> <span class="show-subtitle"><?php echo $showSubtitle; ?></span>`,
                     welcomeText1: `<i class="fas fa-heart" style="animation: pulse 1s infinite;"> </i> <br>Wir freuen uns sehr, dich hier zu sehen!`,
                     ticket: `<i class="fa-solid fa-ticket" style="animation: wobble 1s infinite;"> </i> <br>Um einen zügigen Check-in zu ermöglichen,<br>halte bitte dein Ticket vor dem Einlass bereit.`
                 }
