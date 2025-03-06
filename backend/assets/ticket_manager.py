@@ -115,38 +115,49 @@ def create_ticket(app=quart.Quart):
         paid: bool = data.get("paid", False)
         valid_date: str = data.get("valid_date")
         t_type: str = data.get("type", "not provided")
-
-        if valid_date is None:
-            return (
-                quart.jsonify({"status": "error", "message": "Valid date is required"}),
-                400,
-            )
+        ticketId: str = str(data.get("tid"))
 
         first_name: str = data.get("first_name", "not provided")
         last_name: str = data.get("last_name", "not provided")
         email: str = data.get("email", "not provided")
         tickets: int = data.get("tickets", 0)
+        logger.debug.info(valid_date)
+        if not valid_date or str(valid_date) == "":
+            if t_type != "admin" and t_type != "vip":
+                return (
+                    quart.jsonify(
+                        {"status": "error", "message": "Valid date is required for this ticket type"}
+                    ),
+                    400,
+                )
+            valid_date = "Unlimited"
+        else:
+            date = load_date(valid_date)
+            if t_type != "admin" and t_type != "vip":
+                if not date:
+                    return (
+                        quart.jsonify(
+                            {"status": "error", "message": "Invalid date provided"}
+                        ),
+                        400,
+                    )
 
-        date = load_date(valid_date)
-        if not date:
-            return (
-                quart.jsonify({"status": "error", "message": "Invalid date provided"}),
-                400,
-            )
+                tickets_available = int(date["tickets_available"])
+                if tickets > tickets_available:
+                    return (
+                        quart.jsonify(
+                            {"status": "error", "message": "Not enough tickets available"}
+                        ),
+                        400,
+                    )
 
-        tickets_available = int(date["tickets_available"])
-        if tickets > tickets_available:
-            return (
-                quart.jsonify(
-                    {"status": "error", "message": "Not enough tickets available"}
-                ),
-                400,
-            )
+                date["tickets_available"] -= tickets
+                save_date(valid_date, date)
 
-        date["tickets_available"] -= tickets
-        save_date(valid_date, date)
-
-        tid = generate_ticket_id(valid_date)
+        if not ticketId or ticketId == "":
+            tid = generate_ticket_id(valid_date)
+        else:
+            tid = ticketId
         ticket = {
             "tid": tid,
             "first_name": first_name,
@@ -376,7 +387,7 @@ def edit_ticket(app=quart.Quart):
                     quart.jsonify({"status": "error", "message": "Ticket not found"}),
                     404,
                 )
-            
+
             print(data.get("valid"))
             print(data.get("paid"))
             print(data.get("valid_date"))

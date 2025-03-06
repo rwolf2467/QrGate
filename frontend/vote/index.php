@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="container mx-auto px-4 py-8 <?php echo isset($_SESSION['has_voted']) && $_SESSION['has_voted'] === true ? 'blur-sm' : ''; ?>" style="position: relative;">
         <h1 class="text-3xl font-bold mb-4">
             <i class="fas fa-pencil-alt icon"></i>
-            Submit your feedback
+            Submit your feedback to "<?php echo $shows['title']; ?>" from <?php echo $shows['orga_name']; ?>
         </h1>
         <p class="text-lg mb-4">Average rating: <?php echo $stars; ?> stars</p>
         <form method="POST" action="">

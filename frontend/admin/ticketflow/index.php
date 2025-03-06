@@ -27,7 +27,7 @@ $languages = [
         'create_ticket' => 'Create Ticket',
         'cancel' => 'Cancel',
         'save' => 'Save',
-        'send_request' => 'Send Request',   
+        'send_request' => 'Send Request',
         'please_enter_ticket_id' => 'Please enter a ticket ID to edit a ticket',
         'ticket_id' => 'Ticket ID',
         'create_new' => 'Create New',
@@ -55,7 +55,7 @@ $languages = [
         'create_ticket' => 'Ticket erstellen',
         'cancel' => 'Abbrechen',
         'save' => 'Speichern',
-        'send_request' => 'Anfrage senden', 
+        'send_request' => 'Anfrage senden',
         'please_enter_ticket_id' => 'Bitte geben Sie eine Ticket ID ein, um ein Ticket zu bearbeiten',
         'ticket_id' => 'Ticket ID',
         'create_new' => 'Neu erstellen',
@@ -165,8 +165,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
 
     if ($http_code === 200) {
         echo "<script>alert('Ticket erfolgreich gespeichert!');</script>";
-        
-        
+
+
         $ticket_id = '';
         $firstname = '';
         $lastname = '';
@@ -226,8 +226,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
 
     if ($http_code === 200) {
         echo "<script>alert('Ticket erfolgreich erstellt!');</script>";
-        
-        
+
+
         $ticket_id = '';
         $email = '';
         $firstname = '';
@@ -236,7 +236,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
         $paid = 'false';
         $valid_date = '';
 
-        
+
         header("Location: " . $_SERVER['PHP_SELF']);
         exit();
     } else {
@@ -711,7 +711,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
                             <label for="tickets"><?php echo $languages[$current_language]['number_of_tickets']; ?></label> <br>
                             <input class="inputs" type="number" name="tickets" value="1" required> <br>
                             <label for="type"><?php echo $languages[$current_language]['type']; ?></label> <br>
-                            <select class="inputs" name="type" required>
+                            <select class="inputs" name="type" id="type" required>
                                 <option value="visitor"><?php echo $languages[$current_language]['visitor']; ?></option>
                                 <option value="admin"><?php echo $languages[$current_language]['admin']; ?></option>
                                 <option value="vip"><?php echo $languages[$current_language]['vip']; ?></option>
@@ -722,7 +722,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
                                 <option value="false"><?php echo $languages[$current_language]['false']; ?></option>
                             </select> <br>
                             <label for="valid_date"><?php echo $languages[$current_language]['valid_date']; ?></label> <br>
-                            <input class="inputs" type="date" name="valid_date" required> <br>
+                            <input class="inputs" type="date" name="valid_date"> <br>
                             <button type="submit"><?php echo $languages[$current_language]['create_ticket']; ?></button>
                             <button type="button" onclick="showCreateTicketForm()"><?php echo $languages[$current_language]['cancel']; ?></button>
                         </form>

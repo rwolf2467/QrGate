@@ -6,16 +6,13 @@ $shows = getShows();
 if ($shows && isset($shows['orga_name'], $shows['title'])) {
     $orgaName = htmlspecialchars($shows['orga_name']);
     $showTitle = htmlspecialchars($shows['title']);
+    $showSubtitle = htmlspecialchars($shows['subtitle']);
 } else {
-    $orgaName = "Unbekannte Organisation";
-    $showTitle = "Unbekannte Vorstellung";
+    $orgaName = "Error loading show data";
+    $showTitle = "Error loading show title";
+    $showSubtitle = "Error loading show subtitle";
 }
 
-
-$vote_url = ORIGIN_URL . 'vote/'; 
-
-
-$qrcode_url = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" . urlencode($vote_url); 
 ?>
 
 <!DOCTYPE html>
@@ -148,12 +145,14 @@ $qrcode_url = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" .
             width: 100%;
             text-align: center;
             margin: 0;
-            font-size: 3.5em;
+        }
+
+        .welcome-text {
+            font-size: 5em;
             color: var(--text-color);
             animation: fadeIn 2s ease forwards;
-            margin-bottom: 15px;
-            text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
         }
+
 
         .language-switcher {
             position: absolute;
@@ -187,7 +186,7 @@ $qrcode_url = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" .
         .welcome-text i {
             margin-right: 10px;
             color: var(--text-color);
-            font-size: 0.8em;
+            font-size: 1.2em;
         }
 
         footer {
@@ -289,7 +288,7 @@ $qrcode_url = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" .
 
         #progressbar {
             height: 20px;
-            background-color: rgba(0, 0, 0, 0.43);
+            background-color:rgba(0, 0, 0, 0.43);
             position: fixed;
             top: 0;
             left: 0;
@@ -299,30 +298,22 @@ $qrcode_url = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" .
             transition: width 0.4s ease, opacity 1s ease;
         }
 
-        .content-container {
-            margin: 30px auto;
-            max-width: 1300px;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            border-radius: 12px;
-            padding: 20px;
+
+        .show-subtitle {
+            font-size: 0.7em;
+            color: var(--text-secondary);
         }
 
-        .qrcode {
-            width: 350px;
-            height: 350px;
-            margin-top: 10px;
-            background-color: var(--border-color);
-            border-radius: 20px;
-            padding: 10px;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
+        .show-orga {
+            font-size: 0.5em;
+            color: var(--text-secondary);
+        }
+
+        .show-title {
+            font-size: 1.5em;
+            color: var(--text-color);
         }
     </style>
-
 </head>
 
 <body>
@@ -336,11 +327,16 @@ $qrcode_url = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" .
         </div>
         <div class="content-container">
             <h1 class="welcome-text" id="welcomeText" style="display: block;" aria-live="polite">
-                <i class="fas fa-smile" style="animation: laugh 0.5s infinite;" aria-hidden="true"></i>
+                <i class="fas fa-theater-masks" style="animation: bounce 1s infinite;"></i>
                 <br>
-                Thank you for being here! We look forward to seeing you again soon.<br>Your feedback and opinion are very important to us!
+                <span class="show-title"><?php echo $showTitle; ?></span></br>
+                <span class="show-subtitle"><?php echo $showSubtitle; ?></span>
             </h1>
-            <img src="<?php echo $qrcode_url; ?>" alt="QR Code for Voting" class="qrcode" />
+            <br>
+            <br>
+            <h1 class="welcome-text" id="welcomeText" style="display: block;" aria-live="polite">
+                <span class="show-orga"><?php echo $orgaName; ?></span>
+            </h1>
         </div>
     </main>
     <footer>
@@ -348,86 +344,6 @@ $qrcode_url = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" .
         <p>Powered by QrGate - avocloud.net
         </p>
     </footer>
-    <script>
-        let currentTextIndex = 0;
-        const texts = [
-            document.getElementById('welcomeText')
-        ];
-
-        let currentLanguage = 'en';
-        let progressBarInterval;
-
-        function switchText() {
-            const currentText = texts[currentTextIndex];
-            currentText.style.animation = 'fadeOut 2s forwards';
-            setTimeout(function() {
-                currentText.style.display = 'none';
-                currentTextIndex = (currentTextIndex + 1) % texts.length;
-                const nextText = texts[currentTextIndex];
-                nextText.style.display = 'block';
-                nextText.style.animation = 'fadeIn 2s forwards';
-
-                if (currentTextIndex === 0) {
-                    currentLanguage = currentLanguage === 'en' ? 'de' : 'en';
-                    updateTextLanguage(currentLanguage);
-                    updateFlags(currentLanguage);
-
-                }
-
-            }, 2000);
-        }
-
-        function updateTextLanguage(language) {
-            const translations = {
-                en: {
-                    welcome: `<i class='fas fa-smile' style="animation: laugh 0.5s infinite;"></i> <br>Thank you for being here! We look forward to seeing you again soon.<br>Your feedback and opinion are very important to us!`,
-                },
-                de: {
-                    welcome: `<i class="fas fa-smile" style="animation: laugh 0.5s infinite;"></i> <br>Danke, dass du hier warst! Wir freuen uns darauf, dich bald wiederzusehen.<br>Dein Feedback und deine Meinung sind uns sehr wichtig!.`,
-                }
-            };
-
-            document.getElementById('welcomeText').innerHTML = translations[language].welcome;
-        }
-
-        function updateFlags(language) {
-            const flagEn = document.getElementById('flag-en');
-            const flagDe = document.getElementById('flag-de');
-            resetProgressBar();
-            if (language === 'en') {
-                flagEn.classList.add('active');
-                flagEn.classList.remove('inactive');
-                flagDe.classList.add('inactive');
-                flagDe.classList.remove('active');
-            } else {
-                flagDe.classList.add('active');
-                flagDe.classList.remove('inactive');
-                flagEn.classList.add('inactive');
-                flagEn.classList.remove('active');
-            }
-        }
-
-        function resetProgressBar() {
-            clearInterval(progressBarInterval);
-            const progressBar = document.getElementById('progressbar');
-            progressBar.style.width = '0%';
-            startProgressBar();
-        }
-
-        function startProgressBar() {
-            const progressBar = document.getElementById('progressbar');
-            progressBar.style.width = '0%';
-
-            let width = 0;
-            progressBarInterval = setInterval(() => {
-                width++;
-                progressBar.style.width = width + '%';
-            }, 150);
-        }
-
-        setInterval(switchText, 15000);
-        startProgressBar();
-    </script>
 </body>
 
 </html>

@@ -65,7 +65,7 @@ def validate_ticket(app: quart.Quart):
                 ticket["access_attempts"].append(
                     {
                         "status": "success",
-                        "type": "valid",
+                        "type": "valid - ADMIN ACCESS",
                         "time": str(time.strftime("%Y.%m.%d - %H:%M:%S")),
                     }
                 )
