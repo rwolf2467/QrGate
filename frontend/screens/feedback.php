@@ -6,16 +6,19 @@ $shows = getShows();
 if ($shows && isset($shows['orga_name'], $shows['title'])) {
     $orgaName = htmlspecialchars($shows['orga_name']);
     $showTitle = htmlspecialchars($shows['title']);
+    $wallpaper_url = API_BASE_URL . "api/show/get/wallpaper";
+    $logo_url = API_BASE_URL . "api/show/get/logo";
 } else {
     $orgaName = "Unbekannte Organisation";
     $showTitle = "Unbekannte Vorstellung";
+    $wallpaper_url = "";
+    $logo_url = "";
 }
 
+$vote_url = ORIGIN_URL . 'vote/';
 
-$vote_url = ORIGIN_URL . 'vote/'; 
 
-
-$qrcode_url = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" . urlencode($vote_url); 
+$qrcode_url = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" . urlencode($vote_url);
 ?>
 
 <!DOCTYPE html>
@@ -54,7 +57,9 @@ $qrcode_url = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" .
             line-height: 1.6;
             background-color: #0a0a0a;
             background-size: 31px 31px;
-            background-image: repeating-linear-gradient(45deg, #222222 0, #222222 3.1px, #0a0a0a 0, #0a0a0a 50%);
+            /*background-image: repeating-linear-gradient(45deg, #222222 0, #222222 3.1px, #0a0a0a 0, #0a0a0a 50%);*/
+            background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.7)), url(<?php echo $wallpaper_url; ?>);
+            background-size: cover;
             background-attachment: fixed;
         }
 
@@ -321,6 +326,25 @@ $qrcode_url = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" .
             margin-left: auto;
             margin-right: auto;
         }
+
+        .logo {
+            bottom: 0;
+            right: 0;
+            margin: 30px;
+            position: fixed;
+            z-index: 2;
+            border-radius: 18px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-end;
+        }
+
+        .logo img {
+            width: 10vh;
+            height: 10vh;
+            border-radius: 18px;
+
+        }
     </style>
 
 </head>
@@ -328,7 +352,9 @@ $qrcode_url = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" .
 <body>
     <div id="gradientbar"></div>
     <div id="progressbar"></div>
-
+    <div class="logo">
+        <img src="<?php echo $logo_url; ?>" alt="">
+    </div>
     <main>
         <div class="language-switcher">
             <span id="flag-en" class="active" aria-label="Switch to English"><b>EN</b></span>

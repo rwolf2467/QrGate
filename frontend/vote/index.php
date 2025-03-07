@@ -3,8 +3,11 @@
 require_once '../config.php';
 $shows = getShows();
 $stars = htmlspecialchars($shows['votes']['average']);
+$wallpaper_url = API_BASE_URL . "api/show/get/wallpaper";
 $message = '';
 $error = '';
+$wallpaper_url = API_BASE_URL . "api/show/get/wallpaper";
+$logo_url = API_BASE_URL . "api/show/get/logo";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ratingValue = $_POST['rating'] ?? 0;
@@ -73,14 +76,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         body {
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
+            margin: 0;
+            font-family: 'Quicksand', sans-serif;
             background-color: #0a0a0a;
             color: var(--text-color);
             line-height: 1.6;
+            background-color: #0a0a0a;
             background-size: 31px 31px;
-            background-image: repeating-linear-gradient(45deg, #222222 0, #222222 3.1px, #0a0a0a 0, #0a0a0a 50%);
+            /*background-image: repeating-linear-gradient(45deg, #222222 0, #222222 3.1px, #0a0a0a 0, #0a0a0a 50%);*/
+            background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.7)), url(<?php echo $wallpaper_url; ?>);
+            background-size: cover;
             background-attachment: fixed;
         }
 

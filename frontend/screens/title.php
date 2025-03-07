@@ -7,10 +7,14 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
     $orgaName = htmlspecialchars($shows['orga_name']);
     $showTitle = htmlspecialchars($shows['title']);
     $showSubtitle = htmlspecialchars($shows['subtitle']);
+    $wallpaper_url = API_BASE_URL . "api/show/get/wallpaper";
+    $logo_url = API_BASE_URL . "api/show/get/logo";
 } else {
     $orgaName = "Error loading show data";
     $showTitle = "Error loading show title";
     $showSubtitle = "Error loading show subtitle";
+    $wallpaper_url = "";
+    $logo_url = "";
 }
 
 ?>
@@ -51,7 +55,9 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
             line-height: 1.6;
             background-color: #0a0a0a;
             background-size: 31px 31px;
-            background-image: repeating-linear-gradient(45deg, #222222 0, #222222 3.1px, #0a0a0a 0, #0a0a0a 50%);
+            /*background-image: repeating-linear-gradient(45deg, #222222 0, #222222 3.1px, #0a0a0a 0, #0a0a0a 50%);*/
+            background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.7)), url(<?php echo $wallpaper_url; ?>);
+            background-size: cover;
             background-attachment: fixed;
         }
 
@@ -288,7 +294,7 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
 
         #progressbar {
             height: 20px;
-            background-color:rgba(0, 0, 0, 0.43);
+            background-color: rgba(0, 0, 0, 0.43);
             position: fixed;
             top: 0;
             left: 0;
@@ -313,13 +319,34 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
             font-size: 1.5em;
             color: var(--text-color);
         }
+
+        .logo {
+            bottom: 0;
+            right: 0;
+            margin: 30px;
+            position: fixed;
+            z-index: 2;
+            border-radius: 18px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-end;
+        }
+
+        .logo img {
+            width: 10vh;
+            height: 10vh;
+            border-radius: 18px;
+
+        }
     </style>
 </head>
 
 <body>
     <div id="gradientbar"></div>
     <div id="progressbar"></div>
-
+    <div class="logo">
+        <img src="<?php echo $logo_url; ?>" alt="">
+    </div>
     <main>
         <div class="language-switcher">
             <span id="flag-en" class="active" aria-label="Switch to English"><b>EN</b></span>
