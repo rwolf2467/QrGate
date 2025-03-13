@@ -482,7 +482,7 @@ $shows = getShows();
                             <div id="modalError" class="hidden bg-red-900/50 backdrop-blur-md border border-red-700 text-red-100 px-4 py-3 rounded-lg relative mb-6">
                             </div>
                             <form id="bookingForm" action="buy.php" method="POST" class="space-y-6">
-                                <p class="animate-pulse help-question flex items-center"><i class="fa-solid fa-circle-question"></i> <a href="/help/buy_ticket.php" class="text-gray-200" target="_blank"> <span><?php echo $languages[$current_language]['need_help']; ?></span></a></p>
+                                <p class="animate-pulse help-question flex items-center"><i class="fa-solid fa-circle-question"></i> <a href="/help/buy_ticket.php" class="text-gray-200" target="_blank"> <span> <?php echo $languages[$current_language]['need_help']; ?></span></a></p>
                                 <input type="hidden" name="valid_date" id="validDate">
                                 <input type="hidden" name="price" id="ticketPrice">
                                 <div class="space-y-2">
