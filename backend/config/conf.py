@@ -1,10 +1,11 @@
 import datetime as dt
-version = 0.4
+version = 1.0
 
 utc_offset = 1
 
 class API:
     port = 1654
+    backend_url = "https://qrgate-backend.example.com/" # The adress (url or ip) where your backend server is reachable.
 
 
 class Auth:

@@ -54,9 +54,7 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
             line-height: 1.6;
             background-color: #0a0a0a;
             background-size: 31px 31px;
-            /*background-image: repeating-linear-gradient(45deg, #222222 0, #222222 3.1px, #0a0a0a 0, #0a0a0a 50%);*/
-            background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.7)), url(<?php echo $wallpaper_url; ?>);
-            background-size: cover;
+            background-image: repeating-linear-gradient(45deg, #222222 0, #222222 3.1px, #0a0a0a 0, #0a0a0a 50%);
             background-attachment: fixed;
         }
 
@@ -327,6 +325,16 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
             border-radius: 18px;
 
         }
+
+        .wallpaper-div {
+            background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.7)), url(<?php echo $wallpaper_url; ?>);
+            width:100%;
+            height: 100%;
+            background-size: cover;
+            position: absolute;
+            z-index: -2;
+            opacity: .7;
+        }
     </style>
 
 </head>
@@ -334,6 +342,7 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
 <body>
     <div id="gradientbar"></div>
     <div id="progressbar"></div>
+    <div class="wallpaper-div"></div>
     <div class="logo">
         <img src="<?php echo $logo_url; ?>" alt="">
     </div>

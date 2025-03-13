@@ -7,3 +7,4 @@ test.py
 /backend/assets/__pycache__
 /backend/config/__pycache__
 frontend/composer.lock
+/.vscode

@@ -5,7 +5,7 @@ ini_set('display_errors', 1);
 session_start();
 
 define('API_KEY', 'YourGeneratedKeyHere');
-define('API_BASE_URL', 'https://qrgate-backend.avocloud.net/');
+define('API_BASE_URL', 'https://qrgate-backend.example.com/');
 define('PAYPAL_CLIENT_ID', 'YourPayPalClientIdHere');
 define('PAYPAL_CLIENT_SECRET', 'YourPayPalClientSecretHere');
 define('PAYPAL_MODE', 'sandbox');

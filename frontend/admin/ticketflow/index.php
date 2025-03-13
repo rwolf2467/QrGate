@@ -8,6 +8,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['language'])) {
 }
 $shows = getShows();
 
+$ticket_id_value = date('Y-dm-');
+
 $languages = [
     'en' => [
         'flag' => '🇬🇧',
@@ -645,7 +647,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
                         <i class="fa-solid fa-file-pen"></i> <span><?php echo $languages[$current_language]['title_edit']; ?></span>
                     </h3>
                     <form action="" method="POST">
-                        <input class="inputs" type="text" placeholder="Enter Ticket ID Here" id="idinput" name="ticket_id" required>
+                        <input class="inputs" type="text" placeholder="Enter Ticket ID Here" id="idinput" name="ticket_id" value="<?php echo $ticket_id_value?>" required>
                         <button type="submit"><?php echo $languages[$current_language]['send_request']; ?></button>
                     </form>
                     <br>

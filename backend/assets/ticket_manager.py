@@ -276,8 +276,8 @@ async def send_email(first_name, last_name, email, tid, paid, type="normal"):
                         <p style="color: #888888;">{paid_message_html}</p>
                         <p style="color: #888888;">This ticket is for <span style="background-color: rgba(234, 176, 51, 0.2);padding: 2px 8px;color: rgb(255, 176, 112);border-radius: 4px;transition: all 0.3s ease;">{first_name} {last_name}</span>.</p>
                         <p style="color: #888888;">The QR code below is required to validate your ticket. Please have this ticket ready before entering.</p>
-                        <img src="https://qrgate-backend.avocloud.net/codes/show?tid={tid}" alt="QR-Code" style="width: 200px; height: 200px; border: 4px solid #222222; border-radius: 8px;">
-                        <p style="color: #888888; font-size: small;"><a href="https://qrgate-backend.avocloud.net/codes/show?tid={tid}">{tid}</a></p>
+                        <img src="{config.API.backend_url}/codes/show?tid={tid}" alt="QR-Code" style="width: 200px; height: 200px; border: 4px solid #222222; border-radius: 8px;">
+                        <p style="color: #888888; font-size: small;"><a href="{config.API.backend_url}/codes/show?tid={tid}">{tid}</a></p>
                         <p style="color: #888888;">This ticket can only be used once. To re-enter, a stamp or ribbon is required, which will be issued at the exit on request.<br>We wish you lots of fun during your stay.</p>
                         <br>
                         <p style="color: #888888; font-size: small;">Managed by Qr-Gate - avocloud.net</p>
@@ -372,7 +372,8 @@ def edit_ticket(app=quart.Quart):
 
         try:
             data: dict = await quart.request.get_json()
-            tid: str = data.get("tid")
+            tid: str = str(data.get("tid")).upper()
+            print(tid)
 
             if tid is None:
                 return (
@@ -440,7 +441,7 @@ def view_ticket(app=quart.Quart):
             return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401
         try:
             data: dict = await quart.request.get_json()
-            tid: str = data.get("tid")
+            tid: str = str(data.get("tid")).upper()
 
             ticket = load_ticket_id(tid)
             if ticket == None:
