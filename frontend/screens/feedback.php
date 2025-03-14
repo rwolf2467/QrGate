@@ -339,10 +339,10 @@ $qrcode_url = "https://quickchart.io/qr?text=" . urlencode($vote_url) . "&ecLeve
         }
 
         .logo img {
-            width: 10vh;
-            height: 10vh;
-            border-radius: 18px;
-
+            width: 11vh;
+            height: 11vh;
+            border-radius: 12px;
+            border: 5px solid transparent;
         }
 
         .wallpaper-div {

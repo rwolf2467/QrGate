@@ -8,7 +8,8 @@ import json
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Image, Spacer
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Image, Spacer, Table, TableStyle
+from reportlab.lib.units import inch
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -74,7 +75,7 @@ def create_ticket(app=quart.Quart):
             }
             save_tickets(tid, ticket)
 
-            await send_email(first_name, last_name, email, tid, paid)
+            await send_email(first_name, last_name, email, tid, paid, date=valid_date, event_time=date["time"])
 
             for person in add_people:
                 tid = generate_ticket_id(valid_date)
@@ -92,7 +93,7 @@ def create_ticket(app=quart.Quart):
                 }
                 save_tickets(tid, ticket)
 
-                await send_email(person, "", email, tid, paid)
+                await send_email(person, "", email, tid, paid, date=valid_date, event_time=date["time"])
 
             return (
                 quart.jsonify(
@@ -126,7 +127,10 @@ def create_ticket(app=quart.Quart):
             if t_type != "admin" and t_type != "vip":
                 return (
                     quart.jsonify(
-                        {"status": "error", "message": "Valid date is required for this ticket type"}
+                        {
+                            "status": "error",
+                            "message": "Valid date is required for this ticket type",
+                        }
                     ),
                     400,
                 )
@@ -146,7 +150,10 @@ def create_ticket(app=quart.Quart):
                 if tickets > tickets_available:
                     return (
                         quart.jsonify(
-                            {"status": "error", "message": "Not enough tickets available"}
+                            {
+                                "status": "error",
+                                "message": "Not enough tickets available",
+                            }
                         ),
                         400,
                     )
@@ -173,7 +180,7 @@ def create_ticket(app=quart.Quart):
         save_tickets(tid, ticket)
 
         if email and email != "not provided":
-            await send_email(first_name, last_name, email, tid, paid)
+            await send_email(first_name, last_name, email, tid, paid, date = valid_date, event_time=date["time"])
 
         return (
             quart.jsonify(
@@ -183,7 +190,7 @@ def create_ticket(app=quart.Quart):
         )
 
 
-async def send_email(first_name, last_name, email, tid, paid, type="normal"):
+async def send_email(first_name, last_name, email, tid, paid, date, event_time, type="normal"):
     show_data = load_show()
     message = MIMEMultipart()
     message["From"] = config.Mail.smtp_user
@@ -293,7 +300,14 @@ async def send_email(first_name, last_name, email, tid, paid, type="normal"):
             )
         )
 
-        pdf = SimpleDocTemplate(pdf_filename, pagesize=letter)
+        pdf = SimpleDocTemplate(
+            pdf_filename,
+            pagesize=letter,
+            rightMargin=30,
+            leftMargin=30,
+            topMargin=-5,
+            bottomMargin=10,
+        )
         elements = []
 
         styles = getSampleStyleSheet()
@@ -305,12 +319,48 @@ async def send_email(first_name, last_name, email, tid, paid, type="normal"):
             spaceAfter=12,
             fontName="Helvetica-Bold",
         )
-        title = Paragraph("Your QrGate Ticket", styles["Title"])
-        elements.append(title)
-        elements.append(Spacer(1, 12))
 
-        description = Paragraph(paid_message, highlighted_style)
-        elements.append(description)
+        banner_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "data",
+            "assets",
+            "banner.png",
+        )
+        banner = Image(banner_path, width=8.5 * inch, height=2.5 * inch)
+        banner.hAlign = "CENTER"
+        banner.vAlign = "TOP"
+        elements.append(banner)
+
+        elements.append(Spacer(1, 30))
+
+        title = Paragraph(
+            f"Your ticket for the event at {show_data['orga_name']}", styles["Title"]
+        )
+        elements.append(title)
+        elements.append(Spacer(1, 30))
+
+        usage_message_1 = Paragraph(
+            "This ticket, once paid for, will allow you to go directly to the entrance. The ticket will be checked upon entry and then immediately validated.",
+            styles["Normal"],
+        )
+        elements.append(usage_message_1)
+
+        elements.append(Spacer(1, 5))
+
+        usage_message_2 = Paragraph(
+            "This ticket can only be used once. To re-enter, a stamp or ribbon is required, which will be issued at the exit on request. Please note that this ticket is only valid on the day specified.",
+            styles["Normal"],
+        )
+        elements.append(usage_message_2)
+
+        elements.append(Spacer(1, 5))
+
+        description3 = Paragraph(
+            "Children under the age stated on the website may enter free of charge.",
+            styles["Normal"],
+        )
+        elements.append(description3)
+
         elements.append(Spacer(1, 12))
 
         description2 = Paragraph(
@@ -318,37 +368,53 @@ async def send_email(first_name, last_name, email, tid, paid, type="normal"):
             styles["Normal"],
         )
         elements.append(description2)
-        elements.append(Spacer(1, 12))
 
-        qr_image = Image(qr_image_path, width=150, height=150)
-        elements.append(qr_image)
-        elements.append(Spacer(1, 12))
-
-        ticket_id = Paragraph(f"Ticket ID: {tid}", styles["Normal"])
-        elements.append(ticket_id)
-        elements.append(Spacer(1, 12))
-
-        name = Paragraph(f"Name: {first_name} {last_name}", styles["Normal"])
-        elements.append(name)
-        elements.append(Spacer(1, 12))
-
-        usage_message = Paragraph(
-            "This ticket can only be used once. To re-enter, a stamp or ribbon is required, which will be issued at the exit on request.",
-            styles["Normal"],
-        )
-        elements.append(usage_message)
-        elements.append(Spacer(1, 12))
+        elements.append(Spacer(1, 20))
 
         closing_message = Paragraph(
             f"We wish you lots of fun during your stay at {show_data['orga_name']}.",
             styles["Normal"],
         )
         elements.append(closing_message)
-        elements.append(Spacer(1, 12))
+        elements.append(Spacer(1, 20))
 
-        managed_by = Paragraph("Managed by QrGate - avocloud.net", styles["Normal"])
+
+
+        elements.append(Spacer(1, 180))
+
+        qr_image_left = Image(qr_image_path, width=100, height=100)
+        qr_image_right = Image(qr_image_path, width=100, height=100)
+
+
+        ticket_id = Paragraph(f"Ticket ID: {tid}", styles["Normal"])
+        name = Paragraph(f"Name: {first_name} {last_name}", styles["Normal"])
+
+        date = Paragraph(f"Date: {date}", styles["Normal"])
+        time = Paragraph(f"Time: {event_time}", styles["Normal"])
+
+        qr_table = Table([
+            [[ticket_id, name], [date, time]], 
+            [qr_image_left, qr_image_right]
+        ], colWidths=[3.5 * inch, 3.5 * inch])
+
+        qr_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0, colors.transparent),  
+            ('LINEBELOW', (0, 0), (-1, 0), 0.5, colors.black),  
+            ('LINEBELOW', (0, 1), (-1, 1), 0.5, colors.transparent),  
+            ('LINEBEFORE', (1, 0), (1, -1), 0.5, colors.black), 
+        ]))
+
+        elements.append(qr_table)
+        elements.append(Spacer(1, 20))
+        managed_by_style = ParagraphStyle(
+            name="ManagedBy",
+            parent=styles["Normal"],
+            alignment=1,
+        )
+        managed_by = Paragraph("Managed by QrGate - avocloud.net", managed_by_style)
         elements.append(managed_by)
-
         pdf.build(elements)
 
     with open(pdf_filename, "rb") as pdf_file:
@@ -420,14 +486,8 @@ def edit_ticket(app=quart.Quart):
             save_tickets(tid, ticket)
             if paid and not paid_old:
                 print("Sending email")
-                await send_email(
-                    first_name,
-                    last_name,
-                    ticket.get("email"),
-                    tid,
-                    paid,
-                    type="paid_on_site",
-                )
+                date = load_date(valid_date)
+                await send_email(first_name, last_name, ticket.get("email"), tid, paid, date = valid_date, event_time=date["time"])
             return quart.jsonify({"status": "success", "message": "Ticket edited"}), 200
         except Exception as e:
             print(e)
