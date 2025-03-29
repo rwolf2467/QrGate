@@ -78,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         h1 {
-            font-size: 24px;
+            font-size: 20px;
             color: rgb(198, 198, 198);
             margin-bottom: 20px;
         }
@@ -125,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .ticket-info p {
             margin: 8px 0;
-            font-size: 14px;
+            font-size: 12px;
             color: #555;
         }
 
@@ -145,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             .container {
-                padding: 15px;
+                padding: 10px;
             }
 
             #reader {
@@ -170,13 +170,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .popup h2 {
             margin: 0 0 10px;
-            font-size: 20px;
+            font-size: 15px;
         }
 
         .popup p {
             margin: 5px 0;
             line-height: 1.5;
-            font-size: 16px;
+            font-size: 12px;
         }
 
         .popup.valid {
@@ -187,15 +187,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         @keyframes blink-green {
             0% {
-                border-color: #4caf50;
+                border: 10px solid transparent;
             }
 
-            80% {
-                border-color: rgb(18, 52, 19);
+            50% {
+                border: 10px solid #4caf50;
             }
 
             100% {
-                border-color: #4caf50;
+                border: 10px solid transparent;
             }
 
         }
@@ -209,17 +209,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         @keyframes blink-red {
             0% {
-                border-color: #f44336;
+                border: 10px solid transparent;
             }
 
-            80% {
-                border-color: rgb(79, 16, 16);
+            50% {
+                border: 10px solid #f44336;
             }
 
             100% {
-                border-color: #f44336;
+                border: 10px solid transparent;
             }
-
         }
 
         .popup button {
@@ -274,24 +273,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        .spinner {
-            border: 8px solid rgba(255, 255, 255, 0.3);
-            border-top: 8px solid yellow;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            animation: spin 0.8s linear infinite;
-            margin: 20px auto;
-            box-shadow: 0 0 15px rgb(168, 127, 5);
+        .loader {
+            width: 215px;
+            height: 215px;
+            display: block;
+            margin: auto;
+            position: relative;
+            background: #121212;
+            box-sizing: border-box;
+            border-radius: 14px;
         }
 
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
+        .loader::after {
+            content: '';
+            width: calc(100% - 30px);
+            height: calc(100% - 15px);
+            top: 15px;
+            left: 15px;
+            position: absolute;
+            background-image: linear-gradient(90deg, transparent, rgba(132, 132, 132, 0.5) 50%, transparent 100%),
+                linear-gradient(rgb(75, 75, 75) 100px, transparent 0),
+                linear-gradient(rgb(75, 75, 75) 16px, transparent 0),
+                linear-gradient(rgb(75, 75, 75) 50px, transparent 0);
+            background-repeat: no-repeat;
+            background-size: 75px 175px, 100% 100px, 100% 16px, 100% 30px;
+            background-position: -185px 0, center 0, center 115px, center 142px;
+            box-sizing: border-box;
+            animation: animloader .7s linear infinite;
+        }
 
-            100% {
-                transform: rotate(360deg);
+        @keyframes animloader {
+            to {
+                background-position: 185px 0, center 0, center 115px, center 142px;
             }
         }
 
@@ -318,12 +331,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <div class="blur-background" id="blurBackground" style="display: none;"></div>
     <div class="popup" id="resultPopup">
+
+        <h3 id="successMessage"><b>Authorised</b></h3>
+        <h3 id="errorMessage"><b>Denied</b></h3>
         <div id="resultContent"></div>
         <button onclick="closePopup()">Close</button>
     </div>
     <div class="popup" id="spinnerPopup" style="display: none;">
-        <h2>Validating Ticket...<br>One moment please...</h2>
-        <div class="spinner"></div>
+        <span class="loader"></span>
+        <h2 style="justify-content: center;">Loading...</h2>
     </div>
 
     <script>
@@ -356,14 +372,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
             fetch(window.location.href, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        ticketId: decodedText
-                    })
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ticketId: decodedText
                 })
+            })
                 .then(response => {
 
                     document.getElementById('spinnerPopup').style.display = 'none';
@@ -386,80 +402,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     resultPopup.style.display = 'block';
 
                     let resultHTML = `
-                    <div class="timestamp">Scan Time: ${formatDateTime(new Date())}</div>
                 `;
 
                     if (data.status === 'success') {
-
                         const successAudio = new Audio('success.mp3');
                         successAudio.play().catch(error => {
                             console.error('Fehler beim Abspielen von success.mp3:', error);
                         });
+
+
                         resultHTML += `
-                        <lord-icon
-                            src="https://cdn.lordicon.com/lomfljuq.json"
-                            trigger="in"
-                            delay="500"
-                            state="in-check"
-                            colors="primary:#4caf50"
-                            style="width:100px;height:100px;float:right;">
-                        </lord-icon>
-                        <h2><b><u>${data.message}</u></b></h2>
-                        <h3><b>Person is allowed to enter.</b></h3>
-                        <div class="ticket-info">
-                            <h3 style="color:black;"><b>Ticket Details:</b></h3>
-                            <p><strong><i class="fa-solid fa-ticket"></i> Ticket ID:</strong> ${data.data.tid}</p>
-                            <p><strong><i class="fa-solid fa-user"></i> Name:</strong> ${data.data.first_name} ${data.data.last_name}</p>
-                            <p><strong><i class="fa-solid fa-filter"></i> Type:</strong> ${data.data.type}</p>
-                            <p><strong><i class="fa-solid fa-coins"></i> Paid:</strong> ${data.data.paid ? 'Yes' : 'No'}</p>
-                            <p><strong><i class="fa-solid fa-calendar-days"></i> Valid Until:</strong> ${data.data.valid_date}</p>
-                            <p><strong><i class="fa-solid fa-clock"></i> Used At:</strong> ${data.data.used_at || 'Not Used Yet'}</p>
-                            <div class="attempts-summary">
-                                <p><strong><i class="fa-solid fa-exclamation-circle"></i> Access Attempts:</strong> ${data.data.access_attempts.length}</p>
-                                <p><strong><i class="fa-solid fa-check-circle"></i> Successful Attempts:</strong> ${data.data.access_attempts.filter(attempt => attempt.status === 'success').length}</p>
-                                <p><strong><i class="fa-solid fa-times-circle"></i> Failed Attempts:</strong> ${data.data.access_attempts.filter(attempt => attempt.status === 'error').length}</p>
+                            <h4><b><u>${data.message}</u></b></h4>
+                            <div class="ticket-info">
+                                <h3 style="color:black;"><b>Ticket Details:</b></h3>
+                                <p><strong><i class="fa-solid fa-ticket"></i> Ticket ID:</strong> ${data.data.tid}</p>
+                                <p><strong><i class="fa-solid fa-user"></i> Name:</strong> ${data.data.first_name} ${data.data.last_name}</p>
+                                <p><strong><i class="fa-solid fa-filter"></i> Type:</strong> ${data.data.type}</p>
+                                <p><strong><i class="fa-solid fa-coins"></i> Paid:</strong> ${data.data.paid ? 'Yes' : 'No'}</p>
+                                <p><strong><i class="fa-solid fa-calendar-days"></i> Valid Until:</strong> ${data.data.valid_date}</p>
+                                <p><strong><i class="fa-solid fa-clock"></i> Used At:</strong> ${data.data.used_at || 'Not Used Yet'}</p>
+                                <div class="attempts-summary">
+                                    <p><strong><i class="fa-solid fa-exclamation-circle"></i> Access Attempts:</strong> ${data.data.access_attempts.length}</p>
+                                    <p><strong><i class="fa-solid fa-check-circle"></i> Successful Attempts:</strong> ${data.data.access_attempts.filter(attempt => attempt.status === 'success').length}</p>
+                                    <p><strong><i class="fa-solid fa-times-circle"></i> Failed Attempts:</strong> ${data.data.access_attempts.filter(attempt => attempt.status === 'error').length}</p>
+                                </div>
                             </div>
-                        </div>
-                    `;
+                        `;
                         resultPopup.classList.add('valid');
                         resultPopup.classList.remove('invalid');
-                    } else {
 
+                        document.getElementById("successMessage").innerHTML = "Authorised";
+                        document.getElementById("successMessage").style.display = "block";
+                        document.getElementById("errorMessage").style.display = "none";
+                    } else {
                         const errorAudio = new Audio('error.mp3');
                         errorAudio.play().catch(error => {
                             console.error('Fehler beim Abspielen von error.mp3:', error);
                         });
+
                         resultPopup.classList.add('invalid');
                         resultPopup.classList.remove('valid');
 
 
                         resultHTML += `
-                        <lord-icon
-                            src="https://cdn.lordicon.com/zxvuvcnc.json"
-                            trigger="in"
-                            delay="500"
-                            state="in-cross"
-                            colors="primary:#f44336"
-                            style="width:100px;height:100px;float:right;">
-                        </lord-icon>
-                        <h2><b><u>${data.message}</u></b></h2>
-                        <h3><b>Person is NOT allowed to enter.</b></h3>
-                        <div class="ticket-info">
-                            <h3 style="color:black;"><b>Ticket Details:</h3>
-                            <p><strong><i class="fa-solid fa-ticket"></i> Ticket ID:</strong> ${data.data.tid}</p>
-                            <p><strong><i class="fa-solid fa-user"></i> Name:</strong> ${data.data.first_name} ${data.data.last_name}</p>
-                            <p><strong><i class="fa-solid fa-filter"></i> Type:</strong> ${data.data.type}</p>
-                            <p><strong><i class="fa-solid fa-coins"></i> Paid:</strong> ${data.data.paid ? 'Yes' : 'No'}</p>
-                            <p><strong><i class="fa-solid fa-calendar-days"></i> Valid Until:</strong> ${data.data.valid_date}</p>
-                            <p><strong><i class="fa-solid fa-clock"></i> Used At:</strong> ${data.data.used_at || 'Not Used Yet'}</p>
-                            <div class="attempts-summary">
-                                <p><strong><i class="fa-solid fa-exclamation-circle"></i> Access Attempts:</strong> ${data.data.access_attempts.length || "N/A"}</p>
-                                <p><strong><i class="fa-solid fa-check-circle"></i> Successful Attempts:</strong> ${data.data.access_attempts.filter(attempt => attempt.status === 'success').length || "N/A"}</p>
-                                <p><strong><i class="fa-solid fa-times-circle"></i> Failed Attempts:</strong> ${data.data.access_attempts.filter(attempt => attempt.status === 'error').length || "N/A"}</p>
+                            <h4><b><u>${data.message}</u></b></h4>
+                            <div class="ticket-info">
+                                <h3 style="color:black;"><b>Ticket Details:</b></h3>
+                                <p><strong><i class="fa-solid fa-ticket"></i> Ticket ID:</strong> ${data.data.tid}</p>
+                                <p><strong><i class="fa-solid fa-user"></i> Name:</strong> ${data.data.first_name} ${data.data.last_name}</p>
+                                <p><strong><i class="fa-solid fa-filter"></i> Type:</strong> ${data.data.type}</p>
+                                <p><strong><i class="fa-solid fa-coins"></i> Paid:</strong> ${data.data.paid ? 'Yes' : 'No'}</p>
+                                <p><strong><i class="fa-solid fa-calendar-days"></i> Valid Until:</strong> ${data.data.valid_date}</p>
+                                <p><strong><i class="fa-solid fa-clock"></i> Used At:</strong> ${data.data.used_at || 'Not Used Yet'}</p>
+                                <div class="attempts-summary">
+                                    <p><strong><i class="fa-solid fa-exclamation-circle"></i> Access Attempts:</strong> ${data.data.access_attempts.length || "N/A"}</p>
+                                    <p><strong><i class="fa-solid fa-check-circle"></i> Successful Attempts:</strong> ${data.data.access_attempts.filter(attempt => attempt.status === 'success').length || "N/A"}</p>
+                                    <p><strong><i class="fa-solid fa-times-circle"></i> Failed Attempts:</strong> ${data.data.access_attempts.filter(attempt => attempt.status === 'error').length || "N/A"}</p>
+                                </div>
                             </div>
-                        </div>
-                    `;
+                        `;
+
+
+                        document.getElementById("errorMessage").innerHTML = "Denied";
+                        document.getElementById("errorMessage").style.display = "block";
+                        document.getElementById("successMessage").style.display = "none";
                     }
+
 
                     resultContent.innerHTML = resultHTML;
                 })
@@ -523,14 +531,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         const html5QrcodeScanner = new Html5QrcodeScanner(
             "reader", {
-                fps: 1,
-                qrbox: {
-                    width: 200,
-                    height: 200
-                },
-                aspectRatio: 1.0,
-                rememberLastUsedCamera: true
-            }
+            fps: 1,
+            qrbox: {
+                width: 200,
+                height: 200
+            },
+            aspectRatio: 1.0,
+            rememberLastUsedCamera: true
+        }
         );
         html5QrcodeScanner.render(onScanSuccess);
         setTimeout(() => {
@@ -544,6 +552,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 window.location.href = selectedApp;
             }
         }
+        var textSuccess = ["Einlass erlaubt", "Access granted"];
+        var currentIndexSuccess = 0;
+
+        function updateTextSuccess() {
+            document.getElementById("successMessage").innerHTML = textSuccess[currentIndexSuccess];
+
+            setTimeout(function () {
+                currentIndexSuccess = (currentIndexSuccess + 1) % textSuccess.length;
+                updateTextSuccess();
+            }, 1000);
+        }
+
+        updateTextSuccess();
+
+        var textError = ["Zutritt verweigert", "Access denied"];
+        var currentIndexError = 0;
+
+        function updateTextError() {
+            document.getElementById("errorMessage").innerHTML = textError[currentIndexError];
+
+            setTimeout(function () {
+                currentIndexError = (currentIndexError + 1) % textError.length;
+                updateTextError();
+            }, 1000);
+        }
+
+        updateTextError();
     </script>
 </body>
 

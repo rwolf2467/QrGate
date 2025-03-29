@@ -5,7 +5,7 @@ from assets.data import load_date, save_date, load_show
 import os
 import json
 
-from reportlab.lib.pagesizes import letter
+from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Image, Spacer, Table, TableStyle
@@ -302,7 +302,7 @@ async def send_email(first_name, last_name, email, tid, paid, date, event_time, 
 
         pdf = SimpleDocTemplate(
             pdf_filename,
-            pagesize=letter,
+            pagesize=A4,
             rightMargin=30,
             leftMargin=30,
             topMargin=-5,
