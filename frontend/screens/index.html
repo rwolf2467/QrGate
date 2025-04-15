@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="<?php echo $current_language; ?>">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>screen selector</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap');
+
+        :root {
+            --background-color: #0a0a0a;
+            --card-background: #111111;
+            --text-color: #ffffff;
+            --text-secondary: #888888;
+            --border-color: #222222;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Quicksand', sans-serif;
+        }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            background-color: #0a0a0a;
+            background-size: 31px 31px;
+            background-image: repeating-linear-gradient(45deg, #222222 0, #222222 3.1px, #0a0a0a 0, #0a0a0a 50%);
+            background-attachment: fixed;
+        }
+
+        #gradientbar {
+            height: 14px;
+            background: linear-gradient(90deg, #9333ea, #ec4899, #eab308);
+            width: 100%;
+            position: fixed;
+            top: 0;
+            z-index: 1000;
+            background-size: 200% 200%;
+            animation: gradient 10s ease infinite;
+        }
+
+        .group {
+            background: rgba(17, 17, 17, 0.8);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(30px);
+            position: relative;
+            z-index: 1;
+            opacity: 0.8;
+        }
+
+        .group:hover {
+            border-color: #9333ea;
+            background: rgba(147, 51, 234, 0.1);
+        }
+
+        button {
+            background: linear-gradient(90deg, #9333ea, #ec4899);
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button:disabled {
+            background: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        .x {
+            background: var(--border-color);
+            border-radius: 100%;
+            padding: 10px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            top: 0px;
+            right: 0px;
+            position: absolute;
+            margin-top: 24px;
+            margin-right: 24px;
+        }
+
+        .bar-text {
+            color: rgb(216, 180, 254);
+        }
+
+        .bar {
+            background: linear-gradient(90deg, #9333ea, #ec4899);
+        }
+
+        .bar-dark {
+            background-color: rgb(40, 24, 44);
+        }
+
+        .nichtunsichbarbittediggi {
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            color: var(--text-color) !important;
+        }
+
+        .nichtunsichbarbittediggi input,
+        .nichtunsichbarbittediggi select {
+            background: var(--background-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color) !important;
+            border-radius: 4px;
+            padding: 8px;
+        }
+
+        @keyframes gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .animate-fade-in-up {
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .show-name {
+            padding: 2px 8px;
+            background-color: rgba(147, 51, 234, 0.2);
+            border-radius: 4px;
+            color: rgb(216, 180, 254);
+            font-size: 3rem;
+        }
+
+        .sold-out {
+            padding: 2px 8px;
+            background-color: rgba(234, 51, 51, 0.2);
+            border-radius: 4px;
+            color: rgb(255, 112, 112);
+            font-size: 1.5rem;
+        }
+
+        .soon-sold-out {
+            padding: 2px 8px;
+            background-color: rgba(234, 176, 51, 0.2);
+            border-radius: 4px;
+            color: rgb(255, 176, 112);
+            font-size: 1rem;
+        }
+
+        .date-title {
+            color: rgb(216, 180, 254);
+            font-size: 2.5rem;
+        }
+
+        .show-hover:hover {
+            color: rgb(216, 180, 254);
+        }
+
+        .orga-name {
+            font-size: 5rem;
+            color: var(--text-color);
+        }
+
+        .modal {
+            backdrop-filter: blur(6px);
+        }
+
+        .inputs {
+            background-color: rgb(17, 17, 17);
+            border: 1px solid #222222;
+            color: black;
+            outline: none;
+        }
+
+        .inputs:focus {
+            background-color: rgb(17, 17, 17);
+            border: 1px solid #9333ea;
+            color: black;
+            box-shadow: 0 0 5px #9333ea;
+        }
+
+        .inputs:active {
+            background-color: rgb(17, 17, 17);
+            border: 1px solid #9333ea;
+            color: black;
+        }
+
+        .modal-enter {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+
+        .modal-enter-active {
+            opacity: 1;
+            transform: scale(1);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .modal-exit {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .modal-exit-active {
+            opacity: 0;
+            transform: scale(0.9);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .language-selector {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .language-selector select {
+            background-color: var(--card-background);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 8px;
+            cursor: pointer;
+        }
+
+        .language-selector .flag {
+            margin-right: 5px;
+        }
+
+        .help-question {
+            font-size: larger;
+            margin-top: -10px;
+        }
+        button {
+            border-radius: 8px;
+            padding: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="animate-fade-in">
+
+
+
+        <div class="container mx-auto px-4 py-8">
+            <h1 style="font-size: 40px;">Screen Software</h1>
+            <h3>Select your screen.</h3>
+            <br><br>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <button onclick="location.href='/screens/welcome.php'">Welcome Screen</button>
+                <button onclick="location.href='/screens/title.php'">Title Screen</button>
+                <button onclick="location.href='/screens/feedback.php'">Feedback Screen</button>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+
+</html>

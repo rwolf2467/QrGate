@@ -372,11 +372,9 @@ $shows = getShows();
         <?php if ($shows["store_lock"] === true): ?>
             <div class="min-h-screen flex items-center justify-center p-4">
                 <div class="bg-red-900/50 backdrop-blur-md border border-red-700 rounded-lg p-8 max-w-md w-full text-center" style="background-color: rgba(234, 51, 51, 0.2)">
-                    <svg class="w-16 h-16 mx-auto text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <h2 class="text-2xl font-bold mb-4"><?php echo $languages[$current_language]['store_lock_title']; ?></h2>
+                    <span style="color: rgb(234, 51, 51); font-size: 60px;"><i class="fa-solid fa-lock"></i></span>
+                    
+                    <h2 class="text-2xl font-bold mb-4"><br><?php echo $languages[$current_language]['store_lock_title']; ?></h2>
                     <p class="text-gray-300"><?php echo str_replace('{name}', $shows['orga_name'], $languages[$current_language]['store_lock_message']); ?></p>
                     
                 </div>
