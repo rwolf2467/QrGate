@@ -152,7 +152,7 @@ $qrcode_url = "https://quickchart.io/qr?text=" . urlencode($vote_url) . "&ecLeve
             width: 100%;
             text-align: center;
             margin: 0;
-            font-size: 3.5em;
+            font-size: 3em;
             color: var(--text-color);
             animation: fadeIn 2s ease forwards;
             margin-bottom: 15px;
@@ -191,7 +191,7 @@ $qrcode_url = "https://quickchart.io/qr?text=" . urlencode($vote_url) . "&ecLeve
         .welcome-text i {
             margin-right: 10px;
             color: var(--text-color);
-            font-size: 0.8em;
+            font-size: 1em;
         }
 
         footer {
