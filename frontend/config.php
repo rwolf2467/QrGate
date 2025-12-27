@@ -60,6 +60,10 @@ function getShows()
         $_SESSION['error'] = 'Fehler beim Laden der Shows: ' . $shows['error'];
         return null;
     }
-    echo "<script>console.log('Shows: " . json_encode($shows) . "');</script>";
     return $shows;
+}
+
+function updateShow($data)
+{
+    return makeApiCall('/api/show/edit', 'POST', $data);
 }
