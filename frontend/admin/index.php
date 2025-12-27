@@ -718,6 +718,10 @@ if ($shows) {
             .then(data => {
                 if (data.status === 'success') {
                     alert('Event updated successfully!');
+                    // Refresh the page to ensure all data is synchronized
+                    setTimeout(() => {
+                        location.reload();
+                    }, 500);
                 } else {
                     alert('Error updating event: ' + data.message);
                 }
@@ -759,117 +763,10 @@ if ($shows) {
             .then(data => {
                 if (data.status === 'success') {
                     alert('Day added successfully!');
-                    // Add the new day to the table instead of reloading
-                    const dateId = data.dateId; // Get the new date ID from the response
-                    const tableBody = document.getElementById('daysTableBody');
-                    
-                    // Create a new row for the added day
-                    const newRow = document.createElement('tr');
-                    newRow.setAttribute('data-date-id', dateId);
-                    newRow.innerHTML = `
-                        <td>
-                            <input type="date" class="input-field day-date" value="${newDate}">
-                        </td>
-                        <td>
-                            <input type="time" class="input-field day-time" value="${newTime}">
-                        </td>
-                        <td>
-                            <input type="number" class="input-field day-tickets" value="${newTickets}">
-                        </td>
-                        <td>
-                            <input type="number" class="input-field day-available" value="${newTickets}">
-                        </td>
-                        <td>
-                            <input type="number" step="0.01" class="input-field day-price" value="${newPrice}">
-                        </td>
-                        <td class="actions-cell">
-                            <button class="btn-icon btn-update update-day-btn" data-date-id="${dateId}">
-                                <i class="fas fa-save"></i>
-                            </button>
-                            <button class="btn-icon btn-delete delete-day-btn" data-date-id="${dateId}">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    `;
-                    
-                    tableBody.appendChild(newRow);
-                    
-                    // Add event listeners to the new buttons
-                    newRow.querySelector('.update-day-btn').addEventListener('click', function() {
-                        const dateId = this.getAttribute('data-date-id');
-                        const row = this.closest('tr');
-
-                        const date = row.querySelector('.day-date').value;
-                        const time = row.querySelector('.day-time').value;
-                        const tickets = row.querySelector('.day-tickets').value;
-                        const available = row.querySelector('.day-available').value;
-                        const price = row.querySelector('.day-price').value;
-
-                        // Make API call to update the day
-                        fetch('api.php?action=update_day', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                dateId: dateId,
-                                date: date,
-                                time: time,
-                                tickets: tickets,
-                                available: available,
-                                price: price
-                            })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.status === 'success') {
-                                alert('Day updated successfully!');
-                            } else {
-                                alert('Error updating day: ' + data.message);
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            alert('Error updating day');
-                        });
-                    });
-                    
-                    newRow.querySelector('.delete-day-btn').addEventListener('click', function() {
-                        const dateId = this.getAttribute('data-date-id');
-
-                        if (confirm('Are you sure you want to delete this day?')) {
-                            // Make API call to delete the day
-                            fetch('api.php?action=delete_day', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                },
-                                body: JSON.stringify({
-                                    dateId: dateId
-                                })
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.status === 'success') {
-                                    alert('Day deleted successfully!');
-                                    // Remove the row from the table instead of reloading
-                                    const row = document.querySelector(`tr[data-date-id="${dateId}"]`);
-                                    if (row) {
-                                        row.remove();
-                                    }
-                                } else {
-                                    alert('Error deleting day: ' + data.message);
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error:', error);
-                                alert('Error deleting day');
-                            });
-                        }
-                    });
-                    
-                    // Reset the form
-                    document.getElementById('addDayForm').reset();
+                    // Refresh the page to ensure all data is synchronized
+                    setTimeout(() => {
+                        location.reload();
+                    }, 500);
                 } else {
                     alert('Error adding day: ' + data.message);
                 }
@@ -880,11 +777,13 @@ if ($shows) {
             });
         });
         
-        // Update day button
-        document.querySelectorAll('.update-day-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const dateId = this.getAttribute('data-date-id');
-                const row = this.closest('tr');
+        // Use event delegation for update and delete buttons to handle dynamically added rows
+        document.getElementById('daysTableBody').addEventListener('click', function(e) {
+            // Handle update day button
+            if (e.target.closest('.update-day-btn')) {
+                const button = e.target.closest('.update-day-btn');
+                const dateId = button.getAttribute('data-date-id');
+                const row = button.closest('tr');
                 
                 const date = row.querySelector('.day-date').value;
                 const time = row.querySelector('.day-time').value;
@@ -911,6 +810,10 @@ if ($shows) {
                 .then(data => {
                     if (data.status === 'success') {
                         alert('Day updated successfully!');
+                        // Refresh the page to ensure all data is synchronized
+                        setTimeout(() => {
+                            location.reload();
+                        }, 500);
                     } else {
                         alert('Error updating day: ' + data.message);
                     }
@@ -919,13 +822,11 @@ if ($shows) {
                     console.error('Error:', error);
                     alert('Error updating day');
                 });
-            });
-        });
-        
-        // Delete day button
-        document.querySelectorAll('.delete-day-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const dateId = this.getAttribute('data-date-id');
+            }
+            // Handle delete day button
+            else if (e.target.closest('.delete-day-btn')) {
+                const button = e.target.closest('.delete-day-btn');
+                const dateId = button.getAttribute('data-date-id');
                 
                 if (confirm('Are you sure you want to delete this day?')) {
                     // Make API call to delete the day
@@ -942,11 +843,15 @@ if ($shows) {
                     .then(data => {
                         if (data.status === 'success') {
                             alert('Day deleted successfully!');
-                            // Remove the row from the table instead of reloading
+                            // Remove the row from the table
                             const row = document.querySelector(`tr[data-date-id="${dateId}"]`);
                             if (row) {
                                 row.remove();
                             }
+                            // Refresh the page to ensure all data is synchronized
+                            setTimeout(() => {
+                                location.reload();
+                            }, 500);
                         } else {
                             alert('Error deleting day: ' + data.message);
                         }
@@ -956,7 +861,7 @@ if ($shows) {
                         alert('Error deleting day');
                     });
                 }
-            });
+            }
         });
         
         // Logout button
