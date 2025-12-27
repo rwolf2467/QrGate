@@ -1,3 +1,1 @@
-Since the modified files are only PHP source files (`frontend/admin/api.php`, `frontend/admin/index.php`) and there are no build artifacts, dependency directories, or temporary files in the changes, no additional ignore rules are needed.
-
-(empty - output nothing)
+Nothing should be ignored based on the provided file changes. The only modified file is a source code file (frontend/admin/index.php), which should not be ignored.
