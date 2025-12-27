@@ -113,8 +113,16 @@ function addDay() {
         return;
     }
 
-    // Generate a new date ID
-    $newDateId = (string)(max(array_keys(array_map('intval', array_keys($shows['dates'] ?? [])))) + 1);
+    // Generate a new date ID - use a more reliable method
+    $existingIds = array_keys($shows['dates'] ?? []);
+    if (empty($existingIds)) {
+        $newDateId = '1';
+    } else {
+        // Convert all keys to integers and find the max
+        $intIds = array_map('intval', $existingIds);
+        $maxId = max($intIds);
+        $newDateId = (string)($maxId + 1);
+    }
     
     // Add the new day
     $shows['dates'][$newDateId] = [
