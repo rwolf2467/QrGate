@@ -129,6 +129,78 @@ if ($shows) {
         
         .section.active {
             display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .days-table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        
+        .days-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .days-table th,
+        .days-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .days-table th {
+            background-color: rgba(147, 51, 234, 0.1);
+            font-weight: 600;
+        }
+        
+        .days-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .actions-cell {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn-icon {
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-update {
+            background-color: rgba(147, 51, 234, 0.2);
+            color: #c084fc;
+            border: 1px solid rgba(147, 51, 234, 0.5);
+        }
+        
+        .btn-update:hover {
+            background-color: rgba(147, 51, 234, 0.3);
+        }
+        
+        .btn-delete {
+            background-color: rgba(220, 38, 38, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(220, 38, 38, 0.5);
+        }
+        
+        .btn-delete:hover {
+            background-color: rgba(220, 38, 38, 0.3);
         }
         
         .input-field {
@@ -199,7 +271,7 @@ if ($shows) {
             <h2 class="text-3xl font-bold mb-6">Dashboard</h2>
             
             <!-- Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="stats-grid">
                 <div class="stat-card p-6">
                     <div class="flex items-center">
                         <div class="p-3 rounded-full bg-purple-900/50 mr-4">
@@ -423,8 +495,8 @@ if ($shows) {
             
             <div class="card p-6">
                 <h3 class="text-xl font-bold mb-4">Current Days</h3>
-                <div class="overflow-x-auto">
-                    <table>
+                <div class="days-table-container">
+                    <table class="days-table">
                         <thead>
                             <tr>
                                 <th>Date</th>
@@ -454,11 +526,11 @@ if ($shows) {
                                         <td>
                                             <input type="number" step="0.01" class="input-field day-price" value="<?php echo $dateData['price']; ?>">
                                         </td>
-                                        <td>
-                                            <button class="btn-primary update-day-btn mr-2" data-date-id="<?php echo $dateId; ?>">
+                                        <td class="actions-cell">
+                                            <button class="btn-icon btn-update update-day-btn" data-date-id="<?php echo $dateId; ?>">
                                                 <i class="fas fa-save"></i>
                                             </button>
-                                            <button class="btn-danger delete-day-btn" data-date-id="<?php echo $dateId; ?>">
+                                            <button class="btn-icon btn-delete delete-day-btn" data-date-id="<?php echo $dateId; ?>">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </td>
@@ -688,7 +760,117 @@ if ($shows) {
             .then(data => {
                 if (data.status === 'success') {
                     alert('Day added successfully!');
-                    location.reload(); // Reload to refresh the data
+                    // Add the new day to the table instead of reloading
+                    const dateId = data.dateId; // Get the new date ID from the response
+                    const tableBody = document.getElementById('daysTableBody');
+                    
+                    // Create a new row for the added day
+                    const newRow = document.createElement('tr');
+                    newRow.setAttribute('data-date-id', dateId);
+                    newRow.innerHTML = `
+                        <td>
+                            <input type="date" class="input-field day-date" value="${newDate}">
+                        </td>
+                        <td>
+                            <input type="time" class="input-field day-time" value="${newTime}">
+                        </td>
+                        <td>
+                            <input type="number" class="input-field day-tickets" value="${newTickets}">
+                        </td>
+                        <td>
+                            <input type="number" class="input-field day-available" value="${newTickets}">
+                        </td>
+                        <td>
+                            <input type="number" step="0.01" class="input-field day-price" value="${newPrice}">
+                        </td>
+                        <td class="actions-cell">
+                            <button class="btn-icon btn-update update-day-btn" data-date-id="${dateId}">
+                                <i class="fas fa-save"></i>
+                            </button>
+                            <button class="btn-icon btn-delete delete-day-btn" data-date-id="${dateId}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    `;
+                    
+                    tableBody.appendChild(newRow);
+                    
+                    // Add event listeners to the new buttons
+                    newRow.querySelector('.update-day-btn').addEventListener('click', function() {
+                        const dateId = this.getAttribute('data-date-id');
+                        const row = this.closest('tr');
+
+                        const date = row.querySelector('.day-date').value;
+                        const time = row.querySelector('.day-time').value;
+                        const tickets = row.querySelector('.day-tickets').value;
+                        const available = row.querySelector('.day-available').value;
+                        const price = row.querySelector('.day-price').value;
+
+                        // Make API call to update the day
+                        fetch('api.php?action=update_day', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                dateId: dateId,
+                                date: date,
+                                time: time,
+                                tickets: tickets,
+                                available: available,
+                                price: price
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                alert('Day updated successfully!');
+                            } else {
+                                alert('Error updating day: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Error updating day');
+                        });
+                    });
+                    
+                    newRow.querySelector('.delete-day-btn').addEventListener('click', function() {
+                        const dateId = this.getAttribute('data-date-id');
+
+                        if (confirm('Are you sure you want to delete this day?')) {
+                            // Make API call to delete the day
+                            fetch('api.php?action=delete_day', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    dateId: dateId
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.status === 'success') {
+                                    alert('Day deleted successfully!');
+                                    // Remove the row from the table instead of reloading
+                                    const row = document.querySelector(`tr[data-date-id="${dateId}"]`);
+                                    if (row) {
+                                        row.remove();
+                                    }
+                                } else {
+                                    alert('Error deleting day: ' + data.message);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                alert('Error deleting day');
+                            });
+                        }
+                    });
+                    
+                    // Reset the form
+                    document.getElementById('addDayForm').reset();
                 } else {
                     alert('Error adding day: ' + data.message);
                 }
@@ -761,7 +943,11 @@ if ($shows) {
                     .then(data => {
                         if (data.status === 'success') {
                             alert('Day deleted successfully!');
-                            location.reload(); // Reload to refresh the data
+                            // Remove the row from the table instead of reloading
+                            const row = document.querySelector(`tr[data-date-id="${dateId}"]`);
+                            if (row) {
+                                row.remove();
+                            }
                         } else {
                             alert('Error deleting day: ' + data.message);
                         }
