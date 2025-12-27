@@ -1,10 +1,12 @@
+```
+# Dependencies
+node_modules/
 
-/assets/__pycache__
-/config/__pycache__
-test.py
-/frontend/vendor
-/backend/__pycache__
-/backend/assets/__pycache__
-/backend/config/__pycache__
-frontend/composer.lock
-/.vscode
+# Editors
+.vscode/
+
+# Environment
+.env
+.env.local
+*.env.*
+```
