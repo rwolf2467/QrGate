@@ -1,6 +1,12 @@
 <?php
 require_once '../../config.php';
 
+// Check if user is authorized to access ticketflow
+if (!isset($_SESSION['admin']) && !isset($_SESSION['ticketflow_access'])) {
+    header('Location: ../login.php?redirect=ticketflow');
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['language'])) {
     $_SESSION['language'] = $_POST['language'];
     header("Location: " . $_SERVER['PHP_SELF']);
@@ -260,177 +266,62 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
         rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css" />
     <title>Ticket Flow</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap');
-
         :root {
-            --background-color: #0a0a0a;
-            --card-background: #111111;
-            --text-color: #ffffff;
-            --text-secondary: #888888;
-            --border-color: #222222;
-            --font-family: "Quicksand", sans-serif;
+            --primary: #9333ea;
+            --secondary: #ec4899;
+            --dark: #0a0a0a;
+            --darker: #111111;
+            --border: #222222;
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        
         body {
+            background-color: var(--dark);
+            color: white;
             font-family: 'Quicksand', sans-serif;
-            background-color: var(--background-color);
-            color: var(--text-color);
-            line-height: 1.6;
-            background-color: #0a0a0a;
-            background-size: 31px 31px;
-            background-image: repeating-linear-gradient(45deg, #222222 0, #222222 3.1px, #0a0a0a 0, #0a0a0a 50%);
-            background-attachment: fixed;
         }
-
-        #gradientbar {
-            height: 14px;
-            background: linear-gradient(90deg, #9333ea, #ec4899, #eab308);
-            width: 100%;
-            position: fixed;
-            top: 0;
-            z-index: 1000;
-            background-size: 200% 200%;
-            animation: gradient 10s ease infinite;
-        }
-
-        @keyframes gradient {
-            0% {
-                background-position: 0% 50%;
-            }
-
-            50% {
-                background-position: 100% 50%;
-            }
-
-            100% {
-                background-position: 0% 50%;
-            }
-        }
-
-        #particles-js {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
-            z-index: 1;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            position: relative;
-            z-index: 2;
-        }
-
-        .hero {
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding-top: 14px;
-        }
-
-        .hero-content {
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeInUp 1s ease forwards;
-        }
-
-        @keyframes fadeInUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .scroll-indicator {
-            position: absolute;
-            top: 90vh;
-            left: 50%;
-            transform: translateX(-50%);
-            animation: bounce 2s infinite;
-            cursor: pointer;
-            opacity: 0.7;
-        }
-
-        @keyframes bounce {
-
-            0%,
-            20%,
-            50%,
-            80%,
-            100% {
-                transform: translateY(0) translateX(-50%);
-            }
-
-            40% {
-                transform: translateY(-20px) translateX(-50%);
-            }
-
-            60% {
-                transform: translateY(-10px) translateX(-50%);
-            }
-        }
-
-        h1 {
-            font-size: 3.5rem;
-            margin-bottom: 24px;
-            line-height: 1.2;
-        }
-
-        .highlight-purple {
-            background-color: rgba(147, 51, 234, 0.2);
-            padding: 2px 8px;
-            color: rgb(216, 180, 254);
-            border-radius: 4px;
+        
+        .card {
+            background-color: var(--darker);
+            border: 1px solid var(--border);
+            border-radius: 8px;
             transition: all 0.3s ease;
         }
-
-        .highlight-purple:hover {
-            background-color: rgba(147, 51, 234, 0.4);
-            transform: translateY(-2px);
+        
+        .card:hover {
+            border-color: var(--primary);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transition: opacity 0.2s;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
             cursor: pointer;
+            color: white;
         }
-
-        .highlight-purple:active {
-            background-color: rgba(147, 51, 234, 0.6);
+        
+        .btn-primary:hover {
+            opacity: 0.9;
         }
-
-        .highlight-yellow {
-            background-color: rgba(234, 179, 8, 0.2);
-            padding: 2px 8px;
-            color: rgb(253, 224, 71);
+        
+        .input-field {
+            background-color: var(--dark);
+            border: 1px solid var(--border);
+            color: white;
+            padding: 10px;
             border-radius: 4px;
-            transition: all 0.3s ease;
+            width: 100%;
         }
-
-        .highlight-yellow:hover {
-            background-color: rgba(234, 179, 8, 0.4);
-            transform: translateY(-2px);
+        
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary);
         }
-
-        .subtitle {
-            color: var(--text-secondary);
-            font-size: 1.3rem;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .section-header {
-            margin-bottom: 32px;
-        }
-
+        
         .section-title {
             font-size: 1.1rem;
             color: #888;
@@ -439,7 +330,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
             gap: 16px;
             margin-bottom: 16px;
         }
-
+        
         .section-title::before {
             content: '';
             width: 96px;
@@ -447,115 +338,39 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
             background: linear-gradient(90deg, #9333ea, #ec4899);
             display: block;
         }
-
-        .projects-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 24px;
-            margin-top: 32px;
-        }
-
+        
         .project-card {
-            background: var(--card-background);
-            border: 1px solid var(--border-color);
+            background: var(--darker);
+            border: 1px solid var(--border);
             border-radius: 8px;
             padding: 24px;
             transition: transform 0.2s ease-in-out;
             display: flex;
             flex-direction: column;
         }
-
+        
         .project-card:hover {
             transform: translateY(-4px);
         }
-
+        
         .project-title {
             font-size: 1.25rem;
             margin-bottom: 12px;
         }
-
-        .project-description {
-            color: var(--text-secondary);
-            margin-bottom: 16px;
-            font-size: 0.95rem;
-        }
-
-        .project-list {
-            color: var(--text-secondary);
-            margin-bottom: 16px;
-            margin-left: 2%;
-            font-size: 0.95rem;
-        }
-
-        .project-list-2 {
-            color: var(--text-secondary);
-            margin-bottom: 16px;
-            margin-left: 4%;
-            font-size: 0.95rem;
-        }
-
-        .tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-
-        .tag {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 4px 12px;
-            border-radius: 16px;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-
-        .project-date {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-
-        main {
-            position: relative;
-            z-index: 2;
-        }
-
-        .project-profile {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 16px;
-        }
-
-        .project-profile-picture {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
-        .language-selector {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000;
-        }
-
+        
         .language-selector select {
-            background-color: var(--card-background);
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
+            background-color: var(--darker);
+            color: white;
+            border: 1px solid var(--border);
             border-radius: 4px;
             padding: 8px;
             cursor: pointer;
         }
-
-        .language-selector .flag {
-            margin-right: 5px;
-        }
-
+        
         #currentDateTime {
             text-align: center;
             font-size: 1.5rem;
-            color: var(--text-color);
+            color: white;
             margin-top: 10px;
             position: fixed;
             top: 15px;
@@ -563,170 +378,222 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
             transform: translateX(-50%);
             z-index: 1001;
         }
-
+        
         .inputs {
-            background-color: rgb(17, 17, 17);
-            border: 1px solid #222222;
-            color: black;
+            background-color: var(--dark);
+            border: 1px solid var(--border);
+            color: white;
             outline: none;
-            color: whitesmoke;
             padding: 8px;
             border-radius: 4px;
+            width: 100%;
         }
-
+        
         .inputs:focus {
-            background-color: rgb(17, 17, 17);
+            background-color: var(--dark);
             border: 1px solid #9333ea;
-            color: whitesmoke;
+            color: white;
             box-shadow: 0 0 5px #9333ea;
         }
-
-        .inputs:active {
-            background-color: rgb(17, 17, 17);
-            border: 1px solid #9333ea;
-            color: whitesmoke;
-        }
-
+        
         button {
             background: linear-gradient(90deg, #9333ea, #ec4899);
             transition: opacity 0.2s;
-            color: whitesmoke;
+            color: white;
             border-radius: 4px;
             padding: 8px;
             min-width: 80px;
             max-width: 150px;
             margin-top: 10px;
-        }
-
-        button:hover {
-            opacity: 0.9;
+            border: none;
             cursor: pointer;
         }
-
+        
+        button:hover {
+            opacity: 0.9;
+        }
+        
         button:disabled {
             background: var(--text-secondary);
             cursor: not-allowed;
         }
     </style>
+
+        
 </head>
 
-<body>
-
-    <div id="gradientbar"></div>
+<body class="bg-dark min-h-screen">
     <div id="currentDateTime"></div>
-    <div class="language-selector">
-        <form method="post" id="langForm">
-            <select name="language" onchange="this.form.submit()">
-                <?php foreach ($languages as $code => $lang): ?>
-                    <option value="<?php echo $code; ?>"
-                        <?php echo ($current_language == $code) ? 'selected' : ''; ?>>
-                        <span class="flag"><?php echo $lang['flag']; ?></span>
-                        <?php echo $lang['name']; ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </form>
-    </div>
-    <div class="container">
-        <main>
+    
+    <!-- Header -->
+    <header class="bg-darker border-b border-border px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center">
+            <i class="fas fa-qrcode text-2xl text-purple-400 mr-3"></i>
+            <h1 class="text-2xl font-bold">TicketFlow</h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="language-selector">
+                <form method="post" id="langForm">
+                    <select name="language" onchange="this.form.submit()" class="input-field">
+                        <?php foreach ($languages as $code => $lang): ?>
+                            <option value="<?php echo $code; ?>"
+                                <?php echo ($current_language == $code) ? 'selected' : ''; ?>>
+                                <?php echo $lang['flag']; ?> <?php echo $lang['name']; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </form>
+            </div>
+            <a href="../logout.php" class="btn-primary">
+                <i class="fas fa-sign-out-alt mr-2"></i> Logout
+            </a>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        <div class="mb-8">
+            <h2 class="text-3xl font-bold mb-2">TicketFlow</h2>
+            <p class="text-gray-400"><?php echo $languages[$current_language]['title_description']; ?></p>
+        </div>
+        
+        <div class="section-header mb-8">
+            <div class="section-title"><?php echo $languages[$current_language]['section_title_edit']; ?></div>
+        </div>
 
-            <section style="margin-top: 15vh" id="about">
-                <div>
-                    <h2>TicketFlow</h2>
-                    <h3><?php echo $languages[$current_language]['title_description']; ?></h3>
-                </div>
-                <br>
-                <div class="section-header">
-                    <div class="section-title"><?php echo $languages[$current_language]['section_title_edit']; ?></div>
-                </div>
-
-                <div class="project-card">
+                <div class="project-card card">
                     <div class="project-profile">
                     </div>
                     <h3 class="project-title">
                         <i class="fa-solid fa-file-pen"></i> <span><?php echo $languages[$current_language]['title_edit']; ?></span>
                     </h3>
-                    <form action="" method="POST">
+                    <form action="" method="POST" class="mb-4">
                         <input class="inputs" type="text" placeholder="Enter Ticket ID Here" id="idinput" name="ticket_id" value="<?php echo $ticket_id_value?>" required>
-                        <button type="submit"><?php echo $languages[$current_language]['send_request']; ?></button>
+                        <button type="submit" class="btn-primary mt-2">
+                            <i class="fas fa-search mr-2"></i> <?php echo $languages[$current_language]['send_request']; ?>
+                        </button>
                     </form>
-                    <br>
+                    
                     <?php if (!empty($ticket_id)): ?>
                         <form action="" method="POST" id="saveForm">
                             <input type="hidden" name="action" value="save_ticket">
                             <input type="hidden" name="ticket_id" value="<?php echo htmlspecialchars($ticket_id); ?>">
 
-                            <div id="ticketinfo">
-                                <label for="firstname"><?php echo $languages[$current_language]['first_name']; ?></label> <br>
-                                <input class="inputs" type="text" name="firstname" value="<?php echo htmlspecialchars($firstname); ?>"> <br>
-                                <label for="lastname"><?php echo $languages[$current_language]['last_name']; ?></label> <br>
-                                <input class="inputs" type="text" name="lastname" value="<?php echo htmlspecialchars($lastname); ?>"> <br>
-                                <label for="type"><?php echo $languages[$current_language]['type']; ?></label> <br>
-                                <select class="inputs" name="type">
-                                    <option value="visitor" <?php echo ($type === 'visitor') ? 'selected' : ''; ?>>Visitor</option>
-                                    <option value="admin" <?php echo ($type === 'admin') ? 'selected' : ''; ?>>Admin</option>
-                                    <option value="vip" <?php echo ($type === 'vip') ? 'selected' : ''; ?>>VIP</option>
-                                </select> <br>
-                                <label for="paid"><?php echo $languages[$current_language]['paid']; ?></label> <br>
-                                <select class="inputs" name="paid">
-                                    <option value="true" <?php echo ($paid === 'true') ? 'selected' : ''; ?>>True</option>
-                                    <option value="false" <?php echo ($paid === 'false') ? 'selected' : ''; ?>>False</option>
-                                </select> <br>
-                                <label for="valid"><?php echo $languages[$current_language]['used']; ?></label> <br>
-                                <select class="inputs" name="valid">
-                                    <option value="true" <?php echo ($valid === 'true') ? 'selected' : ''; ?>>True</option>
-                                    <option value="false" <?php echo ($valid === 'false') ? 'selected' : ''; ?>>False</option>
-                                </select> <br>
-                                <label for="valid_date"><?php echo $languages[$current_language]['valid_date']; ?></label> <br>
-                                <input class="inputs" type="date" name="valid_date" value="<?php echo htmlspecialchars($valid_date); ?>"> <br>
+                            <div id="ticketinfo" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label for="firstname" class="block mb-2 text-sm"><?php echo $languages[$current_language]['first_name']; ?></label>
+                                    <input class="inputs" type="text" name="firstname" value="<?php echo htmlspecialchars($firstname); ?>">
+                                </div>
+                                <div>
+                                    <label for="lastname" class="block mb-2 text-sm"><?php echo $languages[$current_language]['last_name']; ?></label>
+                                    <input class="inputs" type="text" name="lastname" value="<?php echo htmlspecialchars($lastname); ?>">
+                                </div>
+                                <div>
+                                    <label for="type" class="block mb-2 text-sm"><?php echo $languages[$current_language]['type']; ?></label>
+                                    <select class="inputs" name="type">
+                                        <option value="visitor" <?php echo ($type === 'visitor') ? 'selected' : ''; ?>>Visitor</option>
+                                        <option value="admin" <?php echo ($type === 'admin') ? 'selected' : ''; ?>>Admin</option>
+                                        <option value="vip" <?php echo ($type === 'vip') ? 'selected' : ''; ?>>VIP</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="paid" class="block mb-2 text-sm"><?php echo $languages[$current_language]['paid']; ?></label>
+                                    <select class="inputs" name="paid">
+                                        <option value="true" <?php echo ($paid === 'true') ? 'selected' : ''; ?>>True</option>
+                                        <option value="false" <?php echo ($paid === 'false') ? 'selected' : ''; ?>>False</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="valid" class="block mb-2 text-sm"><?php echo $languages[$current_language]['used']; ?></label>
+                                    <select class="inputs" name="valid">
+                                        <option value="true" <?php echo ($valid === 'true') ? 'selected' : ''; ?>>True</option>
+                                        <option value="false" <?php echo ($valid === 'false') ? 'selected' : ''; ?>>False</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="valid_date" class="block mb-2 text-sm"><?php echo $languages[$current_language]['valid_date']; ?></label>
+                                    <input class="inputs" type="date" name="valid_date" value="<?php echo htmlspecialchars($valid_date); ?>">
+                                </div>
                             </div>
-                            <br>
-                            <button type="submit"><?php echo $languages[$current_language]['save']; ?></button>
-                            <button type="button" onclick="window.location.href='<?php echo $_SERVER['PHP_SELF']; ?>'"><?php echo $languages[$current_language]['cancel']; ?></button>
+                            
+                            <div class="flex gap-4">
+                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-save mr-2"></i> <?php echo $languages[$current_language]['save']; ?>
+                                </button>
+                                <button type="button" onclick="window.location.href='<?php echo $_SERVER['PHP_SELF']; ?>'" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded">
+                                    <i class="fas fa-times mr-2"></i> <?php echo $languages[$current_language]['cancel']; ?>
+                                </button>
+                            </div>
                         </form>
                     <?php else: ?>
-                        <div id="ticketinfo">
+                        <div id="ticketinfo" class="text-gray-400">
                             <p><?php echo $languages[$current_language]['please_enter_ticket_id']; ?></p>
                         </div>
                     <?php endif; ?>
                 </div>
                 <br>
                 <br>
-                <div class="project-card">
+                <div class="project-card card">
                     <div class="project-profile">
                     </div>
                     <h3 class="project-title">
                         <i class="fa-solid fa-plus"></i> <span><?php echo $languages[$current_language]['title_create']; ?></span>
                     </h3>
-                    <button id="createNewButton" onclick="showCreateTicketForm()"><?php echo $languages[$current_language]['create_new']; ?></button>
+                    <button id="createNewButton" onclick="showCreateTicketForm()" class="btn-primary mb-4">
+                        <i class="fas fa-plus mr-2"></i> <?php echo $languages[$current_language]['create_new']; ?>
+                    </button>
                     <div id="createTicketForm" style="display: none;">
                         <form action="" method="POST" id="createForm">
                             <input type="hidden" name="action" value="create_ticket">
-                            <label for="tid"><?php echo $languages[$current_language]['ticket_id']; ?></label> <br>
-                            <input class="inputs" type="text" name="tid" placeholder="Enter Ticket ID Here"> <br>
-                            <label for="email"><?php echo $languages[$current_language]['email']; ?></label> <br>
-                            <input class="inputs" type="email" name="email" placeholder="Enter Email Here"> <br>
-                            <label for="firstname"><?php echo $languages[$current_language]['first_name']; ?></label> <br>
-                            <input class="inputs" type="text" name="firstname" required> <br>
-                            <label for="lastname"><?php echo $languages[$current_language]['last_name']; ?></label> <br>
-                            <input class="inputs" type="text" name="lastname" required> <br>
-                            <label for="tickets"><?php echo $languages[$current_language]['number_of_tickets']; ?></label> <br>
-                            <input class="inputs" type="number" name="tickets" value="1" required> <br>
-                            <label for="type"><?php echo $languages[$current_language]['type']; ?></label> <br>
-                            <select class="inputs" name="type" id="type" required>
-                                <option value="visitor"><?php echo $languages[$current_language]['visitor']; ?></option>
-                                <option value="admin"><?php echo $languages[$current_language]['admin']; ?></option>
-                                <option value="vip"><?php echo $languages[$current_language]['vip']; ?></option>
-                            </select> <br>
-                            <label for="paid"><?php echo $languages[$current_language]['paid']; ?></label> <br>
-                            <select class="inputs" name="paid" required>
-                                <option value="true"><?php echo $languages[$current_language]['true']; ?></option>
-                                <option value="false"><?php echo $languages[$current_language]['false']; ?></option>
-                            </select> <br>
-                            <label for="valid_date"><?php echo $languages[$current_language]['valid_date']; ?></label> <br>
-                            <input class="inputs" type="date" name="valid_date"> <br>
-                            <button type="submit"><?php echo $languages[$current_language]['create_ticket']; ?></button>
-                            <button type="button" onclick="showCreateTicketForm()"><?php echo $languages[$current_language]['cancel']; ?></button>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label for="tid" class="block mb-2 text-sm"><?php echo $languages[$current_language]['ticket_id']; ?></label>
+                                    <input class="inputs" type="text" name="tid" placeholder="Enter Ticket ID Here">
+                                </div>
+                                <div>
+                                    <label for="email" class="block mb-2 text-sm"><?php echo $languages[$current_language]['email']; ?></label>
+                                    <input class="inputs" type="email" name="email" placeholder="Enter Email Here">
+                                </div>
+                                <div>
+                                    <label for="firstname" class="block mb-2 text-sm"><?php echo $languages[$current_language]['first_name']; ?></label>
+                                    <input class="inputs" type="text" name="firstname" required>
+                                </div>
+                                <div>
+                                    <label for="lastname" class="block mb-2 text-sm"><?php echo $languages[$current_language]['last_name']; ?></label>
+                                    <input class="inputs" type="text" name="lastname" required>
+                                </div>
+                                <div>
+                                    <label for="tickets" class="block mb-2 text-sm"><?php echo $languages[$current_language]['number_of_tickets']; ?></label>
+                                    <input class="inputs" type="number" name="tickets" value="1" required>
+                                </div>
+                                <div>
+                                    <label for="type" class="block mb-2 text-sm"><?php echo $languages[$current_language]['type']; ?></label>
+                                    <select class="inputs" name="type" id="type" required>
+                                        <option value="visitor"><?php echo $languages[$current_language]['visitor']; ?></option>
+                                        <option value="admin"><?php echo $languages[$current_language]['admin']; ?></option>
+                                        <option value="vip"><?php echo $languages[$current_language]['vip']; ?></option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="paid" class="block mb-2 text-sm"><?php echo $languages[$current_language]['paid']; ?></label>
+                                    <select class="inputs" name="paid" required>
+                                        <option value="true"><?php echo $languages[$current_language]['true']; ?></option>
+                                        <option value="false"><?php echo $languages[$current_language]['false']; ?></option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="valid_date" class="block mb-2 text-sm"><?php echo $languages[$current_language]['valid_date']; ?></label>
+                                    <input class="inputs" type="date" name="valid_date">
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-plus mr-2"></i> <?php echo $languages[$current_language]['create_ticket']; ?>
+                                </button>
+                                <button type="button" onclick="showCreateTicketForm()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded">
+                                    <i class="fas fa-times mr-2"></i> <?php echo $languages[$current_language]['cancel']; ?>
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>

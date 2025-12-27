@@ -2,6 +2,12 @@
 
 require_once '../../config.php';
 
+// Check if user is authorized to access handheld scanner
+if (!isset($_SESSION['admin']) && !isset($_SESSION['handheld_access'])) {
+    header('Location: ../login.php?redirect=handheld');
+    exit;
+}
+
 $API_KEY = API_KEY;
 $API_ENDPOINT = API_BASE_URL . 'api/ticket/validate';
 
@@ -53,13 +59,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.lordicon.com/lordicon.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        :root {
+            --primary: #9333ea;
+            --secondary: #ec4899;
+            --dark: #0a0a0a;
+            --darker: #111111;
+            --border: #222222;
+        }
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--dark);
+            color: white;
+            font-family: 'Quicksand', sans-serif;
             margin: 0;
             padding: 0;
-            background: #121212;
-            color: #e0e0e0;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -68,26 +84,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .container {
-            background: #1e1e1e;
+            background: var(--darker);
             border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
             width: 90%;
             max-width: 500px;
             padding: 20px;
             text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         h1 {
             font-size: 20px;
             color: rgb(198, 198, 198);
             margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         #reader {
             width: 100%;
             max-width: 300px;
             margin: 0 auto;
-            border: 2px solid #ddd;
+            border: 2px solid var(--border);
             border-radius: 8px;
             overflow: hidden;
         }
@@ -159,13 +179,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: #2c2c2c;
+            background: var(--darker);
             padding: 20px;
             border-radius: 8px;
             z-index: 1000;
             max-width: 100%;
             box-sizing: border-box;
             width: 95%;
+            color: white;
         }
 
         .popup h2 {
@@ -229,12 +250,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 5px;
             cursor: pointer;
             font-size: 16px;
-            background: linear-gradient(90deg, #9333ea, #ec4899);
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
             width: 100%;
         }
 
         .popup button:hover {
-            background: linear-gradient(90deg, #9333ea, #ec4899);
+            opacity: 0.9;
         }
 
         .blur-background {
@@ -243,7 +264,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(18, 18, 18, 0.8);
+            background: rgba(10, 10, 10, 0.8);
             backdrop-filter: blur(10px);
             z-index: 999;
             display: none;
@@ -313,13 +334,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-top: 1px solid #ddd;
             padding-top: 10px;
         }
+        
+        /* Header styles */
+        .app-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--darker);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .app-header h1 {
+            font-size: 18px;
+            color: white;
+            margin: 0;
+        }
+        
+        .logout-btn {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+        
+        .logout-btn:hover {
+            opacity: 0.9;
+        }
     </style>
 </head>
 
 <body>
-    <div class="container">
+    <!-- Header -->
+    <div class="app-header">
+        <h1>
+            <i class="fas fa-qrcode mr-2"></i> Ticket Scanner
+        </h1>
+        <a href="../logout.php" class="logout-btn">
+            <i class="fas fa-sign-out-alt mr-1"></i> Logout
+        </a>
+    </div>
+    
+    <div class="container" style="margin-top: 60px;">
         <h1>Ticket Scanner</h1>
-        <select id="appSelector" onchange="navigateToApp()" style="margin-bottom: 20px;">
+        <select id="appSelector" onchange="navigateToApp()" style="margin-bottom: 20px; background: var(--darker); color: white; border: 1px solid var(--border); padding: 8px; border-radius: 4px;">
             <option value="index.php">Ticket Scanner</option>
             <option value="inspector.php">Ticket Inspector</option>
         </select>

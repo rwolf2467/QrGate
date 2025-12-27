@@ -7,10 +7,21 @@ $admin_password = 'admin123'; // Change this in production!
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
+    $redirect = $_GET['redirect'] ?? 'admin';
     
     if ($password === $admin_password) {
         $_SESSION['admin'] = true;
-        header('Location: index.php');
+        
+        // Grant access to specific apps based on redirect parameter
+        if ($redirect === 'ticketflow') {
+            $_SESSION['ticketflow_access'] = true;
+            header('Location: ticketflow/index.php');
+        } elseif ($redirect === 'handheld') {
+            $_SESSION['handheld_access'] = true;
+            header('Location: handheld/index.php');
+        } else {
+            header('Location: index.php');
+        }
         exit;
     } else {
         $error = 'Invalid password';

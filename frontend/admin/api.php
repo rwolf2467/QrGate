@@ -85,6 +85,11 @@ function updateShowData() {
         $input = $_POST;
     }
 
+    // Ensure store_lock is treated as boolean
+    if (isset($input['store_lock'])) {
+        $input['store_lock'] = filter_var($input['store_lock'], FILTER_VALIDATE_BOOLEAN);
+    }
+
     $result = updateShow($input);
     
     if (isset($result['status']) && $result['status'] === 'success') {
@@ -113,15 +118,30 @@ function addDay() {
         return;
     }
 
-    // Generate a new date ID - use a more reliable method
-    $existingIds = array_keys($shows['dates'] ?? []);
-    if (empty($existingIds)) {
-        $newDateId = '1';
-    } else {
-        // Convert all keys to integers and find the max
-        $intIds = array_map('intval', $existingIds);
-        $maxId = max($intIds);
-        $newDateId = (string)($maxId + 1);
+    // Use the provided dateId if available, otherwise generate a new one
+    $newDateId = $input['dateId'] ?? null;
+    if (empty($newDateId)) {
+        // Generate a new date ID - use timestamp-based ID for uniqueness
+        $existingIds = array_keys($shows['dates'] ?? []);
+        if (empty($existingIds)) {
+            $newDateId = 'day_' . time();
+        } else {
+            // Find the highest timestamp and add 1
+            $timestamps = [];
+            foreach ($existingIds as $id) {
+                if (strpos($id, 'day_') === 0) {
+                    $timestamps[] = (int)substr($id, 4);
+                }
+            }
+            $newDateId = 'day_' . (max($timestamps) + 1);
+        }
+    }
+    
+    // Check if the dateId already exists
+    if (isset($shows['dates'][$newDateId])) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Date ID already exists']);
+        return;
     }
     
     // Add the new day
@@ -153,6 +173,9 @@ function updateDay() {
         echo json_encode(['status' => 'error', 'message' => 'Missing required fields']);
         return;
     }
+    
+    // Log the input for debugging
+    error_log('updateDay input: ' . print_r($input, true));
 
     // Load current shows
     $shows = getShows();
@@ -192,6 +215,9 @@ function updateDay() {
 function deleteDay() {
     $input = json_decode(file_get_contents('php://input'), true);
     
+    // Log the input for debugging
+    error_log('deleteDay input: ' . print_r($input, true));
+    
     if (!$input || !isset($input['dateId'])) {
         http_response_code(400);
         echo json_encode(['status' => 'error', 'message' => 'Missing dateId']);
@@ -218,11 +244,15 @@ function deleteDay() {
     // Update the show
     $result = updateShow($shows);
     
+    // Log the result for debugging
+    error_log('deleteDay result: ' . print_r($result, true));
+    
     if (isset($result['status']) && $result['status'] === 'success') {
         echo json_encode(['status' => 'success', 'message' => 'Day deleted successfully']);
     } else {
         http_response_code(500);
         $message = $result['message'] ?? 'Failed to delete day';
+        error_log('deleteDay error: ' . $message);
         echo json_encode(['status' => 'error', 'message' => $message]);
     }
 }

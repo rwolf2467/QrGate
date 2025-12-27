@@ -32,6 +32,7 @@ def edit_show(app=quart.Quart):
             show["banner"] = banner
             show["title"] = title
             show["dates"] = dates
+            show["store_lock"] = bool(data.get("store_lock", show.get("store_lock")))
 
             save_show(show)
             return (
@@ -53,29 +54,36 @@ def get_show(app=quart.Quart):
             return show, 200
         except Exception as e:
             return quart.jsonify({"status": "error", "message": str(e)}), 500
-        
+
     @app.route("/api/show/get/logo", methods=["POST", "GET"])
     async def get_show_logo():
         try:
-            
-            logo_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "assets", "logo.png")
+
+            logo_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "data",
+                "assets",
+                "logo.png",
+            )
             with open(logo_path, "rb") as f:
                 image_data = f.read()
             response = quart.Response(image_data, mimetype="image/png")
             return response
         except Exception as e:
             return quart.jsonify({"status": "error", "message": str(e)}), 500
-        
+
     @app.route("/api/show/get/wallpaper", methods=["POST", "GET"])
     async def get_show_wallpaper():
         try:
-            wallpaper_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "assets", "wallpaper.png")
+            wallpaper_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "data",
+                "assets",
+                "wallpaper.png",
+            )
             with open(wallpaper_path, "rb") as f:
                 image_data = f.read()
             response = quart.Response(image_data, mimetype="image/png")
             return response
         except Exception as e:
             return quart.jsonify({"status": "error", "message": str(e)}), 500
-
-        
-

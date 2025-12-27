@@ -88,9 +88,12 @@ if ($shows) {
         
         .nav-link {
             transition: all 0.3s ease;
-            padding: 12px 16px;
-            border-radius: 6px;
-            margin: 4px 0;
+            padding: 14px 20px;
+            border-radius: 8px;
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+            width: 100%;
         }
         
         .nav-link:hover, .nav-link.active {
@@ -231,8 +234,103 @@ if ($shows) {
             background-color: rgba(147, 51, 234, 0.1);
         }
     </style>
+    <style>
+        /* Notification styles */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transform: translateX(400px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        
+        .notification.success {
+            background: linear-gradient(90deg, #10b981, #059669);
+        }
+        
+        .notification.error {
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+        }
+        
+        .notification.info {
+            background: linear-gradient(90deg, #3b82f6, #2563eb);
+        }
+        
+        .notification-icon {
+            font-size: 18px;
+        }
+        
+        .notification-close {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            margin-left: 16px;
+            font-size: 16px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        
+        .notification-close:hover {
+            opacity: 1;
+        }
+        
+        /* Button loading state */
+        .btn-loading {
+            position: relative;
+            pointer-events: none;
+        }
+        
+        .btn-loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        /* Button success state */
+        .btn-success {
+            background: linear-gradient(90deg, #10b981, #059669) !important;
+        }
+        
+        .btn-success i {
+            animation: bounce 0.5s;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+    </style>
 </head>
 <body class="flex h-screen">
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="fixed top-4 right-4 z-50 w-80"></div>
     <!-- Sidebar -->
     <div class="sidebar w-64 flex flex-col">
         <div class="p-6">
@@ -455,6 +553,7 @@ if ($shows) {
             </div>
         </div>
         
+
         <!-- Manage Days Section -->
         <div id="days" class="section">
             <h2 class="text-3xl font-bold mb-6">Manage Days</h2>
@@ -548,6 +647,70 @@ if ($shows) {
         const API_BASE_URL = '<?php echo API_BASE_URL; ?>';
         const API_KEY = '<?php echo API_KEY; ?>';
         
+        // Notification system
+        function showNotification(message, type = 'success', duration = 3000) {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            
+            notification.className = `notification ${type}`;
+            
+            // Icon based on type
+            let icon = '';
+            if (type === 'success') {
+                icon = '<i class="fas fa-check-circle notification-icon"></i>';
+            } else if (type === 'error') {
+                icon = '<i class="fas fa-exclamation-circle notification-icon"></i>';
+            } else {
+                icon = '<i class="fas fa-info-circle notification-icon"></i>';
+            }
+            
+            notification.innerHTML = `
+                ${icon}
+                <span>${message}</span>
+                <button class="notification-close" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Trigger animation
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 10);
+            
+            // Auto-remove after duration
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, duration);
+        }
+        
+        // Button state management
+        function setButtonLoading(button, loading = true) {
+            if (loading) {
+                button.classList.add('btn-loading');
+                button.disabled = true;
+                button.innerHTML = '<span>' + button.innerHTML + '</span>';
+            } else {
+                button.classList.remove('btn-loading');
+                button.disabled = false;
+            }
+        }
+        
+        function setButtonSuccess(button) {
+            button.classList.add('btn-success');
+            const originalHtml = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-check mr-2"></i>' + originalHtml;
+            
+            setTimeout(() => {
+                button.classList.remove('btn-success');
+                button.innerHTML = originalHtml;
+            }, 2000);
+        }
+        
         // Navigation
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', function(e) {
@@ -557,6 +720,9 @@ if ($shows) {
                 document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
                 this.classList.add('active');
                 
+                // Store current section in localStorage
+                localStorage.setItem('currentAdminSection', this.getAttribute('data-section'));
+                
                 // Show selected section
                 const sectionId = this.getAttribute('data-section');
                 document.querySelectorAll('.section').forEach(section => {
@@ -565,6 +731,25 @@ if ($shows) {
                 document.getElementById(sectionId).classList.add('active');
             });
         });
+        
+        // Restore last active section from localStorage
+        const savedSection = localStorage.getItem('currentAdminSection');
+        if (savedSection) {
+            const savedLink = document.querySelector(`.nav-link[data-section="${savedSection}"]`);
+            const savedSectionElement = document.getElementById(savedSection);
+            
+            if (savedLink && savedSectionElement) {
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                savedLink.classList.add('active');
+                document.querySelectorAll('.section').forEach(section => {
+                    section.classList.remove('active');
+                });
+                savedSectionElement.classList.add('active');
+            }
+            
+            // Clear the stored section after restoring
+            localStorage.removeItem('currentAdminSection');
+        }
         
         // Initialize charts when statistics section is active
         function initCharts() {
@@ -682,6 +867,8 @@ if ($shows) {
         // Event form submission
         document.getElementById('eventForm').addEventListener('submit', function(e) {
             e.preventDefault();
+            const submitButton = e.submitter;
+            setButtonLoading(submitButton, true);
             
             const eventData = {
                 orga_name: document.getElementById('orgaName').value,
@@ -706,6 +893,8 @@ if ($shows) {
             <?php endif; ?>
             
             // Make API call to update show
+            console.log('Sending event data:', eventData);
+            
             fetch(`${API_BASE_URL}/api/show/edit`, {
                 method: 'POST',
                 headers: {
@@ -714,27 +903,41 @@ if ($shows) {
                 },
                 body: JSON.stringify(eventData)
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('API Response status:', response.status);
+                return response.json();
+            })
             .then(data => {
+                const submitButton = e.submitter;
+                setButtonLoading(submitButton, false);
+                
+                console.log('API Response data:', data);
+
                 if (data.status === 'success') {
-                    alert('Event updated successfully!');
+                    showNotification('Event updated successfully!', 'success');
+                    setButtonSuccess(submitButton);
+                    // Store current section before reload
+                    localStorage.setItem('currentAdminSection', 'event');
                     // Refresh the page to ensure all data is synchronized
                     setTimeout(() => {
                         location.reload();
                     }, 500);
                 } else {
-                    alert('Error updating event: ' + data.message);
+                    showNotification('Error updating event: ' + (data.message || 'Unknown error'), 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Error updating event');
+                setButtonLoading(e.submitter, false);
+                showNotification('Error updating event: ' + error.message, 'error');
             });
         });
         
         // Add day form submission
         document.getElementById('addDayForm').addEventListener('submit', function(e) {
             e.preventDefault();
+            const submitButton = e.submitter;
+            setButtonLoading(submitButton, true);
             
             const newDate = document.getElementById('newDate').value;
             const newTime = document.getElementById('newTime').value;
@@ -742,17 +945,21 @@ if ($shows) {
             const newPrice = document.getElementById('newPrice').value;
             
             if (!newDate) {
-                alert('Please enter a date');
+                showNotification('Please enter a date', 'error');
                 return;
             }
             
-            // Make API call to add the day
+            // Generate a unique ID for the new day (timestamp-based)
+            const newDateId = 'day_' + Date.now();
+            
+            // Make API call to add the day with fixed ID
             fetch('api.php?action=add_day', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
+                    dateId: newDateId,
                     date: newDate,
                     time: newTime,
                     tickets: newTickets,
@@ -761,14 +968,20 @@ if ($shows) {
             })
             .then(response => response.json())
             .then(data => {
+                const submitButton = e.submitter;
+                setButtonLoading(submitButton, false);
+                
                 if (data.status === 'success') {
-                    alert('Day added successfully!');
+                    showNotification('Day added successfully!', 'success');
+                    setButtonSuccess(submitButton);
+                    // Store current section before reload
+                    localStorage.setItem('currentAdminSection', 'days');
                     // Refresh the page to ensure all data is synchronized
                     setTimeout(() => {
                         location.reload();
                     }, 500);
                 } else {
-                    alert('Error adding day: ' + data.message);
+                    showNotification('Error adding day: ' + data.message, 'error');
                 }
             })
             .catch(error => {
@@ -809,13 +1022,16 @@ if ($shows) {
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        alert('Day updated successfully!');
+                        showNotification('Day updated successfully!', 'success');
+                        setButtonSuccess(button);
+                        // Store current section before reload
+                        localStorage.setItem('currentAdminSection', 'days');
                         // Refresh the page to ensure all data is synchronized
                         setTimeout(() => {
                             location.reload();
                         }, 500);
                     } else {
-                        alert('Error updating day: ' + data.message);
+                        showNotification('Error updating day: ' + data.message, 'error');
                     }
                 })
                 .catch(error => {
@@ -829,6 +1045,10 @@ if ($shows) {
                 const dateId = button.getAttribute('data-date-id');
                 
                 if (confirm('Are you sure you want to delete this day?')) {
+                const button = e.target.closest('.delete-day-btn');
+                const dateId = button.getAttribute('data-date-id');
+                console.log('Deleting day with ID:', dateId);
+                setButtonLoading(button, true);
                     // Make API call to delete the day
                     fetch('api.php?action=delete_day', {
                         method: 'POST',
@@ -839,26 +1059,33 @@ if ($shows) {
                             dateId: dateId
                         })
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        console.log('Delete API response status:', response.status);
+                        return response.json();
+                    })
                     .then(data => {
+                        console.log('Delete API response data:', data);
+                        
                         if (data.status === 'success') {
-                            alert('Day deleted successfully!');
+                            showNotification('Day deleted successfully!', 'success');
                             // Remove the row from the table
                             const row = document.querySelector(`tr[data-date-id="${dateId}"]`);
                             if (row) {
                                 row.remove();
                             }
+                            // Store current section before reload
+                            localStorage.setItem('currentAdminSection', 'days');
                             // Refresh the page to ensure all data is synchronized
                             setTimeout(() => {
                                 location.reload();
                             }, 500);
                         } else {
-                            alert('Error deleting day: ' + data.message);
+                            showNotification('Error deleting day: ' + (data.message || 'Unknown error'), 'error');
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        alert('Error deleting day');
+                        showNotification('Error deleting day: ' + error.message, 'error');
                     });
                 }
             }
