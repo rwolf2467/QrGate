@@ -1,53 +1,198 @@
+# QrGate - Modernes Ticketing- und Zugangskontrollsystem
 
-# QrGate
+![QrGate Logo](backend/data/assets/logo.png)
 
-QrGate is a modular ticket control system for live events to manage free tickets and validate tickets. QrGate allows you to validate tickets quickly and easily using a cell phone. There are 2 payment options when buying tickets, PayPal and cash. 
+**QrGate** ist ein modernes, webbasiertes Ticketing- und Zugangskontrollsystem für Veranstaltungen. Es ermöglicht den Verkauf, die Verwaltung und die Validierung von Tickets über QR-Codes und bietet eine benutzerfreundliche Oberfläche für Administratoren und Besucher.
 
+## 📋 Übersicht
 
-## Authors
+QrGate ist ein umfassendes System für die Verwaltung von Veranstaltungen, Tickets und Zugangskontrollen. Es besteht aus einem **Backend** (Python/Quart) und einem **Frontend** (PHP/HTML/CSS/JavaScript) und bietet eine moderne, responsive Benutzeroberfläche.
 
-- Project manager and backend developer: [@rwolf2467](https://www.github.com/rwolf2467)
-- Frontend developer: [@matti_evt](https://discordapp.com/users/1068602876110315530) & [@rwolf2467](https://www.github.com/rwolf2467)
+### Hauptfunktionen
 
+- **Ticketverkauf**: Einfacher Kauf von Tickets über eine Weboberfläche mit Unterstützung für verschiedene Zahlungsmethoden (Barzahlung, PayPal).
+- **Zugangskontrolle**: QR-Code-basierte Validierung von Tickets für den Einlass.
+- **Verwaltungsoberfläche**: Umfassendes Admin-Panel für die Verwaltung von Veranstaltungen, Tickets und Statistiken.
+- **Mehrsprachigkeit**: Unterstützung für mehrere Sprachen (Deutsch, Englisch).
+- **Responsive Design**: Optimiert für Desktop und mobile Geräte.
 
-## Key-Features
+## 🚀 Installation
 
-- PayPal (online) payment and online booking possible.
-- Web based ticket validation and inspection app
-- User-friendly ui
-- Customizable
-- Web based apps for monitors and displaying info.
+### Voraussetzungen
 
-## Images
+- **Backend**:
+  - Python 3.7+
+  - Quart (Web-Framework)
+  - Weitere Abhängigkeiten (siehe `backend/main.py`)
 
-### Shop
-<div style="display: flex; justify-content: space-around;">
-    <img src="https://github.com/user-attachments/assets/7e3c704b-12bb-4d1d-9f7a-367d9d4bbbd2" alt="Shop Image 1" width="45%" />
-    <img src="https://github.com/user-attachments/assets/1ed3a179-0d6f-4fc5-8d9c-38f439e49df0" alt="Buy Popup" width="45%" />
-</div>
+- **Frontend**:
+  - PHP 7.4+
+  - Webserver (Apache, Nginx)
+  - Composer (für PHP-Abhängigkeiten)
 
-### Welcome Screen (for public monitors at the entrance)
-<div style="display: flex; justify-content: space-around;">
-    <img src="https://github.com/user-attachments/assets/5655a3de-655f-490e-93bc-f3b39b50408c" alt="Welcome Screen 1" width="45%" />
-    <img src="https://github.com/user-attachments/assets/bddf2ece-0448-4949-afc9-3e7cdcd8146f" alt="Welcome Screen 2" width="45%" />
-</div>
+### Schritte
 
-### Feedback Screen (for public monitors at the entrance)
-<div style="display: flex; justify-content: space-around;">
-    <img src="https://github.com/user-attachments/assets/65e6531f-2c99-430f-9d10-0863998c9ccc" alt="Feedbackscreen" width="30%">
-    <img src="https://github.com/user-attachments/assets/9b29345c-e0cc-47a9-967a-0866f38bba26" alt="Feedbackscreen" width="30%">
-    <img src="https://github.com/user-attachments/assets/6895fc6d-9dc7-47ae-9fea-68f13c2e9c39" alt="Feedbackscreen" width="30%">
-</div>
+1. **Repository klonen:**
+   ```bash
+   git clone https://github.com/rwolf2467/QrGate.git
+   cd QrGate
+   ```
 
-### Mobile Handheld (Ticket Validator & Inspector)
-<div style="display: flex; justify-content: space-around;">
-    <img src="https://github.com/user-attachments/assets/f73c137c-ea4c-458d-81a0-e8de1f8fcdc4" alt="Mobile Handheld (Ticket Validator)" width="45%" />
-    <img src="https://github.com/user-attachments/assets/73a714c1-bfb0-41b7-a151-8422f63bcbff" alt="Mobile Handheld (Ticket Inspector)" width="45%" />
-</div>
+2. **Backend einrichten:**
+   ```bash
+   cd backend
+   pip install -r requirements.txt  # Falls vorhanden
+   ```
 
-## Acknowledgements
+3. **Frontend einrichten:**
+   ```bash
+   cd frontend
+   composer install
+   ```
 
- - [Avocloud.net](https://avocloud.net)
- - [Discord](https://avocloud.net/discord/)
- - [Support E-mail](mailto:support@avocloud.net)
+4. **Konfiguration anpassen:**
+   - **Backend**: `backend/config/conf.py`
+     ```python
+     class API:
+         port = 1654
+         backend_url = "https://qrgate-backend.example.com/"
+     
+     class Auth:
+         auth_key = "YourGeneratedKeyHere"
+     
+     class Mail:
+         smtp_server = "smtp.example.com"
+         smtp_port = 587
+         smtp_user = "user@example.com"
+         smtp_password = "smtp_password"
+     ```
+   
+   - **Frontend**: `frontend/config.php`
+     ```php
+     <?php
+     define('API_BASE_URL', 'http://localhost:1654');
+     define('API_KEY', 'YourGeneratedKeyHere');
+     define('PAYPAL_CLIENT_ID', 'YourPayPalClientID');
+     ```
 
+5. **Webserver einrichten:**
+   - Richten Sie den Webserver so ein, dass er auf das `frontend`-Verzeichnis zeigt.
+   - Stellen Sie sicher, dass die `backend/data`-Verzeichnisse beschreibbar sind.
+
+6. **Anwendung starten:**
+   - **Backend**:
+     ```bash
+     cd backend
+     python main.py
+     ```
+   - **Frontend**: Öffnen Sie die Anwendung in Ihrem Browser.
+
+## 📂 Projektstruktur
+
+```
+QrGate/
+├── backend/
+│   ├── assets/              # Backend-Module (Ticketverwaltung, Validierung, etc.)
+│   ├── config/              # Konfigurationsdateien
+│   ├── data/                # Daten (Shows, Tickets)
+│   └── main.py              # Haupt-Backend-Server
+│
+├── frontend/
+│   ├── admin/               # Admin-Oberfläche
+│   ├── help/                # Hilfeseiten
+│   ├── screens/             # Bildschirme für Veranstaltungen
+│   ├── vote/                # Abstimmungssystem
+│   ├── buy.php              # Ticketkauf
+│   ├── config.php           # Frontend-Konfiguration
+│   └── index.php            # Hauptseite
+│
+└── README.md               # Diese Datei
+```
+
+## 🎟️ Verwendung
+
+### Ticketverkauf
+
+1. Navigieren Sie zur Startseite der Anwendung.
+2. Wählen Sie die gewünschte Veranstaltung aus.
+3. Füllen Sie das Formular aus und bestätigen Sie den Kauf.
+4. Ihr Ticket wird per E-Mail zugesendet oder kann heruntergeladen werden.
+
+### Zugangskontrolle
+
+1. Melden Sie sich als Administrator an.
+2. Navigieren Sie zur Zugangskontrolloberfläche.
+3. Scannen Sie den QR-Code des Tickets.
+4. Das System validiert das Ticket und zeigt den Status an.
+
+### Verwaltung
+
+1. Melden Sie sich als Administrator an.
+2. Navigieren Sie zum Admin-Panel.
+3. Verwalten Sie Veranstaltungen, Tickets und Benutzer.
+4. Sehen Sie sich Statistiken und Berichte an.
+
+## 📊 Admin-Panel
+
+Das Admin-Panel bietet folgende Funktionen:
+
+- **Dashboard**: Übersicht über verkaufte Tickets, verfügbare Tickets und geschätzte Einnahmen.
+- **Statistiken**: Grafische Darstellung der Ticketverkäufe und Verfügbarkeit.
+- **Veranstaltungen verwalten**: Bearbeiten von Veranstaltungseinstellungen.
+- **Termine verwalten**: Hinzufügen, Bearbeiten und Löschen von Veranstaltungsterminen.
+
+## 🔧 Konfiguration
+
+### Backend-Konfiguration
+
+Die Backend-Konfiguration erfolgt in `backend/config/conf.py`. Hier können Sie Einstellungen wie den API-Port, die Backend-URL und die Authentifizierungsschlüssel anpassen.
+
+### Frontend-Konfiguration
+
+Die Frontend-Konfiguration erfolgt in `frontend/config.php`. Hier können Sie Einstellungen wie die API-Basis-URL, den Authentifizierungsschlüssel und die PayPal-Client-ID anpassen.
+
+## 🛠️ Entwicklung
+
+### Beitrag leisten
+
+Wir freuen uns über Beiträge zur Weiterentwicklung von QrGate. Bitte beachten Sie die folgenden Schritte:
+
+1. Forken Sie das Repository.
+2. Erstellen Sie einen neuen Branch für Ihre Änderungen.
+3. Implementieren Sie Ihre Änderungen und testen Sie sie gründlich.
+4. Erstellen Sie einen Pull Request mit einer Beschreibung Ihrer Änderungen.
+
+### Tests
+
+Um die Tests auszuführen, verwenden Sie den folgenden Befehl:
+
+```bash
+cd backend
+python -m pytest tests/
+```
+
+### Code-Standards
+
+- **Python**: PEP-8-Standards
+- **PHP**: PSR-12-Standards
+- **JavaScript**: ESLint-Standards
+
+## 📜 Lizenz
+
+QrGate wird unter der MIT-Lizenz veröffentlicht. Weitere Informationen finden Sie in der Datei [LICENSE](backend/LICENSE).
+
+## 🤝 Support
+
+Für Fragen oder Unterstützung können Sie ein Issue im Repository erstellen oder uns unter der folgenden E-Mail-Adresse kontaktieren:
+
+- **E-Mail**: support@qrgate.com
+
+## 📸 Screenshots
+
+![Admin Panel](screenshots/admin_panel.png)
+![Ticket Flow](screenshots/ticket_flow.png)
+![QR Validation](screenshots/qr_validation.png)
+
+---
+
+© 2023 QrGate. Alle Rechte vorbehalten.

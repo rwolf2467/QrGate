@@ -511,7 +511,16 @@ if ($shows) {
             <h1>Manage Days</h1>
             <div class="card">
                 <header>
-                    <h2>Add New Day</h2>
+                    <h2><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-calendar-plus-icon lucide-calendar-plus">
+                            <path d="M16 19h6" />
+                            <path d="M16 2v4" />
+                            <path d="M19 16v6" />
+                            <path d="M21 12.598V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8.5" />
+                            <path d="M3 10h18" />
+                            <path d="M8 2v4" />
+                        </svg> Add New Day</h2>
                 </header>
                 <section>
                     <form id="addDayForm" class="form grid gap-6">
@@ -525,7 +534,14 @@ if ($shows) {
                                 type="number" step="0.01" id="newPrice" class="input" value="15.00"></div>
 
                         <div style="margin-top: 1rem;">
-                            <button type="submit" class="btn-outline"><i class="fas fa-plus"></i> Add
+                            <button type="submit" class="btn-outline"><svg xmlns="http://www.w3.org/2000/svg" width="24"
+                                    height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round"
+                                    class="lucide lucide-circle-plus-icon lucide-circle-plus">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="M8 12h8" />
+                                    <path d="M12 8v8" />
+                                </svg> Add
                                 Day</button>
                         </div>
                     </form>
@@ -534,7 +550,20 @@ if ($shows) {
             <br>
             <div class="card gap-6">
                 <header>
-                    <h2>Current Days</h2>
+                    <h2><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-calendar-days-icon lucide-calendar-days">
+                            <path d="M8 2v4" />
+                            <path d="M16 2v4" />
+                            <rect width="18" height="18" x="3" y="4" rx="2" />
+                            <path d="M3 10h18" />
+                            <path d="M8 14h.01" />
+                            <path d="M12 14h.01" />
+                            <path d="M16 14h.01" />
+                            <path d="M8 18h.01" />
+                            <path d="M12 18h.01" />
+                            <path d="M16 18h.01" />
+                        </svg> Current Days</h2>
                 </header>
                 <section>
                     <div class="days-table-container">
@@ -672,7 +701,7 @@ if ($shows) {
 
             const salesCtx = document.getElementById('salesChart')?.getContext('2d');
             if (salesCtx) new Chart(salesCtx, {
-                type: 'line',
+                type: 'bar',
                 data: {
                     labels: dates,
                     datasets: [{ label: 'Tickets Sold', data: soldData, backgroundColor: 'rgba(147, 51, 234, 0.6)', borderColor: 'rgb(147, 51, 234)', borderWidth: 1 }]
