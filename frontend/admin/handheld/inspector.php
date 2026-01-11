@@ -211,6 +211,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         let lastScannedCode = '';
         let lastScanTime = 0;
         const SCAN_COOLDOWN = 1000;
+        const SAME_SCAN_COOLDOWN = 5000;
 
         function formatDateTime(date) {
             return date.toLocaleTimeString('de-DE', {
@@ -230,7 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         function onScanSuccess(decodedText) {
             const currentTime = Date.now();
-            if (currentTime - lastScanTime < SCAN_COOLDOWN || decodedText === lastScannedCode) {
+            if (decodedText === lastScannedCode && (currentTime - lastScanTime < SAME_SCAN_COOLDOWN)) {
                 return;
             }
             lastScannedCode = decodedText;

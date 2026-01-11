@@ -183,7 +183,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script>
         let lastScannedCode = '';
         let lastScanTime = 0;
-        const SCAN_COOLDOWN = 1000;
+        const SCAN_COOLDOWN = 1000; 
+        const SAME_SCAN_COOLDOWN = 5000;
 
         function formatDateTime(date) {
             return date.toLocaleTimeString('de-DE', {
@@ -203,7 +204,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const currentTime = Date.now();
 
 
-            if (currentTime - lastScanTime < SCAN_COOLDOWN || decodedText === lastScannedCode) {
+            if (decodedText === lastScannedCode && (currentTime - lastScanTime < SAME_SCAN_COOLDOWN)) {
                 return;
             }
 
