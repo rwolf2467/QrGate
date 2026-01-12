@@ -388,6 +388,34 @@ if ($shows) {
                 <header>
                     <h2><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-badge-euro-icon lucide-badge-euro">
+                            <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
+                            <path d="M7 12h5" />
+                            <path d="M15 9.4a4 4 0 1 0 0 5.2" />
+                        </svg> Income Over Time</h2>
+                </header>
+                <section><canvas id="incomeChart"></canvas></section>
+            </div>
+            <br>
+            <div class="card">
+                <header>
+                    <h2><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-tickets-icon lucide-tickets">
+                            <path d="m3.173 8.18 11-5a2 2 0 0 1 2.647.993L18.56 8" />
+                            <path d="M6 10V8" />
+                            <path d="M6 14v1" />
+                            <path d="M6 19v2" />
+                            <rect x="2" y="8" width="20" height="13" rx="2" />
+                        </svg> Total Tickets Sold Over Time</h2>
+                </header>
+                <section><canvas id="totalSalesChart"></canvas></section>
+            </div>
+            <br>
+            <div class="card">
+                <header>
+                    <h2><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                             class="lucide lucide-chart-column-big-icon lucide-chart-column-big">
                             <path d="M3 3v16a2 2 0 0 0 2 2h16" />
                             <rect x="15" y="5" width="4" height="12" rx="1" />
@@ -732,6 +760,120 @@ if ($shows) {
                     }
                 }
             });
+
+            // Load and display stats from API
+            loadStatsData();
+        }
+
+        async function loadStatsData() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/stats`, {
+                    headers: { 'Authorization': API_KEY }
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success' && data.data) {
+                    const stats = data.data;
+                    
+                    // Prepare data for income chart
+                    const incomeDates = Object.keys(stats.income_by_date || {});
+                    const incomeValues = Object.values(stats.income_by_date || {});
+                    
+                    const incomeCtx = document.getElementById('incomeChart')?.getContext('2d');
+                    if (incomeCtx && incomeDates.length > 0) {
+                        new Chart(incomeCtx, {
+                            type: 'line',
+                            data: {
+                                labels: incomeDates,
+                                datasets: [{
+                                    label: 'Income (€)', 
+                                    data: incomeValues,
+                                    borderColor: 'rgb(59, 130, 246)',
+                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                    tension: 0.4,
+                                    fill: true
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: { 
+                                    legend: { labels: { color: 'white' } },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context) {
+                                                return '€' + context.parsed.y.toFixed(2);
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: { 
+                                        beginAtZero: true, 
+                                        ticks: { 
+                                            color: 'white',
+                                            callback: function(value) {
+                                                return '€' + value.toFixed(2);
+                                            }
+                                        },
+                                        grid: { color: 'rgba(255,255,255,0.1)' }
+                                    },
+                                    x: { 
+                                        ticks: { color: 'white' },
+                                        grid: { color: 'rgba(255,255,255,0.1)' }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                    
+                    // Prepare data for total sales chart
+                    const salesDates = Object.keys(stats.sales_by_date || {});
+                    const salesValues = Object.values(stats.sales_by_date || {});
+                    
+                    const salesCtx = document.getElementById('totalSalesChart')?.getContext('2d');
+                    if (salesCtx && salesDates.length > 0) {
+                        new Chart(salesCtx, {
+                            type: 'bar',
+                            data: {
+                                labels: salesDates,
+                                datasets: [{
+                                    label: 'Tickets Sold',
+                                    data: salesValues,
+                                    backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                                    borderColor: 'rgb(16, 185, 129)',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: { 
+                                    legend: { labels: { color: 'white' } },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context) {
+                                                return context.parsed.y + ' tickets';
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: { 
+                                        beginAtZero: true,
+                                        ticks: { color: 'white' },
+                                        grid: { color: 'rgba(255,255,255,0.1)' }
+                                    },
+                                    x: { 
+                                        ticks: { color: 'white' },
+                                        grid: { color: 'rgba(255,255,255,0.1)' }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
         }
 
         if (document.getElementById('statistics').style.display !== 'none' || localStorage.getItem('currentAdminSection') === 'statistics') {

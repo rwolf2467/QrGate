@@ -73,7 +73,7 @@ def save_tickets(tid: str, new_ticket: dict):
 
 
 def img_show(app=quart.Quart):
-    @app.route("/image/show")
+    @app.route("/image/show") # type: ignore
     async def show_img():
         tid = quart.request.args.get("img")
         return await quart.send_file(f"./images/{tid}.png")

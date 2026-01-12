@@ -14,8 +14,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["language"])) {
 }
 $shows = getShows();
 
-$ticket_id_value = date("Y-dm-");
-
 $languages = [
     "en" => [
         "flag" => "🇬🇧",
@@ -85,64 +83,54 @@ $languages = [
 $current_language = $_SESSION["language"] ?? "en";
 ?>
 <?php
-function titleedit($id)
-{
-    $baseurl = API_BASE_URL;
-    $ch = curl_init($baseurl . "api/ticket/get");
-    $data = json_encode(["tid" => $id]);
+function call_api($endpoint, $data, $method = 'POST') {
+    $ch = curl_init(API_BASE_URL . $endpoint);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HTTPHEADER => [
             "Authorization: " . API_KEY,
             "Content-Type: application/json",
         ],
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => $data,
+        CURLOPT_CUSTOMREQUEST => $method,
+        CURLOPT_POSTFIELDS => json_encode($data),
     ]);
     $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    return $response;
+    return [$http_code, json_decode($response, true)];
 }
+
+// --- Edit logic (unchanged structure) ---
 $firstname = "";
 $lastname = "";
 $type = "";
 $paid = "false";
 $valid_date = "";
-$used = "false";
+$valid = "false";
 $ticket_id = "";
+
 if (
     $_SERVER["REQUEST_METHOD"] == "POST" &&
     isset($_POST["ticket_id"]) &&
     !isset($_POST["action"])
 ) {
     $ticket_id = $_POST["ticket_id"];
-    $response = titleedit($ticket_id);
-    $ticket_data = json_decode($response, true);
-    if (isset($ticket_data["data"])) {
+    [$http_code, $ticket_data] = call_api("api/ticket/get", ["tid" => $ticket_id], "POST");
+    if ($http_code === 200 && isset($ticket_data["data"])) {
         $firstname = $ticket_data["data"]["first_name"] ?? "";
         $lastname = $ticket_data["data"]["last_name"] ?? "";
         $type = $ticket_data["data"]["type"] ?? "";
         $paid = isset($ticket_data["data"]["paid"])
-            ? ($ticket_data["data"]["paid"]
-                ? "true"
-                : "false")
+            ? ($ticket_data["data"]["paid"] ? "true" : "false")
             : "false";
         $valid_date = $ticket_data["data"]["valid_date"] ?? "";
         $valid = isset($ticket_data["data"]["valid"])
-            ? ($ticket_data["data"]["valid"]
-                ? "true"
-                : "false")
+            ? ($ticket_data["data"]["valid"] ? "true" : "false")
             : "false";
     }
-} else {
-    $ticket_id = "";
 }
-$firstname = $firstname ?? "";
-$lastname = $lastname ?? "";
-$type = $type ?? "";
-$paid = $paid ?? "false";
-$valid_date = $valid_date ?? "";
-$valid = $valid ?? "false";
+
+// --- Save edited ticket ---
 if (
     $_SERVER["REQUEST_METHOD"] == "POST" &&
     isset($_POST["action"]) &&
@@ -155,6 +143,7 @@ if (
     $paid = $_POST["paid"] === "true";
     $valid_date = $_POST["valid_date"];
     $valid = $_POST["valid"] === "true";
+
     $data = [
         "tid" => $ticket_id,
         "first_name" => $firstname,
@@ -164,24 +153,12 @@ if (
         "valid" => $valid,
         "valid_date" => $valid_date,
     ];
-    $baseurl = API_BASE_URL;
-    $ch = curl_init($baseurl . "api/ticket/edit");
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER => [
-            "Authorization: " . API_KEY,
-            "Content-Type: application/json",
-        ],
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode($data),
-    ]);
-    $response = curl_exec($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    $response_data = json_decode($response, true);
-    echo $response_data["message"];
+
+    [$http_code, $response_data] = call_api("api/ticket/edit", $data);
+
     if ($http_code === 200) {
         echo "<script>alert('Ticket erfolgreich gespeichert!');</script>";
+        // Reset form
         $ticket_id = "";
         $firstname = "";
         $lastname = "";
@@ -189,64 +166,46 @@ if (
         $paid = "false";
         $valid_date = "";
         $valid = "false";
-        header("Location: " . $_SERVER["PHP_SELF"]);
-        exit();
     } else {
         $error_message = $response_data["message"] ?? "Unbekannter Fehler";
         echo "<script>alert('Fehler beim Speichern des Tickets: $error_message');</script>";
     }
 }
+
+// --- Create new ticket (OVERHAULED for speed & print) ---
 if (
     $_SERVER["REQUEST_METHOD"] == "POST" &&
     isset($_POST["action"]) &&
     $_POST["action"] === "create_ticket"
 ) {
-    $ticket_id = $_POST["tid"] ?? "";
     $email = $_POST["email"] ?? "";
     $firstname = $_POST["firstname"];
     $lastname = $_POST["lastname"];
     $type = $_POST["type"];
     $paid = $_POST["paid"] === "true";
     $valid_date = $_POST["valid_date"];
-    $tickets = (int) ($_POST["tickets"] ?? 0);
+    $tickets = (int) ($_POST["tickets"] ?? 1);
+
     $data = [
-        "tid" => $ticket_id,
-        "email" => $email,
+        "email" => $email ?: null,
         "first_name" => $firstname,
         "last_name" => $lastname,
         "type" => $type,
         "paid" => $paid,
-        "valid" => $used,
         "valid_date" => $valid_date,
         "tickets" => $tickets,
+        // Note: 'tid' and 'valid' are now handled by backend automatically
     ];
-    $baseurl = API_BASE_URL;
-    $ch = curl_init($baseurl . "api/ticketflow/create");
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER => [
-            "Authorization: " . API_KEY,
-            "Content-Type: application/json",
-        ],
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode($data),
-    ]);
-    $response = curl_exec($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    $response_data = json_decode($response, true);
-    echo $response_data["message"];
-    if ($http_code === 200) {
-        echo "<script>alert('Ticket erfolgreich erstellt!');</script>";
-        $ticket_id = "";
-        $email = "";
-        $firstname = "";
-        $lastname = "";
-        $type = "";
-        $paid = "false";
-        $valid_date = "";
-        header("Location: " . $_SERVER["PHP_SELF"]);
-        exit();
+
+    [$http_code, $response_data] = call_api("api/ticketflow/create", $data);
+
+    if ($http_code === 200 && !empty($response_data["tid"])) {
+        $tid = $response_data["tid"];
+        // ✅ OPEN PDF IN NEW TAB FOR PRINTING
+        echo "<script>
+            alert('Ticket erfolgreich erstellt!');
+            window.open('" . API_BASE_URL . "codes/pdf?tid=" . urlencode($tid) . "', '_blank');
+        </script>";
     } else {
         $error_message = $response_data["message"] ?? "Unbekannter Fehler";
         echo "<script>alert('Fehler beim Erstellen des Tickets: $error_message');</script>";
@@ -288,8 +247,6 @@ if (
             gap: 0.5rem;
         }
     </style>
-
-
 </head>
 
 <body class="bg-dark min-h-screen">
@@ -355,7 +312,7 @@ if (
             <section>
                 <form action="" method="POST" class="form grid gap-6">
                     <input type="text" placeholder="Enter Ticket ID Here" id="idinput" name="ticket_id"
-                        value="<?php echo $ticket_id_value; ?>" required>
+                        value="" required>
                     <button type="submit" class="btn-primary mt-2">
                         <i class="fas fa-search mr-2"></i> <?php echo $languages[
                             $current_language
@@ -516,13 +473,9 @@ if (
                 <div id="createTicketForm" style="display: none;">
                     <form action="" method="POST" id="createForm" class="form grid gap-6">
                         <input type="hidden" name="action" value="create_ticket">
+                        <!-- Removed manual tid input -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <label for="tid" class="block mb-2 text-sm"><?php echo $languages[
-                                    $current_language
-                                ]["ticket_id"]; ?></label>
-                                <input type="text" name="tid" placeholder="Enter Ticket ID Here">
-                            </div>
+                            <!-- tid field removed -->
                             <div>
                                 <label for="email" class="block mb-2 text-sm"><?php echo $languages[
                                     $current_language
@@ -545,7 +498,7 @@ if (
                                 <label for="tickets" class="block mb-2 text-sm"><?php echo $languages[
                                     $current_language
                                 ]["number_of_tickets"]; ?></label>
-                                <input type="number" name="tickets" value="1" required>
+                                <input type="number" name="tickets" value="1" min="1" required>
                             </div>
                             <div>
                                 <label for="type" class="block mb-2 text-sm"><?php echo $languages[
@@ -571,7 +524,7 @@ if (
                                     <option value="true"><?php echo $languages[
                                         $current_language
                                     ]["true"]; ?></option>
-                                    <option value="false"><?php echo $languages[
+                                    <option value="false" selected><?php echo $languages[
                                         $current_language
                                     ]["false"]; ?></option>
                                 </select>
@@ -587,9 +540,10 @@ if (
                             <button type="submit" class="btn-primary">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round" class="lucide lucide-plus-icon lucide-plus">
-                                    <path d="M5 12h14" />
-                                    <path d="M12 5v14" />
+                                    stroke-linejoin="round" class="lucide lucide-printer-icon lucide-printer">
+                                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                                    <path d="M6 9V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v4" />
+                                    <rect x="6" y="14" width="12" height="8" rx="1" />
                                 </svg>
                                 <?php echo $languages[$current_language][
                                     "create_ticket"
@@ -610,20 +564,11 @@ if (
                 </div>
             </section>
         </div>
-        </section>
     </main>
-    </div>
+
     <script>
         function changeLanguage(language) {
             document.getElementById('langForm').submit();
-        }
-
-        function formatDateTime(date) {
-            return date.toLocaleTimeString('de-DE', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
         }
 
         function updateDateTime() {
@@ -651,7 +596,4 @@ if (
         }
     </script>
 </body>
-
-
-
 </html>

@@ -12,6 +12,7 @@ from assets.manage_show import get_show, edit_show
 from assets.data import img_show
 from assets.vote import vote
 from assets.user import user_check
+from assets.stats import get_stats_api
 from config import conf as config
 import datetime as dt
 
@@ -30,6 +31,7 @@ edit_show(app)
 img_show(app)
 vote(app)
 user_check(app)
+get_stats_api(app)
 logger.success("Systems enabled.")
 
 qr_gate = """

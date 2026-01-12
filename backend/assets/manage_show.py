@@ -31,6 +31,7 @@ def edit_show(app=quart.Quart):
             show["orga_name"] = orga_name
             show["banner"] = banner
             show["title"] = title
+            show["subtitle"] = data.get("subtitle", show.get("subtitle"))
             show["dates"] = dates
             show["store_lock"] = bool(data.get("store_lock", show.get("store_lock")))
 
@@ -95,18 +96,23 @@ def get_show(app=quart.Quart):
         try:
             data: dict = await quart.request.get_json()
             date: str = data.get("date")
-            
+
             show: dict = load_show()
             dates = show.get("dates")
-            
+
             if not isinstance(dates, dict):
-                return quart.jsonify({"status": "error", "message": "Invalid dates format"}), 400
-            
+                return (
+                    quart.jsonify(
+                        {"status": "error", "message": "Invalid dates format"}
+                    ),
+                    400,
+                )
+
             for key, value in dates.items():
                 if value.get("date") == date:
                     price = value.get("price", "0")
                     return quart.jsonify({"status": "success", "price": price}), 200
-            
+
             return quart.jsonify({"status": "error", "message": "Date not found"}), 404
         except Exception as e:
             return quart.jsonify({"status": "error", "message": str(e)}), 500
