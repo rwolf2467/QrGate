@@ -97,10 +97,118 @@ if ($shows) {
 
         main {
             margin-left: 260px;
-            /* Breite der Basecoat-Sidebar */
             padding: 1.5rem;
             margin-right: auto;
             margin-top: 0;
+        }
+
+        .pie-charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chartjs-render-monitor {
+            max-height: 300px;
+        }
+
+        @media (max-width: 768px) {
+            main {
+                margin-left: 0 !important;
+                padding: 1rem;
+            }
+
+            aside.sidebar {
+                position: fixed;
+                left: -260px;
+                top: 0;
+                height: 100vh;
+                z-index: 1000;
+                transition: left 0.3s ease;
+            }
+
+            aside.sidebar.active {
+                left: 0;
+            }
+
+            body.page {
+                overflow-x: hidden;
+            }
+
+            .stats-grid,
+            .pie-charts-container,
+            .days-table-container,
+            .form,
+            table {
+                grid-template-columns: 1fr !important;
+                width: 100% !important;
+            }
+
+            .card {
+                width: 100% !important;
+            }
+
+            canvas {
+                max-width: 100% !important;
+                height: auto !important;
+            }
+
+            h1 {
+                font-size: 1.5rem !important;
+            }
+
+            h2 {
+                font-size: 1.25rem !important;
+            }
+
+            button[onclick*="basecoat:sidebar"] {
+                display: block !important;
+                margin-bottom: 1rem;
+                width: fit-content;
+            }
+
+            @media (max-width: 768px) {
+
+                #incomeChart,
+                #totalSalesChart {
+                    height: 220px !important;
+                    width: 100% !important;
+                    max-width: 100%;
+                }
+
+                #statistics .card>section {
+                    height: 220px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    padding: 0;
+                }
+
+                .days-table-container {
+                    overflow-x: auto;
+                    -webkit-overflow-scrolling: touch;
+                    margin: 0;
+                    padding: 0;
+                }
+
+                .days-table-container table {
+                    min-width: 600px;
+                    width: auto;
+                }
+
+                #statistics .card,
+                #days .card {
+                    padding: 1rem;
+                }
+            }
+
+            .days-table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                margin: 0 -1.5rem;
+                padding: 0 1.5rem;
+            }
         }
     </style>
 </head>
@@ -213,7 +321,14 @@ if ($shows) {
 
     <main>
 
-
+        <button type="button" class="btn-outline"
+            onclick="document.dispatchEvent(new CustomEvent('basecoat:sidebar'));"><svg
+                xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="lucide lucide-panel-right-icon lucide-panel-right">
+                <rect width="18" height="18" x="3" y="3" rx="2" />
+                <path d="M15 3v18" />
+            </svg></button>
         <!-- Dashboard -->
         <div id="dashboard" class="active" style="display: none">
             <h1>Dashboard</h1>
@@ -353,6 +468,36 @@ if ($shows) {
                     <rect x="15" y="5" width="4" height="12" rx="1" />
                     <rect x="7" y="8" width="4" height="9" rx="1" />
                 </svg> Statistics</h1>
+            <div class="pie-charts-container">
+                <div class="card">
+                    <header>
+                        <h2><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="lucide lucide-badge-euro-icon lucide-badge-euro">
+                                <path
+                                    d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
+                                <path d="M7 12h5" />
+                                <path d="M15 9.4a4 4 0 1 0 0 5.2" />
+                            </svg> Ticket Sales Overview</h2>
+                    </header>
+                    <section><canvas id="salesChart"></canvas></section>
+                </div>
+
+                <div class="card">
+                    <header>
+                        <h2><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="lucide lucide-tickets-icon lucide-tickets">
+                                <path d="m3.173 8.18 11-5a2 2 0 0 1 2.647.993L18.56 8" />
+                                <path d="M6 10V8" />
+                                <path d="M6 14v1" />
+                                <path d="M6 19v2" />
+                                <rect x="2" y="8" width="20" height="13" rx="2" />
+                            </svg> Tickets Available Per Day</h2>
+                    </header>
+                    <section><canvas id="availabilityChart"></canvas></section>
+                </div>
+            </div>
             <div class="card">
                 <header>
                     <h2><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -360,36 +505,6 @@ if ($shows) {
                             class="lucide lucide-badge-euro-icon lucide-badge-euro">
                             <path
                                 d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
-                            <path d="M7 12h5" />
-                            <path d="M15 9.4a4 4 0 1 0 0 5.2" />
-                        </svg> Ticket Sales Overview</h2>
-                </header>
-
-                <section><canvas id="salesChart"></canvas></section>
-            </div>
-            <br>
-            <div class="card">
-                <header>
-                    <h2><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                            class="lucide lucide-tickets-icon lucide-tickets">
-                            <path d="m3.173 8.18 11-5a2 2 0 0 1 2.647.993L18.56 8" />
-                            <path d="M6 10V8" />
-                            <path d="M6 14v1" />
-                            <path d="M6 19v2" />
-                            <rect x="2" y="8" width="20" height="13" rx="2" />
-                        </svg> Tickets Available Per Day</h2>
-                </header>
-                <section><canvas id="availabilityChart"></canvas></section>
-
-            </div>
-            <br>
-            <div class="card">
-                <header>
-                    <h2><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                            class="lucide lucide-badge-euro-icon lucide-badge-euro">
-                            <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
                             <path d="M7 12h5" />
                             <path d="M15 9.4a4 4 0 1 0 0 5.2" />
                         </svg> Income Over Time</h2>
@@ -715,53 +830,105 @@ if ($shows) {
 
         // Charts
         function initCharts() {
-            const dates = <?php echo json_encode(
-                array_keys($stats["soldByDate"] ?? [])
-            ); ?>;
-            const soldData = <?php echo json_encode(
-                array_values($stats["soldByDate"] ?? [])
-            ); ?>;
-            const availableData = <?php echo json_encode(
-                array_values($stats["availableByDate"] ?? [])
-            ); ?>;
+            const dates = <?php echo json_encode(array_keys($stats["soldByDate"] ?? [])); ?>;
+            const soldData = <?php echo json_encode(array_values($stats["soldByDate"] ?? [])); ?>;
+            const availableData = <?php echo json_encode(array_values($stats["availableByDate"] ?? [])); ?>;
 
             if (dates.length === 0) return;
 
+            // Farbpalette: harmonisch, gut lesbar im dunklen Basecoat-Design
+            const generateColors = (baseColor, count) => {
+                const colors = [];
+                for (let i = 0; i < count; i++) {
+                    const shade = 100 - Math.min(80, i * 15); // leicht variierende Helligkeit
+                    colors.push(`hsl(${baseColor}, 70%, ${shade}%)`);
+                }
+                return colors;
+            };
+
+            // Sales Pie Chart
             const salesCtx = document.getElementById('salesChart')?.getContext('2d');
-            if (salesCtx) new Chart(salesCtx, {
-                type: 'bar',
-                data: {
-                    labels: dates,
-                    datasets: [{ label: 'Tickets Sold', data: soldData, backgroundColor: 'rgba(147, 51, 234, 0.6)', borderColor: 'rgb(147, 51, 234)', borderWidth: 1 }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { labels: { color: 'white' } } },
-                    scales: {
-                        y: { beginAtZero: true, ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.1)' } },
-                        x: { ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+            if (salesCtx) {
+                new Chart(salesCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: dates,
+                        datasets: [{
+                            label: 'Tickets Sold',
+                            data: soldData,
+                            backgroundColor: generateColors(270, dates.length), // violett/lila
+                            borderColor: '#ffffff20',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: 'white',
+                                    font: { size: 13 }
+                                }
+                            },
+                            tooltip: {
+                                titleColor: 'white',
+                                bodyColor: 'white',
+                                backgroundColor: 'rgba(30, 30, 40, 0.9)',
+                                padding: 10,
+                                callbacks: {
+                                    label: function (context) {
+                                        return `${context.label}: ${context.parsed} tickets sold`;
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
-            });
+                });
+            }
 
+            // Availability Pie Chart
             const availCtx = document.getElementById('availabilityChart')?.getContext('2d');
-            if (availCtx) new Chart(availCtx, {
-                type: 'bar',
-                data: {
-                    labels: dates,
-                    datasets: [{ label: 'Available', data: availableData, borderColor: 'rgb(74, 222, 128)', backgroundColor: 'rgba(74, 222, 128, 0.2)', tension: 0.4 }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { labels: { color: 'white' } } },
-                    scales: {
-                        y: { beginAtZero: true, ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.1)' } },
-                        x: { ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+            if (availCtx) {
+                new Chart(availCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: dates,
+                        datasets: [{
+                            label: 'Available Tickets',
+                            data: availableData,
+                            backgroundColor: generateColors(140, dates.length), // grün/türkis
+                            borderColor: '#ffffff20',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: 'white',
+                                    font: { size: 13 }
+                                }
+                            },
+                            tooltip: {
+                                titleColor: 'white',
+                                bodyColor: 'white',
+                                backgroundColor: 'rgba(30, 30, 40, 0.9)',
+                                padding: 10,
+                                callbacks: {
+                                    label: function (context) {
+                                        return `${context.label}: ${context.parsed} tickets available`;
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
-            });
+                });
+            }
 
-            // Load and display stats from API
+            // Weitere Charts (Income, Total Sales etc.) nach wie vor laden
             loadStatsData();
         }
 
@@ -771,14 +938,14 @@ if ($shows) {
                     headers: { 'Authorization': API_KEY }
                 });
                 const data = await response.json();
-                
+
                 if (data.status === 'success' && data.data) {
                     const stats = data.data;
-                    
+
                     // Prepare data for income chart
                     const incomeDates = Object.keys(stats.income_by_date || {});
                     const incomeValues = Object.values(stats.income_by_date || {});
-                    
+
                     const incomeCtx = document.getElementById('incomeChart')?.getContext('2d');
                     if (incomeCtx && incomeDates.length > 0) {
                         new Chart(incomeCtx, {
@@ -786,7 +953,7 @@ if ($shows) {
                             data: {
                                 labels: incomeDates,
                                 datasets: [{
-                                    label: 'Income (€)', 
+                                    label: 'Income (€)',
                                     data: incomeValues,
                                     borderColor: 'rgb(59, 130, 246)',
                                     backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -796,28 +963,28 @@ if ($shows) {
                             },
                             options: {
                                 responsive: true,
-                                plugins: { 
+                                plugins: {
                                     legend: { labels: { color: 'white' } },
                                     tooltip: {
                                         callbacks: {
-                                            label: function(context) {
+                                            label: function (context) {
                                                 return '€' + context.parsed.y.toFixed(2);
                                             }
                                         }
                                     }
                                 },
                                 scales: {
-                                    y: { 
-                                        beginAtZero: true, 
-                                        ticks: { 
+                                    y: {
+                                        beginAtZero: true,
+                                        ticks: {
                                             color: 'white',
-                                            callback: function(value) {
+                                            callback: function (value) {
                                                 return '€' + value.toFixed(2);
                                             }
                                         },
                                         grid: { color: 'rgba(255,255,255,0.1)' }
                                     },
-                                    x: { 
+                                    x: {
                                         ticks: { color: 'white' },
                                         grid: { color: 'rgba(255,255,255,0.1)' }
                                     }
@@ -825,44 +992,45 @@ if ($shows) {
                             }
                         });
                     }
-                    
+
                     // Prepare data for total sales chart
                     const salesDates = Object.keys(stats.sales_by_date || {});
                     const salesValues = Object.values(stats.sales_by_date || {});
-                    
+
                     const salesCtx = document.getElementById('totalSalesChart')?.getContext('2d');
                     if (salesCtx && salesDates.length > 0) {
                         new Chart(salesCtx, {
-                            type: 'bar',
+                            type: 'line',
                             data: {
                                 labels: salesDates,
                                 datasets: [{
                                     label: 'Tickets Sold',
                                     data: salesValues,
-                                    backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
                                     borderColor: 'rgb(16, 185, 129)',
-                                    borderWidth: 1
+                                    tension: 0.4,
+                                    fill: true
                                 }]
                             },
                             options: {
                                 responsive: true,
-                                plugins: { 
+                                plugins: {
                                     legend: { labels: { color: 'white' } },
                                     tooltip: {
                                         callbacks: {
-                                            label: function(context) {
+                                            label: function (context) {
                                                 return context.parsed.y + ' tickets';
                                             }
                                         }
                                     }
                                 },
                                 scales: {
-                                    y: { 
+                                    y: {
                                         beginAtZero: true,
                                         ticks: { color: 'white' },
                                         grid: { color: 'rgba(255,255,255,0.1)' }
                                     },
-                                    x: { 
+                                    x: {
                                         ticks: { color: 'white' },
                                         grid: { color: 'rgba(255,255,255,0.1)' }
                                     }
