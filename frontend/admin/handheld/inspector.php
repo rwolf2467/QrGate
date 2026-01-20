@@ -303,7 +303,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const successful = attempts.filter(a => a.status === 'success').length;
             const failed = attempts.filter(a => a.status === 'error').length;
 
-            // Funktion zur Rückgabe des passenden SVGs
+            
             function getIconForStatus(status) {
                 if (status === 'success') {
                     return `

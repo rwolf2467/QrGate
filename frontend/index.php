@@ -1,4 +1,3 @@
-index.php
 <?php
 require_once 'config.php';
 
@@ -28,7 +27,7 @@ $languages = [
         'tickets_left' => 'Only {count} tickets left!',
         'tickets_available' => '{available} of {total} tickets available.',
         'store_lock_title' => 'Store locked',
-        'store_lock_message' => 'The ticket shop of {name} is currently closed. Please check back later or contact the operator for more information.',
+        'store_lock_message' => 'The ticket shop of {name} is currently closed. Maby there are currently no tickets to sell? Please check back later or contact the operator for more information.',
     ],
     'de' => [
         'flag' => '🇩🇪',
@@ -49,7 +48,7 @@ $languages = [
         'tickets_left' => 'Nur noch {count} Plätze frei!',
         'tickets_available' => '{available} von {total} Plätzen verfügbar.',
         'store_lock_title' => 'Shop gesperrt',
-        'store_lock_message' => 'Der Ticketshop von {name} ist derzeit geschlossen. Bitte schauen Sie später wieder vorbei oder kontaktieren Sie den Betreiber für weitere Informationen.',
+        'store_lock_message' => 'Der Ticketshop von {name} ist derzeit geschlossen. Möglicherweise sind derzeit keine Tickets zum Verkauf verfügbar? Bitte schauen Sie später wieder vorbei oder kontaktieren Sie den Betreiber für weitere Informationen.',
     ],
 ];
 
@@ -70,6 +69,28 @@ $shows = getShows();
     <?php if ($shows !== null): ?>
         <script
             src="https://www.paypal.com/sdk/js?client-id=<?php echo PAYPAL_CLIENT_ID; ?>&currency=EUR&locale=<?php echo $current_language; ?>_AT"></script>
+        <script>
+            let availablePaymentMethods = 'both';
+
+
+            async function loadPaymentMethods() {
+                try {
+                    const response = await fetch('<?php echo API_BASE_URL; ?>/api/show/get/payment_methods', {
+                        headers: { 'Authorization': '<?php echo API_KEY; ?>' }
+                    });
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        availablePaymentMethods = data.payment_methods;
+                        console.log('Payment methods loaded:', availablePaymentMethods);
+                    }
+                } catch (error) {
+                    console.error('Error loading payment methods:', error);
+                }
+            }
+
+
+            document.addEventListener('DOMContentLoaded', loadPaymentMethods);
+        </script>
     <?php endif; ?>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap');
@@ -232,12 +253,19 @@ $shows = getShows();
         aria-describedby="error-dialog-description">
         <div>
             <header>
-                <h2 id="error-dialog-title" class="text-2xl inline-flex gap-x-2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-alert-icon lucide-circle-alert"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg> Error</h2>
+                <h2 id="error-dialog-title" class="text-2xl inline-flex gap-x-2"><svg xmlns="http://www.w3.org/2000/svg"
+                        width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-circle-alert-icon lucide-circle-alert">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" x2="12" y1="8" y2="12" />
+                        <line x1="12" x2="12.01" y1="16" y2="16" />
+                    </svg> Error</h2>
                 <p id="error-dialog-description"></p>
             </header>
             <footer>
                 <button class="btn-primary" onclick="document.getElementById('error-dialog').close()">Okay</button>
-            </footer>   
+            </footer>
         </div>
     </dialog>
     <dialog id="message-dialog" class="dialog" aria-labelledby="message-dialog-title"
@@ -317,9 +345,10 @@ $shows = getShows();
                     <div id="nameFieldsContainer" class="space-y-2"></div>
                     <div class="grid gap-3">
                         <label><?php echo $languages[$current_language]['payment_method']; ?></label>
-                        <div id="paymentMethodSelection" class="flex gap-3">
-                            <button type="button" id="cashButton" class="btn-secondary flex-1"
-                                onclick="selectCashPayment()">
+                        <div id="paymentMethodSelection" class="flex gap-3" style="min-height: 56px;">
+                            <button type="button" id="cashButton" class="btn-secondary flex-1 payment-method-btn"
+                                onclick="selectCashPayment()" data-method="cash"
+                                style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 56px; padding: 0 1rem;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                     stroke-linejoin="round" class="lucide lucide-coins-icon lucide-coins">
@@ -327,16 +356,19 @@ $shows = getShows();
                                     <path d="M18.09 10.37A6 6 0 1 1 10.34 18" />
                                     <path d="M7 6h1v4" />
                                     <path d="m16.71 13.88.7.71-2.82 2.82" />
-                                </svg> <?php echo $languages[$current_language]['cash_payment']; ?>
+                                </svg>
+                                <span><?php echo $languages[$current_language]['cash_payment']; ?></span>
                             </button>
-                            <button type="button" id="paypalButton" class="btn-primary flex-1"
-                                onclick="selectPayPalPayment()">
+                            <button type="button" id="paypalButton" class="btn-primary flex-1 payment-method-btn"
+                                onclick="selectPayPalPayment()" data-method="online"
+                                style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 56px; padding: 0 1rem;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                     stroke-linejoin="round" class="lucide lucide-credit-card-icon lucide-credit-card">
                                     <rect width="20" height="14" x="2" y="5" rx="2" />
                                     <line x1="2" x2="22" y1="10" y2="10" />
-                                </svg> <?php echo $languages[$current_language]['online_payment']; ?>
+                                </svg>
+                                <span><?php echo $languages[$current_language]['online_payment']; ?></span>
                             </button>
                         </div>
                         <button type="submit" id="cashConfirmButton" class="btn-primary w-full mt-2 hidden">
@@ -391,7 +423,13 @@ $shows = getShows();
             <div class="min-h-screen flex items-center justify-center p-4">
                 <div class="bg-red-900/50 backdrop-blur-md border border-red-700 rounded-lg p-8 max-w-md w-full text-center"
                     style="background-color: rgba(234, 51, 51, 0.2)">
-                    <span style="color: rgb(234, 51, 51); font-size: 60px;"><i class="fa-solid fa-lock"></i></span>
+                    <div style="display: flex; flex-direction: column; align-items: center; text-align: center; "><svg
+                            xmlns="http://www.w3.org/2000/svg" width="85" height="85" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-lock-icon lucide-lock">
+                            <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg></div>
                     <h2 class="text-2xl font-bold mb-4"><br><?php echo $languages[$current_language]['store_lock_title']; ?>
                     </h2>
                     <p class="text-gray-300">
@@ -402,9 +440,15 @@ $shows = getShows();
         <?php else: ?>
             <div class="animate-fade-in">
                 <div class="relative w-full min-h-[40vh] max-h-[50vh] flex items-center justify-center mb-8 px-4">
-                    <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700"
-                        style="background-image: url('<?php echo htmlspecialchars($shows['banner']); ?>'); background-position: center 30%;">
+                    <div id="bannerBackground" class="absolute inset-0 bg-cover bg-center transition-transform duration-700">
                     </div>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function () {
+
+                            const timestamp = new Date().getTime();
+                            document.getElementById('bannerBackground').style.backgroundImage = `url('<?php echo API_BASE_URL; ?>/api/image/get/banner.png?t=${timestamp}')`;
+                        });
+                    </script>
                     <div class="absolute inset-0 bg-black/60"></div>
                     <div class="relative z-10 text-center max-w-2xl w-full py-6 md:py-10 px-3 rounded-xl">
                         <h1 class="orga-name text-3xl md:text-5xl font-bold mb-2 animate-fade-in-up">
@@ -422,6 +466,7 @@ $shows = getShows();
                         <?php endif; ?>
                     </div>
                 </div>
+
                 <div class="container mx-auto px-4 py-8">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         <?php foreach ($shows['dates'] as $id => $show): ?>
@@ -549,6 +594,9 @@ $shows = getShows();
                 </div>
             </div>
             <script>
+
+                document.addEventListener('DOMContentLoaded', initPaymentMethods);
+
                 function showBookingForm(showId, date, price, ticketsAvailable) {
                     const modal = document.getElementById('bookingModal');
                     document.getElementById('bookingModal').showModal();
@@ -601,20 +649,19 @@ $shows = getShows();
 
                 function selectCashPayment() {
 
-                    if (!validateForm()) {
-                        return;
-                    }
 
                     document.getElementById('paymentMethodInput').value = 'bar';
                     document.getElementById('paymentMethodSelection').classList.add('hidden');
                     document.getElementById('cashConfirmButton').classList.remove('hidden');
+
+
+                    setTimeout(() => {
+                        document.getElementById('cashConfirmButton').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 100);
                 }
 
                 function selectPayPalPayment() {
 
-                    if (!validateForm()) {
-                        return;
-                    }
 
                     document.getElementById('paymentMethodInput').value = 'paypal';
                     document.getElementById('paymentMethodSelection').classList.add('hidden');
@@ -631,6 +678,11 @@ $shows = getShows();
                     bookingModal.style.zIndex = '1000';
 
                     document.body.style.overflow = 'auto';
+
+
+                    setTimeout(() => {
+                        document.getElementById('paypalButtons').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 100);
                 }
 
                 document.getElementById('cashConfirmButton').addEventListener('click', function (e) {
@@ -840,10 +892,10 @@ $shows = getShows();
 
                     const numberOfTickets = parseInt(ticketsSelect.value, 10) || 1;
 
-                    // Leere den Container sicher
-                    nameFieldsContainer.replaceChildren(); // moderner & sicherer als innerHTML = ''
 
-                    // Nur zusätzliche Namen ab Ticket 2 anzeigen (Ticket 1 = Hauptbucher)
+                    nameFieldsContainer.replaceChildren();
+
+
                     if (numberOfTickets > 1) {
                         for (let i = 2; i <= numberOfTickets; i++) {
                             const fieldGroup = document.createElement('div');
@@ -851,7 +903,7 @@ $shows = getShows();
 
                             const label = document.createElement('label');
                             label.className = 'block text-sm font-medium text-gray-200';
-                            // Sprachabhängige Beschriftung (optional erweiterbar)
+
                             label.textContent = `Name for Ticket ${i}`;
 
                             const input = document.createElement('input');
@@ -868,21 +920,108 @@ $shows = getShows();
                     }
                 }
 
-                // Initialisierungsfunktion, die wiederverwendbar ist
+
                 function initTicketSelector() {
                     const ticketsSelect = document.querySelector('select[name="tickets"]');
                     if (!ticketsSelect) return;
 
-                    // Alten Listener ggf. entfernen, um Duplikate zu vermeiden
+
                     ticketsSelect.removeEventListener('change', updateNameFields);
                     ticketsSelect.addEventListener('change', updateNameFields);
 
-                    // Sofort initial rendern
+
                     updateNameFields();
                 }
 
-                // Beim ersten Laden der Seite initialisieren
+
                 document.addEventListener('DOMContentLoaded', initTicketSelector);
+
+
+                function updatePaymentMethodButtons() {
+                    const paymentMethodButtons = document.querySelectorAll('.payment-method-btn');
+                    const container = document.getElementById('paymentMethodSelection');
+
+                    paymentMethodButtons.forEach(button => {
+                        const method = button.getAttribute('data-method');
+
+
+                        button.style.display = 'flex';
+
+
+                        if (availablePaymentMethods === 'cash' && method === 'online') {
+                            button.style.display = 'none';
+                        } else if (availablePaymentMethods === 'online' && method === 'cash') {
+                            button.style.display = 'none';
+                        }
+                    });
+
+
+                    const visibleButtons = Array.from(paymentMethodButtons).filter(btn => btn.style.display !== 'none');
+                    if (visibleButtons.length === 1) {
+                        const method = visibleButtons[0].getAttribute('data-method');
+                        if (method === 'cash') {
+                            selectCashPayment();
+                        } else if (method === 'online') {
+                            selectPayPalPayment();
+                        }
+                    }
+
+
+                    if (visibleButtons.length === 1) {
+                        container.style.minHeight = 'auto';
+                        visibleButtons[0].style.width = '100%';
+                    } else {
+                        container.style.minHeight = '56px';
+                        paymentMethodButtons.forEach(btn => {
+                            btn.style.width = '';
+                        });
+                    }
+                }
+
+
+                async function initPaymentMethods() {
+                    await loadPaymentMethods();
+                    updatePaymentMethodButtons();
+                }
+
+
+                function showBookingForm(showId, date, price, ticketsAvailable) {
+                    const modal = document.getElementById('bookingModal');
+                    document.getElementById('bookingModal').showModal();
+
+                    document.getElementById('paymentMethodSelection').classList.remove('hidden');
+                    document.getElementById('cashConfirmButton').classList.add('hidden');
+                    document.getElementById('paypalButtons').classList.add('hidden');
+
+                    if (window.paypalButtons && typeof window.paypalButtons.close === 'function') {
+                        window.paypalButtons.close();
+                    }
+
+                    document.getElementById('paypalButtons').innerHTML = '';
+
+                    document.getElementById('validDate').value = date;
+                    document.getElementById('ticketPrice').value = price;
+                    document.body.style.overflow = 'hidden';
+
+                    const ticketsSelect = document.querySelector('select[name="tickets"]');
+                    ticketsSelect.innerHTML = '';
+
+                    console.log("Available tickets:", ticketsAvailable);
+
+                    const maxtickets = Math.min(ticketsAvailable, 10);
+                    console.log("Max tickets to display:", maxtickets);
+
+                    for (let i = 1; i <= maxtickets; i++) {
+                        const option = document.createElement('option');
+                        option.value = i;
+                        option.textContent = `${i} Ticket${i > 1 ? 's' : ''}`;
+                        ticketsSelect.appendChild(option);
+                    }
+
+                    initPayPalButton(price);
+                    initTicketSelector();
+                    updatePaymentMethodButtons();
+                }
 
 
                 async function processPayment(paymentDetails) {
@@ -936,6 +1075,7 @@ $shows = getShows();
                 }
 
             </script>
+
         <?php endif; ?>
     <?php endif; ?>
 </body>

@@ -20,6 +20,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        
+        $paymentMethodsResponse = makeApiCall('/api/show/get/payment_methods');
+        $allowedPaymentMethods = ['cash', 'online', 'paypal', 'bar'];
+        
+        if (isset($paymentMethodsResponse['payment_methods'])) {
+            $paymentMethods = $paymentMethodsResponse['payment_methods'];
+            
+            
+            if ($paymentMethods === 'cash') {
+                $allowedPaymentMethods = ['cash', 'bar'];
+            } elseif ($paymentMethods === 'online') {
+                $allowedPaymentMethods = ['online', 'paypal'];
+            } elseif ($paymentMethods === 'both') {
+                $allowedPaymentMethods = ['cash', 'online', 'paypal', 'bar'];
+            }
+        }
+        
         $ticketData = [
             'first_name' => trim($_POST['first_name']),
             'last_name' => trim($_POST['last_name']),
@@ -37,6 +54,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Invalid number of people! Please do not play around with the code of this page, otherwise your access to this page will be denied.');
         }
 
+
+        
+        if (!in_array($ticketData['method'], $allowedPaymentMethods)) {
+            throw new Exception('Invalid payment method selected! Please do not play around with the code of this page, otherwise your access to this page will be denied.');
+        }
 
         if ($ticketData['method'] === 'bar') {
             $result = makeApiCall('/api/ticket/create', 'POST', $ticketData);

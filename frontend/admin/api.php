@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-// Check if admin session exists
+
 if (!isset($_SESSION['admin']) || $_SESSION['admin'] !== true) {
     http_response_code(401);
     echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
@@ -35,6 +35,12 @@ switch ($action) {
     case 'delete_day':
         deleteDay();
         break;
+    case 'upload_image':
+        uploadImage();
+        break;
+    case 'get_current_images':
+        getCurrentImages();
+        break;
     default:
         http_response_code(400);
         echo json_encode(['status' => 'error', 'message' => 'Invalid action']);
@@ -48,7 +54,7 @@ function getStats() {
         return;
     }
 
-    // Calculate statistics
+    
     $totalTickets = 0;
     $totalAvailable = 0;
     $totalSold = 0;
@@ -85,7 +91,7 @@ function updateShowData() {
         $input = $_POST;
     }
 
-    // Ensure store_lock is treated as boolean
+    
     if (isset($input['store_lock'])) {
         $input['store_lock'] = filter_var($input['store_lock'], FILTER_VALIDATE_BOOLEAN);
     }
@@ -101,6 +107,202 @@ function updateShowData() {
     }
 }
 
+function uploadImage() {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        http_response_code(405);
+        echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
+        return;
+    }
+
+    
+    if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'No file uploaded or upload error']);
+        return;
+    }
+
+    $file = $_FILES['file'];
+    $type = $_POST['type'] ?? 'banner';
+
+    
+    $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    $detectedType = mime_content_type($file['tmp_name']);
+    
+    if (!in_array($detectedType, $allowedTypes)) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Invalid file type: ' . $detectedType]);
+        return;
+    }
+
+    
+    $maxFileSize = 5 * 1024 * 1024; 
+    if ($file['size'] > $maxFileSize) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'File size exceeds 5MB limit']);
+        return;
+    }
+
+    
+    $result = uploadImageToBackend($file, $type);
+    
+    if (isset($result['status']) && $result['status'] === 'success') {
+        echo json_encode(['status' => 'success', 'message' => 'Image uploaded successfully']);
+    } else {
+        http_response_code(500);
+        $message = $result['message'] ?? 'Failed to upload image';
+        echo json_encode(['status' => 'error', 'message' => $message]);
+    }
+}
+
+function uploadImageToBackend($file, $type) {
+    try {
+        $ch = curl_init(API_BASE_URL . '/api/image/upload');
+        if ($ch === false) {
+            throw new Exception('Failed to initialize CURL');
+        }
+
+        $headers = [
+            'Authorization: ' . API_KEY,
+        ];
+
+        
+        if (class_exists('CURLFile')) {
+            $postFields = [
+                'type' => $type,
+                'file' => new CURLFile($file['tmp_name'], $detectedType, $file['name'])
+            ];
+        } else {
+            
+            $postFields = [
+                'type' => $type,
+                'file' => '@' . $file['tmp_name'] . ';type=' . $detectedType . ';filename=' . $file['name']
+            ];
+        }
+
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
+
+        $response = curl_exec($ch);
+
+        if ($response === false) {
+            throw new Exception('API call failed: ' . curl_error($ch));
+        }
+
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200) {
+            
+            $errorResponse = json_decode($response, true);
+            $errorMessage = $errorResponse['message'] ?? 'API returned error code: ' . $httpCode;
+            throw new Exception($errorMessage);
+        }
+
+        return json_decode($response, true);
+    } catch (Exception $e) {
+        error_log('Image upload error: ' . $e->getMessage());
+        return ['status' => 'error', 'message' => $e->getMessage()];
+    }
+}
+
+
+if (!function_exists('str_starts_with')) {
+    function str_starts_with($haystack, $needle) {
+        return (string)$needle !== '' && strncmp($haystack, $needle, strlen($needle)) === 0;
+    }
+}
+
+
+if (!function_exists('mime_content_type')) {
+    function mime_content_type($filename) {
+        $mime_types = [
+            'txt' => 'text/plain',
+            'htm' => 'text/html',
+            'html' => 'text/html',
+            'php' => 'text/html',
+            'css' => 'text/css',
+            'js' => 'application/javascript',
+            'json' => 'application/json',
+            'xml' => 'application/xml',
+            'swf' => 'application/x-shockwave-flash',
+            'flv' => 'video/x-flv',
+            
+            
+            'png' => 'image/png',
+            'jpe' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'jpg' => 'image/jpeg',
+            'gif' => 'image/gif',
+            'bmp' => 'image/bmp',
+            'ico' => 'image/vnd.microsoft.icon',
+            'tiff' => 'image/tiff',
+            'tif' => 'image/tiff',
+            'svg' => 'image/svg+xml',
+            'svgz' => 'image/svg+xml',
+            'webp' => 'image/webp',
+            
+            
+            'zip' => 'application/zip',
+            'rar' => 'application/x-rar-compressed',
+            'exe' => 'application/x-msdownload',
+            'msi' => 'application/x-msdownload',
+            'cab' => 'application/vnd.ms-cab-compressed',
+            
+            
+            'mp3' => 'audio/mpeg',
+            'qt' => 'video/quicktime',
+            'mov' => 'video/quicktime',
+            
+            
+            'pdf' => 'application/pdf',
+            'psd' => 'image/vnd.adobe.photoshop',
+            'ai' => 'application/postscript',
+            'eps' => 'application/postscript',
+            'ps' => 'application/postscript',
+            
+            
+            'doc' => 'application/msword',
+            'rtf' => 'application/rtf',
+            'xls' => 'application/vnd.ms-excel',
+            'ppt' => 'application/vnd.ms-powerpoint',
+            
+            
+            'odt' => 'application/vnd.oasis.opendocument.text',
+            'ods' => 'application/vnd.oasis.opendocument.spreadsheet',
+        ];
+        
+        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        
+        if (array_key_exists($ext, $mime_types)) {
+            return $mime_types[$ext];
+        }
+        
+        return 'application/octet-stream';
+    }
+}
+
+function getCurrentImages() {
+    
+    $result = makeApiCall('/api/image/current');
+    
+    if (isset($result['status']) && $result['status'] === 'success') {
+        
+        $images = $result['images'];
+        foreach ($images as $key => $image) {
+            if (!empty($image) && !str_starts_with($image, 'http')) {
+                $images[$key] = API_BASE_URL . $image;
+            }
+        }
+        echo json_encode(['status' => 'success', 'images' => $images]);
+    } else {
+        http_response_code(500);
+        $message = $result['message'] ?? 'Failed to get current images';
+        echo json_encode(['status' => 'error', 'message' => $message]);
+    }
+}
+
 function addDay() {
     $input = json_decode(file_get_contents('php://input'), true);
     
@@ -110,7 +312,7 @@ function addDay() {
         return;
     }
 
-    // Load current shows
+    
     $shows = getShows();
     if (!$shows) {
         http_response_code(500);
@@ -118,15 +320,15 @@ function addDay() {
         return;
     }
 
-    // Use the provided dateId if available, otherwise generate a new one
+    
     $newDateId = $input['dateId'] ?? null;
     if (empty($newDateId)) {
-        // Generate a new date ID - use timestamp-based ID for uniqueness
+        
         $existingIds = array_keys($shows['dates'] ?? []);
         if (empty($existingIds)) {
             $newDateId = 'day_' . time();
         } else {
-            // Find the highest timestamp and add 1
+            
             $timestamps = [];
             foreach ($existingIds as $id) {
                 if (strpos($id, 'day_') === 0) {
@@ -137,14 +339,14 @@ function addDay() {
         }
     }
     
-    // Check if the dateId already exists
+    
     if (isset($shows['dates'][$newDateId])) {
         http_response_code(400);
         echo json_encode(['status' => 'error', 'message' => 'Date ID already exists']);
         return;
     }
     
-    // Add the new day
+    
     $shows['dates'][$newDateId] = [
         'date' => $input['date'],
         'time' => $input['time'],
@@ -153,7 +355,7 @@ function addDay() {
         'price' => (string)$input['price']
     ];
 
-    // Update the show
+    
     $result = updateShow($shows);
     
     if (isset($result['status']) && $result['status'] === 'success') {
@@ -174,10 +376,10 @@ function updateDay() {
         return;
     }
     
-    // Log the input for debugging
+    
     error_log('updateDay input: ' . print_r($input, true));
 
-    // Load current shows
+    
     $shows = getShows();
     if (!$shows) {
         http_response_code(500);
@@ -185,7 +387,7 @@ function updateDay() {
         return;
     }
 
-    // Update the specific day
+    
     if (!isset($shows['dates'][$input['dateId']])) {
         http_response_code(404);
         echo json_encode(['status' => 'error', 'message' => 'Day not found']);
@@ -200,7 +402,7 @@ function updateDay() {
         'price' => (string)$input['price']
     ];
 
-    // Update the show
+    
     $result = updateShow($shows);
     
     if (isset($result['status']) && $result['status'] === 'success') {
@@ -215,7 +417,7 @@ function updateDay() {
 function deleteDay() {
     $input = json_decode(file_get_contents('php://input'), true);
     
-    // Log the input for debugging
+    
     error_log('deleteDay input: ' . print_r($input, true));
     
     if (!$input || !isset($input['dateId'])) {
@@ -224,7 +426,7 @@ function deleteDay() {
         return;
     }
 
-    // Load current shows
+    
     $shows = getShows();
     if (!$shows) {
         http_response_code(500);
@@ -232,7 +434,7 @@ function deleteDay() {
         return;
     }
 
-    // Remove the specific day
+    
     if (!isset($shows['dates'][$input['dateId']])) {
         http_response_code(404);
         echo json_encode(['status' => 'error', 'message' => 'Day not found']);
@@ -241,10 +443,10 @@ function deleteDay() {
 
     unset($shows['dates'][$input['dateId']]);
 
-    // Update the show
+    
     $result = updateShow($shows);
     
-    // Log the result for debugging
+    
     error_log('deleteDay result: ' . print_r($result, true));
     
     if (isset($result['status']) && $result['status'] === 'success') {

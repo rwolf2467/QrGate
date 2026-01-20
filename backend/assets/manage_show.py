@@ -34,6 +34,7 @@ def edit_show(app=quart.Quart):
             show["subtitle"] = data.get("subtitle", show.get("subtitle"))
             show["dates"] = dates
             show["store_lock"] = bool(data.get("store_lock", show.get("store_lock")))
+            show["payment_methods"] = data.get("payment_methods", show.get("payment_methods", "both"))
 
             save_show(show)
             return (
@@ -114,5 +115,16 @@ def get_show(app=quart.Quart):
                     return quart.jsonify({"status": "success", "price": price}), 200
 
             return quart.jsonify({"status": "error", "message": "Date not found"}), 404
+        except Exception as e:
+            return quart.jsonify({"status": "error", "message": str(e)}), 500
+
+    @app.route("/api/show/get/payment_methods", methods=["POST", "GET"])
+    async def get_payment_methods():
+        if config.Auth.auth_key != (key := quart.request.headers.get("Authorization")):
+            return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401
+        try:
+            show: dict = load_show()
+            payment_methods = show.get("payment_methods", "both")
+            return quart.jsonify({"status": "success", "payment_methods": payment_methods}), 200
         except Exception as e:
             return quart.jsonify({"status": "error", "message": str(e)}), 500

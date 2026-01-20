@@ -1,11 +1,11 @@
 <?php
 session_start();
 
-// For now, we'll use a simple hardcoded password
-// In a real application, you should use proper authentication
-$admin_password = 'admin123'; // Change this in production!
-$ticketflow_password = 'ticketflow123'; // Change this in production!
-$handheld_password = 'handheld123'; // Change this in production!
+
+
+$admin_password = 'admin123'; 
+$ticketflow_password = 'ticketflow123'; 
+$handheld_password = 'handheld123'; 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// If already logged in, redirect to admin panel
+
 if (isset($_SESSION['admin']) && $_SESSION['admin'] === true) {
     header('Location: index.php');
     exit;

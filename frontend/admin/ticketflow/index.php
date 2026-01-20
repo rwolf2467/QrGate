@@ -1,7 +1,7 @@
 <?php
 require_once "../../config.php";
 
-// Check if user is authorized to access ticketflow
+
 if (!isset($_SESSION["admin"]) && !isset($_SESSION["ticketflow_access"])) {
     header("Location: ../login.php?redirect=ticketflow");
     exit();
@@ -100,7 +100,7 @@ function call_api($endpoint, $data, $method = 'POST') {
     return [$http_code, json_decode($response, true)];
 }
 
-// --- Edit logic (unchanged structure) ---
+
 $firstname = "";
 $lastname = "";
 $type = "";
@@ -130,7 +130,7 @@ if (
     }
 }
 
-// --- Save edited ticket ---
+
 if (
     $_SERVER["REQUEST_METHOD"] == "POST" &&
     isset($_POST["action"]) &&
@@ -158,7 +158,7 @@ if (
 
     if ($http_code === 200) {
         echo "<script>alert('Ticket erfolgreich gespeichert!');</script>";
-        // Reset form
+        
         $ticket_id = "";
         $firstname = "";
         $lastname = "";
@@ -172,7 +172,7 @@ if (
     }
 }
 
-// --- Create new ticket (OVERHAULED for speed & print) ---
+
 if (
     $_SERVER["REQUEST_METHOD"] == "POST" &&
     isset($_POST["action"]) &&
@@ -194,14 +194,14 @@ if (
         "paid" => $paid,
         "valid_date" => $valid_date,
         "tickets" => $tickets,
-        // Note: 'tid' and 'valid' are now handled by backend automatically
+        
     ];
 
     [$http_code, $response_data] = call_api("api/ticketflow/create", $data);
 
     if ($http_code === 200 && !empty($response_data["tid"])) {
         $tid = $response_data["tid"];
-        // ✅ OPEN PDF IN NEW TAB FOR PRINTING
+        
         echo "<script>
             alert('Ticket erfolgreich erstellt!');
             window.open('" . API_BASE_URL . "codes/pdf?tid=" . urlencode($tid) . "', '_blank');

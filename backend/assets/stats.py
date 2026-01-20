@@ -4,7 +4,7 @@ from typing import Dict, Any
 from datetime import datetime
 from reds_simple_logger import Logger
 from assets.data import load_show
-import config.conf as config
+import config.conf as config # type: ignore
 
 logger = Logger()
 logger.success("Stats.py loaded")
@@ -16,7 +16,7 @@ def load_stats() -> Dict[str, Any]:
         with open("data/stats.json", "r", encoding="utf-8") as f:
             return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
-        # Return default structure if file doesn't exist or is invalid
+        
         return {"sales_by_date": {}, "income_by_date": {}}
 
 
@@ -30,7 +30,7 @@ def log_ticket_sale(date: str, tickets_sold: int, price_per_ticket: float):
     """Log a ticket sale to statistics"""
     stats = load_stats()
     
-    # Update sales count for the date
+    
     current_date = datetime.now().strftime("%Y-%m-%d")
     
     if current_date in stats["sales_by_date"]:
@@ -38,7 +38,7 @@ def log_ticket_sale(date: str, tickets_sold: int, price_per_ticket: float):
     else:
         stats["sales_by_date"][current_date] = tickets_sold
     
-    # Update income for the date
+    
     income = tickets_sold * price_per_ticket
     if current_date in stats["income_by_date"]:
         stats["income_by_date"][current_date] += income
@@ -55,7 +55,7 @@ def get_statistics():
 
 
 def get_stats_api(app=quart.Quart):
-    @app.route("/api/stats", methods=["GET"])  # type: ignore
+    @app.route("/api/stats", methods=["GET"])   # type: ignore
     async def get_stats():
         if config.Auth.auth_key != (key := quart.request.headers.get("Authorization")):
             return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401

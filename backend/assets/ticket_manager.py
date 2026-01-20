@@ -1,5 +1,5 @@
 import quart
-import config.conf as config
+import config.conf as config # type: ignore
 from assets.data import load_tickets, save_tickets, load_ticket_id
 from assets.data import load_date, save_date, load_show
 from assets.stats import log_ticket_sale
@@ -32,7 +32,7 @@ logger.success("Ticket_manager.py loaded")
 
 
 def create_ticket(app=quart.Quart):
-    @app.route("/api/ticket/create", methods=["POST"])  # type: ignore # Kein `rule` Parameter benötigt
+    @app.route("/api/ticket/create", methods=["POST"])   # type: ignore
     async def create_ticket():
         if config.Auth.auth_key != (key := quart.request.headers.get("Authorization")):
             return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401
@@ -45,9 +45,9 @@ def create_ticket(app=quart.Quart):
             first_name: str = str(data.get("first_name"))
             last_name: str = str(data.get("last_name"))
             email: str = str(data.get("email"))
-            tickets: int = data.get("tickets") # pyright: ignore[reportAssignmentType]
+            tickets: int = data.get("tickets", 1) 
             add_people: list = data.get("add_people", [])
-            t_type: str = data.get("type") if data.get("type") else "visitor" # pyright: ignore[reportAssignmentType]
+            t_type: str = str(data.get("type", "visitor")) 
             date = load_date(valid_date)
             if not date:
                 return (
@@ -69,7 +69,7 @@ def create_ticket(app=quart.Quart):
             date["tickets_available"] -= tickets
             save_date(valid_date, date)
 
-            # Log ticket sale to statistics
+            
             price_per_ticket = float(date["price"])
             log_ticket_sale(valid_date, tickets, price_per_ticket)
 
@@ -134,7 +134,7 @@ def create_ticket(app=quart.Quart):
             print("Error:", str(e))
             return quart.jsonify({"status": "error", "message": str(e)}), 500
 
-    @app.route("/api/ticketflow/create", methods=["POST"])  # pyright: ignore[reportCallIssue] 
+    @app.route("/api/ticketflow/create", methods=["POST"])   # type: ignore
     async def create_ticket_flow():
         if config.Auth.auth_key != (key := quart.request.headers.get("Authorization")):
             return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401
@@ -142,23 +142,23 @@ def create_ticket(app=quart.Quart):
         data: dict = await quart.request.get_json()
         print(data)
 
-        # Verwende Typisierung und explizite Prüfung, um None-Werte abzufangen
+        
         paid: bool = data.get("paid", False)
         valid_date_input: Optional[str] = data.get("valid_date")
-        t_type: str = data.get("type", "visitor")  # Besser als "not provided"
+        t_type: str = data.get("type", "visitor")  
         first_name_input: Optional[str] = data.get("first_name", "").strip()
         last_name_input: Optional[str] = data.get("last_name", "").strip()
         email_input: Optional[str] = (data.get("email") or "").strip()
-        tickets_input: Optional[int] = data.get("tickets", 1)  # Sinnvoller Default
+        tickets_input: Optional[int] = data.get("tickets", 1)  
 
-        # Explizite Typisierung
+        
         valid_date: str = valid_date_input if valid_date_input else ""
         first_name: str = first_name_input if first_name_input else "Unknown"
         last_name: str = last_name_input if last_name_input else "Unknown"
         email: Optional[str] = email_input if email_input else None
         tickets: int = tickets_input if tickets_input else 1
 
-        # --- Validierungslogik für Datum ---
+        
         if not valid_date or valid_date.strip() == "":
             if t_type not in ("admin", "vip"):
                 return (
@@ -172,7 +172,7 @@ def create_ticket(app=quart.Quart):
                 )
             valid_date = "Unlimited"
         else:
-            date_info = load_date(valid_date) # type: ignore
+            date_info:dict = load_date(valid_date) 
             if t_type not in ("admin", "vip"):
                 if not date_info:
                     return (
@@ -194,18 +194,18 @@ def create_ticket(app=quart.Quart):
                 date_info["tickets_available"] -= tickets
                 save_date(valid_date, date_info)
                 
-                # Log ticket sale to statistics
+                
                 price_per_ticket = float(date_info["price"])
                 log_ticket_sale(valid_date, tickets, price_per_ticket)
 
-        # --- Ticket-ID generieren ---
+        
         raw_tid = data.get("tid")
         if raw_tid is None or str(raw_tid).strip() == "":
             tid = generate_ticket_id(valid_date)
         else:
             tid = str(raw_tid).strip()
 
-        # --- Ticket speichern ---
+        
         ticket = {
             "tid": tid,
             "first_name": first_name,
@@ -221,17 +221,18 @@ def create_ticket(app=quart.Quart):
         print(ticket)
         save_tickets(tid, ticket)
 
-        # --- PDF generieren ---
-        # Initialisiere date_info hier, falls nötig
+        
+        
         if valid_date != "Unlimited":
-            date_info: dict = load_date(valid_date) # type: ignore
+            date_info_loaded = load_date(valid_date)
+            date_info: dict = date_info_loaded if date_info_loaded is not None else {"time": ""}
         else:
             date_info = {"time": ""}
 
         event_time = date_info.get("time", "") if valid_date != "Unlimited" else ""
         generate_ticket_pdf(tid, first_name, last_name, valid_date, event_time, variant="simple")
 
-        # --- E-Mail senden (falls E-Mail vorhanden) ---
+        
         if email:
             await send_email(
                 first_name,
@@ -257,7 +258,7 @@ def generate_ticket_pdf(
     last_name: str,
     date: str,
     event_time: str,
-    variant: str = "standard",  # "standard" oder "simple"
+    variant: str = "standard",  
 ):
     """
     Generates a printable PDF ticket and saves it to ./codes/{tid}.pdf
@@ -270,27 +271,27 @@ def generate_ticket_pdf(
     qr_image_path = f"./codes/{tid}.png"
     pdf_filename = f"./codes/{tid}.pdf"
 
-    # Ensure codes directory exists
+    
     os.makedirs("./codes", exist_ok=True)
 
-    # --- Generate QR Code (used by both variants) ---
+    
     qr = qrcode.QRCode(
         version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L, # type: ignore
+        error_correction=qrcode.constants.ERROR_CORRECT_L,  # type: ignore
         box_size=10,
         border=4,
     )
     qr.add_data(tid)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
-    img.save(qr_image_path) # type: ignore
+    img.save(qr_image_path) 
 
-    # --- Load show data ---
+    
     show_data = load_show()
     styles = getSampleStyleSheet()
 
     if variant == "simple":
-        # ===== SIMPLE VARIANT (A5, minimal) =====
+        
         from reportlab.lib.pagesizes import A5
 
         pdf = SimpleDocTemplate(
@@ -303,17 +304,17 @@ def generate_ticket_pdf(
         )
         elements = []
 
-        # Kurze Überschrift
+        
         title = Paragraph(f"Ticket – {show_data['orga_name']}", styles["Heading1"])
         elements.append(title)
         elements.append(Spacer(1, 12))
 
-        # Name & ID
+        
         name = Paragraph(f"<b>Name:</b> {first_name} {last_name}", styles["Normal"])
         tid_para = Paragraph(f"<b>ID:</b> {tid}", styles["Normal"])
         elements.extend([name, Spacer(1, 6), tid_para, Spacer(1, 12)])
 
-        # Datum & Uhrzeit (nur wenn vorhanden)
+        
         if date and date != "Unlimited":
             date_para = Paragraph(f"<b>Date:</b> {date}", styles["Normal"])
             elements.append(date_para)
@@ -322,13 +323,13 @@ def generate_ticket_pdf(
                 elements.append(time_para)
             elements.append(Spacer(1, 12))
 
-        # Hinweis (sehr kurz)
+        
         note = Paragraph("Show this ticket at entrance.", styles["Normal"])
         elements.append(note)
         elements.append(Spacer(1, 20))
 
-        # --- QR-CODE SECTION (identisch zur Standardvariante) ---
-        elements.append(Spacer(1, 80))  # Platz nach oben
+        
+        elements.append(Spacer(1, 80))  
 
         qr_image_left = Image(qr_image_path, width=80, height=80)
         qr_image_right = Image(qr_image_path, width=80, height=80)
@@ -368,7 +369,7 @@ def generate_ticket_pdf(
         elements.append(managed_by)
 
     else:
-        # ===== STANDARD VARIANT (A4, full) =====
+        
         from reportlab.lib.pagesizes import A4
 
         pdf = SimpleDocTemplate(
@@ -480,7 +481,7 @@ def generate_ticket_pdf(
         managed_by = Paragraph("Managed by QrGate - avocloud.net", managed_by_style)
         elements.append(managed_by)
 
-    # Build PDF
+    
     pdf.build(elements)
     return pdf_filename
 
@@ -500,9 +501,9 @@ async def send_email(
     Automatically generates the PDF if needed.
     """
     if not email:
-        return  # Skip if no email
+        return  
 
-    # Ensure PDF exists
+    
     pdf_path = f"./codes/{tid}.pdf"
     if not os.path.exists(pdf_path):
         generate_ticket_pdf(tid, first_name, last_name, date, event_time)
@@ -584,7 +585,7 @@ async def send_email(
 
     message.attach(MIMEText(html_content, "html"))
 
-    # Attach PDF
+    
     with open(pdf_path, "rb") as pdf_file:
         part = MIMEApplication(pdf_file.read(), Name=os.path.basename(pdf_path))
         part["Content-Disposition"] = (
@@ -592,7 +593,7 @@ async def send_email(
         )
         message.attach(part)
 
-    # Send email
+    
     with smtplib.SMTP(config.Mail.smtp_server, config.Mail.smtp_port) as server:
         server.starttls()
         server.login(config.Mail.smtp_user, config.Mail.smtp_password)
@@ -600,7 +601,7 @@ async def send_email(
 
 
 def edit_ticket(app=quart.Quart):
-    @app.route("/api/ticket/edit", methods=["POST"])  # type: ignore
+    @app.route("/api/ticket/edit", methods=["POST"])   # type: ignore
     async def edit_ticket():
         if config.Auth.auth_key != (key := quart.request.headers.get("Authorization")):
             return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401
@@ -659,11 +660,11 @@ def edit_ticket(app=quart.Quart):
                 await send_email(
                     first_name,
                     last_name,
-                    ticket.get("email"), # type: ignore
+                    ticket.get("email"), 
                     tid,
                     paid,
                     date=valid_date,
-                    event_time=date["time"], # type: ignore
+                    event_time=date["time"], 
                 )
             return quart.jsonify({"status": "success", "message": "Ticket edited"}), 200
         except Exception as e:
@@ -672,7 +673,7 @@ def edit_ticket(app=quart.Quart):
 
 
 def view_ticket(app=quart.Quart):
-    @app.route("/api/ticket/get", methods=["GET", "POST"])   # type: ignore
+    @app.route("/api/ticket/get", methods=["GET", "POST"])    # type: ignore
     async def view_ticket():
         if config.Auth.auth_key != (key := quart.request.headers.get("Authorization")):
             return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401
@@ -709,12 +710,12 @@ def view_ticket(app=quart.Quart):
         except Exception as e:
             return quart.jsonify({"status": "error", "message": str(e)}), 500
 
-    @app.route("/codes/show", methods=["GET"])  # type: ignore
+    @app.route("/codes/show", methods=["GET"])   # type: ignore
     async def show_code():
         tid = quart.request.args.get("tid")
         return await quart.send_file(f"./codes/{tid}.png")
 
-    @app.route("/codes/pdf", methods=["GET"])   # type: ignore
+    @app.route("/codes/pdf", methods=["GET"])    # type: ignore
     async def show_pdf():
         tid = quart.request.args.get("tid")
         pdf_path = f"./codes/{tid}.pdf"
@@ -725,7 +726,7 @@ def view_ticket(app=quart.Quart):
 
 
 def get_available_tickets(app=quart.Quart):
-    @app.route("/api/ticket/available_tickets/<show_id>", methods=["GET"])  # type: ignore
+    @app.route("/api/ticket/available_tickets/<show_id>", methods=["GET"])   # type: ignore
     async def available_tickets(show_id):
         try:
 

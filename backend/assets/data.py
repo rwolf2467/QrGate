@@ -17,10 +17,10 @@ def load_date(date: str):
     for key, value in dates.items():
         if value.get("date") == date:
             print("Found show:", value)
-            return value
+            return dict(value)
 
     print(f"No show found for date: {date}")
-    return None
+    return {}
 
 
 def save_date(date: str, updated_data):
@@ -73,7 +73,7 @@ def save_tickets(tid: str, new_ticket: dict):
 
 
 def img_show(app=quart.Quart):
-    @app.route("/image/show") # type: ignore
+    @app.route("/image/show")  # pyright: ignore[reportCallIssue]
     async def show_img():
         tid = quart.request.args.get("img")
         return await quart.send_file(f"./images/{tid}.png")

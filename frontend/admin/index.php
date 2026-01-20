@@ -1,11 +1,11 @@
 <?php
 require_once "../config.php";
-// Check if user is authorized to access admin panel
+
 if (!isset($_SESSION["admin"]) || $_SESSION["admin"] !== true) {
     header("Location: login.php");
     exit();
 }
-// Get shows data
+
 $shows = getShows();
 $stats = [];
 if ($shows) {
@@ -209,6 +209,28 @@ if ($shows) {
                 margin: 0 -1.5rem;
                 padding: 0 1.5rem;
             }
+
+            /* Image Management Styles */
+            #bannerPreview img,
+            #logoPreview img,
+            #wallpaperPreview img {
+                max-width: 100%;
+                max-height: 300px;
+                object-fit: contain;
+                display: block;
+                margin: 0 auto;
+            }
+
+            .image-preview-container {
+                border: 1px solid var(--color-border);
+                border-radius: var(--radius-md);
+                padding: 1rem;
+                min-height: 200px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background-color: var(--color-surface-1);
+            }
         }
     </style>
 </head>
@@ -285,6 +307,15 @@ if ($shows) {
                                         <path d="M12 18h.01" />
                                         <path d="M16 18h.01" />
                                     </svg> Manage Dates</span></a>
+                        </li>
+                        <li><a href="#" data-section="images"><span><svg xmlns="http://www.w3.org/2000/svg" width="24"
+                                        height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        class="lucide lucide-image-icon lucide-image">
+                                        <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                                        <circle cx="9" cy="9" r="2" />
+                                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                                    </svg> Image Management</span></a>
                         </li>
 
                     </ul>
@@ -631,6 +662,20 @@ if ($shows) {
                             </div>
                         </div>
 
+                        <div class="grid gap-2">
+                            <label class="label" for="paymentMethods">Payment Methods</label>
+                            <select id="paymentMethods" class="input">
+                                <option value="both" <?php echo ($shows && isset($shows['payment_methods']) && $shows['payment_methods'] === 'both') ? 'selected' : ''; ?>>
+                                    Both (Cash & Online)</option>
+                                <option value="cash" <?php echo ($shows && isset($shows['payment_methods']) && $shows['payment_methods'] === 'cash') ? 'selected' : ''; ?>>
+                                    Cash only</option>
+                                <option value="online" <?php echo ($shows && isset($shows['payment_methods']) && $shows['payment_methods'] === 'online') ? 'selected' : ''; ?>>
+                                    Online only</option>
+                            </select>
+                            <p class="text-muted-foreground text-sm">Select which payment methods should be available in
+                                the store.</p>
+                        </div>
+
                         <div style="margin-top: 1.5rem;">
                             <button class="btn-outline" type="submit">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
@@ -778,6 +823,78 @@ if ($shows) {
                 </section>
             </div>
         </div>
+
+        <!-- Image Management -->
+        <div id="images" style="display: none">
+            <h1><svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="lucide lucide-image-icon lucide-image" style="margin-right: 10px;">
+                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                    <circle cx="9" cy="9" r="2" />
+                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                </svg> Image Management</h1>
+
+            <div class="card">
+                <header>
+                    <h2><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-images-icon lucide-images">
+                            <path d="M18 22H4a2 2 0 0 1-2-2V6" />
+                            <path d="m22 13-1.296-1.296a2.41 2.41 0 0 0-3.408 0L14 16" />
+                            <circle cx="12" cy="8" r="2" />
+                            <path d="m20 6 2 2-3-3-2 2 3 3Z" />
+                            <rect width="12" height="16" x="2" y="2" rx="2" />
+                        </svg> Current Images</h2>
+                </header>
+                <section>
+                    <div class="grid gap-6">
+                        <div class="grid gap-4">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold">Banner Image</h3>
+                                <button class="btn-outline" onclick="document.getElementById('bannerUpload').click()">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" class="lucide lucide-upload-icon lucide-upload">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                        <polyline points="17,8 12,3 7,8" />
+                                        <line x1="12" x2="12" y1="3" y2="15" />
+                                    </svg>
+                                    Upload Banner
+                                </button>
+                                <input type="file" id="bannerUpload" style="display: none;" accept="image/*"
+                                    onchange="uploadImage('banner')">
+                            </div>
+                            <div id="bannerPreview" class="image-preview-container">
+                                <p class="text-muted-foreground">No banner image uploaded</p>
+                            </div>
+                        </div>
+
+                        <div class="grid gap-4">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold">Logo Image</h3>
+                                <button class="btn-outline" onclick="document.getElementById('logoUpload').click()">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" class="lucide lucide-upload-icon lucide-upload">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                        <polyline points="17,8 12,3 7,8" />
+                                        <line x1="12" x2="12" y1="3" y2="15" />
+                                    </svg>
+                                    Upload Logo
+                                </button>
+                                <input type="file" id="logoUpload" style="display: none;" accept="image/*"
+                                    onchange="uploadImage('logo')">
+                            </div>
+                            <div id="logoPreview" class="image-preview-container">
+                                <p class="text-muted-foreground">No logo image uploaded</p>
+                            </div>
+                        </div>
+
+
+                    </div>
+                </section>
+            </div>
+        </div>
     </main>
 
     <div id="notificationContainer" class="notification-container"></div>
@@ -828,7 +945,7 @@ if ($shows) {
         const saved = localStorage.getItem('currentAdminSection');
         if (saved && document.getElementById(saved)) switchSection(saved);
 
-        // Charts
+        
         function initCharts() {
             const dates = <?php echo json_encode(array_keys($stats["soldByDate"] ?? [])); ?>;
             const soldData = <?php echo json_encode(array_values($stats["soldByDate"] ?? [])); ?>;
@@ -836,17 +953,17 @@ if ($shows) {
 
             if (dates.length === 0) return;
 
-            // Farbpalette: harmonisch, gut lesbar im dunklen Basecoat-Design
+            
             const generateColors = (baseColor, count) => {
                 const colors = [];
                 for (let i = 0; i < count; i++) {
-                    const shade = 100 - Math.min(80, i * 15); // leicht variierende Helligkeit
+                    const shade = 100 - Math.min(80, i * 15); 
                     colors.push(`hsl(${baseColor}, 70%, ${shade}%)`);
                 }
                 return colors;
             };
 
-            // Sales Pie Chart
+            
             const salesCtx = document.getElementById('salesChart')?.getContext('2d');
             if (salesCtx) {
                 new Chart(salesCtx, {
@@ -856,7 +973,7 @@ if ($shows) {
                         datasets: [{
                             label: 'Tickets Sold',
                             data: soldData,
-                            backgroundColor: generateColors(270, dates.length), // violett/lila
+                            backgroundColor: generateColors(270, dates.length), 
                             borderColor: '#ffffff20',
                             borderWidth: 1
                         }]
@@ -887,7 +1004,7 @@ if ($shows) {
                 });
             }
 
-            // Availability Pie Chart
+            
             const availCtx = document.getElementById('availabilityChart')?.getContext('2d');
             if (availCtx) {
                 new Chart(availCtx, {
@@ -897,7 +1014,7 @@ if ($shows) {
                         datasets: [{
                             label: 'Available Tickets',
                             data: availableData,
-                            backgroundColor: generateColors(140, dates.length), // grün/türkis
+                            backgroundColor: generateColors(140, dates.length), 
                             borderColor: '#ffffff20',
                             borderWidth: 1
                         }]
@@ -928,7 +1045,7 @@ if ($shows) {
                 });
             }
 
-            // Weitere Charts (Income, Total Sales etc.) nach wie vor laden
+            
             loadStatsData();
         }
 
@@ -942,7 +1059,7 @@ if ($shows) {
                 if (data.status === 'success' && data.data) {
                     const stats = data.data;
 
-                    // Prepare data for income chart
+                    
                     const incomeDates = Object.keys(stats.income_by_date || {});
                     const incomeValues = Object.values(stats.income_by_date || {});
 
@@ -993,7 +1110,7 @@ if ($shows) {
                         });
                     }
 
-                    // Prepare data for total sales chart
+                    
                     const salesDates = Object.keys(stats.sales_by_date || {});
                     const salesValues = Object.values(stats.sales_by_date || {});
 
@@ -1050,7 +1167,7 @@ if ($shows) {
 
         document.querySelector('aside a[data-section="statistics"]').addEventListener('click', () => setTimeout(initCharts, 200));
 
-        // Forms & API
+        
         document.getElementById('eventForm')?.addEventListener('submit', function (e) {
             e.preventDefault();
             const btn = e.submitter;
@@ -1061,6 +1178,7 @@ if ($shows) {
                 subtitle: document.getElementById('eventSubtitle').value,
                 banner: document.getElementById('bannerUrl').value,
                 store_lock: document.getElementById('storeLock').checked,
+                payment_methods: document.getElementById('paymentMethods').value,
                 dates: {}
             };
             <?php if ($shows) {
@@ -1098,7 +1216,7 @@ if ($shows) {
                 });
         });
 
-        // Add day
+        
         document.getElementById('addDayForm')?.addEventListener('submit', function (e) {
             e.preventDefault();
             const data = {
@@ -1135,7 +1253,7 @@ if ($shows) {
             });
         }
 
-        // Update/Delete via delegation
+        
         document.getElementById('daysTableBody').addEventListener('click', async function (e) {
             const btn = e.target.closest('button');
             if (!btn) return;
@@ -1177,11 +1295,11 @@ if ($shows) {
                     return;
                 }
 
-                const ticketsInput = parseInt(numberInputs[0].value, 10);     // Total
-                const availableInput = parseInt(numberInputs[1].value, 10);  // Available
-                const priceInput = parseFloat(numberInputs[2].value);        // Price
+                const ticketsInput = parseInt(numberInputs[0].value, 10);     
+                const availableInput = parseInt(numberInputs[1].value, 10);  
+                const priceInput = parseFloat(numberInputs[2].value);        
 
-                // Validierung
+                
                 if (!dateInput || !timeInput || isNaN(ticketsInput) || isNaN(availableInput) || isNaN(priceInput)) {
                     showToast('Please fill in all fields correctly.', 'error');
                     return;
@@ -1220,6 +1338,80 @@ if ($shows) {
                     });
             }
         });
+
+        
+        async function loadCurrentImages() {
+            const timestamp = new Date().getTime();
+
+            try {
+                
+                const bannerPreview = document.getElementById('bannerPreview');
+                bannerPreview.innerHTML = `<img src="${API_BASE_URL}/api/image/get/banner.png?t=${timestamp}" alt="Banner" class="max-w-full max-h-[300px] object-contain" onerror="this.onerror=null; this.src='${API_BASE_URL}/api/image/get/banner.png';">`;
+
+                
+                const logoPreview = document.getElementById('logoPreview');
+                logoPreview.innerHTML = `<img src="${API_BASE_URL}/api/image/get/logo.png?t=${timestamp}" alt="Logo" class="max-w-full max-h-[200px] object-contain" onerror="this.onerror=null; this.src='${API_BASE_URL}/api/image/get/logo.png';">`;
+            } catch (error) {
+                console.error('Error loading images:', error);
+                showToast('Error loading images', 'error');
+            }
+        }
+
+
+        async function uploadImage(type) {
+            const fileInput = document.getElementById(`${type}Upload`);
+            const file = fileInput.files[0];
+
+            if (!file) {
+                showToast('Keine Datei ausgewählt', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('type', type);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/image/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': API_KEY,
+                    },
+                    body: formData,
+                });
+
+                const responseText = await response.text();
+                console.log('Server-Antwort:', responseText);
+
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    throw new Error(`Server antwortete nicht mit JSON: ${responseText.substring(0, 100)}...`);
+                }
+
+                if (data.status === 'success') {
+                    showToast(`${type} erfolgreich hochgeladen!`, 'success');
+                    await loadCurrentImages();
+                } else {
+                    throw new Error(data.message || 'Unbekannter Fehler');
+                }
+            } catch (error) {
+                console.error('Upload-Fehler:', error);
+                showToast(`Fehler: ${error.message}`, 'error');
+            }
+        }
+
+
+        
+        document.querySelector('aside a[data-section="images"]').addEventListener('click', () => {
+            setTimeout(loadCurrentImages, 200);
+        });
+
+        
+        if (window.location.hash === '#images' || localStorage.getItem('currentAdminSection') === 'images') {
+            setTimeout(loadCurrentImages, 200);
+        }
     </script>
 </body>
 

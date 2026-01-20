@@ -65,7 +65,7 @@ function getShows()
 
 function updateShow($data)
 {
-    // Ensure store_lock is treated as boolean
+    
     if (isset($data['store_lock'])) {
         $data['store_lock'] = filter_var($data['store_lock'], FILTER_VALIDATE_BOOLEAN);
     }
