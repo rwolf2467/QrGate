@@ -53,7 +53,7 @@ if (isset($_SESSION['admin']) && $_SESSION['admin'] === true) {
     <!-- Basecoat CSS (ohne Tailwind!) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.10-beta.2/dist/basecoat.cdn.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-    
+    <link rel="icon" type="image/png" href="<?php echo API_BASE_URL; ?>/api/image/get/logo.png?t=<?php echo time(); ?>">
     <style>
         :root {
             --primary: #9333ea;
