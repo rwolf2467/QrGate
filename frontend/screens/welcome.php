@@ -52,10 +52,9 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
             background-color: #0a0a0a;
             color: var(--text-color);
             line-height: 1.6;
-            background-color: #0a0a0a;
-            background-size: 31px 31px;
-            background-image: repeating-linear-gradient(45deg, #222222 0, #222222 3.1px, #0a0a0a 0, #0a0a0a 50%);
-            background-attachment: fixed;
+            background: radial-gradient(circle, transparent 20%, #0a0b0b 20%, #0a0b0b 80%, transparent 80%, transparent) 0% 0% / 64px 64px, radial-gradient(circle, transparent 20%, #0a0b0b 20%, #0a0b0b 80%, transparent 80%, transparent) 32px 32px / 64px 64px, linear-gradient(#2e2e2e 2px, transparent 2px) 0px -1px / 32px 32px, linear-gradient(90deg, #2e2e2e 2px, #0a0b0b 2px) -1px 0px / 32px 32px #0a0b0b;
+            background-size: 64px 64px, 64px 64px, 32px 32px, 32px 32px;
+            background-color: #0a0b0b;
         }
 
         .container {
@@ -82,13 +81,12 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
 
         #gradientbar {
             height: 20px;
-            background: linear-gradient(90deg, #9333ea, #ec4899, #eab308);
+            background: #2e2e2e;
+            border-radius: ; 0 0 10px 10px;
             width: 100%;
             position: fixed;
             top: 0;
             z-index: 2;
-            background-size: 200% 200%;
-            animation: gradient 10s ease infinite;
         }
 
         @keyframes gradient {
@@ -291,14 +289,15 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
 
         #progressbar {
             height: 20px;
-            background-color: rgba(0, 0, 0, 0.43);
+            background-color: #e2e2e2;
+            border-radius: 0 0 10px 10px;
             position: fixed;
             top: 0;
             left: 0;
             width: 0;
             opacity: 1;
             z-index: 3;
-            transition: width 0.4s ease, opacity 1s ease;
+            transition: width 1.3s ease, opacity 1.5s ease;
         }
 
 
@@ -328,7 +327,7 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
 
         .wallpaper-div {
             background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.7)), url(<?php echo $wallpaper_url; ?>);
-            width:100%;
+            width: 100%;
             height: 100%;
             background-size: cover;
             position: absolute;
@@ -400,7 +399,7 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
         function switchText() {
             const currentText = texts[currentTextIndex];
             currentText.style.animation = 'fadeOut 2s forwards';
-            setTimeout(function() {
+            setTimeout(function () {
                 currentText.style.display = 'none';
                 currentTextIndex = (currentTextIndex + 1) % texts.length;
                 const nextText = texts[currentTextIndex];

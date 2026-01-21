@@ -41,7 +41,7 @@ QrGate ist ein umfassendes System für die Verwaltung von Veranstaltungen, Ticke
 2. **Backend einrichten:**
    ```bash
    cd backend
-   pip install -r requirements.txt  # Falls vorhanden
+   pip install -r requirements.txt
    ```
 
 3. **Frontend einrichten:**
@@ -162,20 +162,7 @@ Wir freuen uns über Beiträge zur Weiterentwicklung von QrGate. Bitte beachten 
 3. Implementieren Sie Ihre Änderungen und testen Sie sie gründlich.
 4. Erstellen Sie einen Pull Request mit einer Beschreibung Ihrer Änderungen.
 
-### Tests
 
-Um die Tests auszuführen, verwenden Sie den folgenden Befehl:
-
-```bash
-cd backend
-python -m pytest tests/
-```
-
-### Code-Standards
-
-- **Python**: PEP-8-Standards
-- **PHP**: PSR-12-Standards
-- **JavaScript**: ESLint-Standards
 
 ## 📜 Lizenz
 
@@ -185,7 +172,7 @@ QrGate wird unter der MIT-Lizenz veröffentlicht. Weitere Informationen finden S
 
 Für Fragen oder Unterstützung können Sie ein Issue im Repository erstellen oder uns unter der folgenden E-Mail-Adresse kontaktieren:
 
-- **E-Mail**: support@qrgate.com
+- **E-Mail**: support@avocloud.net
 
 ## 📸 Screenshots
 
@@ -195,4 +182,3 @@ Für Fragen oder Unterstützung können Sie ein Issue im Repository erstellen od
 
 ---
 
-© 2023 QrGate. Alle Rechte vorbehalten.
