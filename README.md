@@ -24,6 +24,18 @@ QrGate is a comprehensive system for managing events, tickets, and access contro
 - **API Key Authentication**: Backend communication secured with authorization headers
 - **Role-based Access Control**: Three user levels (Admin, Ticketflow, Handheld)
 
+## Screenshots
+<img width="2559" height="1481" alt="image" src="https://github.com/user-attachments/assets/f9306b5c-6986-4feb-995f-c33abb9ef94c" />
+<img width="2559" height="1481" alt="image" src="https://github.com/user-attachments/assets/99df98d8-4dda-488e-87b5-ff37d477349a" />
+---
+<img width="2559" height="1481" alt="image" src="https://github.com/user-attachments/assets/10506a2e-93d3-497c-89bf-20705cd20036" />
+<img width="2559" height="1481" alt="image" src="https://github.com/user-attachments/assets/f5bf87e0-1dcc-487c-a0fc-2e607ad01406" />
+<img width="2559" height="1481" alt="image" src="https://github.com/user-attachments/assets/c1bfce15-6743-4c7f-a2c4-0206fa70d5ce" />
+---
+<img width="642" height="1396" alt="image" src="https://github.com/user-attachments/assets/0c72301c-c936-4522-8c47-92aafd9191ea" />
+
+
+
 ## Installation
 
 ### Requirements
