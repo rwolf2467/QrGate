@@ -8,10 +8,12 @@ use PayPalCheckoutSdk\Core\SandboxEnvironment;
 use PayPalCheckoutSdk\Orders\OrdersCreateRequest;
 use PayPalCheckoutSdk\Orders\OrdersCaptureRequest;
 
-session_start();
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
+        // CSRF validation
+        if (!isset($_POST['csrf_token']) || !validateCsrfToken($_POST['csrf_token'])) {
+            throw new Exception('Invalid request. Please try again.');
+        }
 
         $requiredFields = ['first_name', 'last_name', 'tickets', 'valid_date', 'payment_method', 'price'];
         foreach ($requiredFields as $field) {

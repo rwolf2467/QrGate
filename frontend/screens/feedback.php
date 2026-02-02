@@ -55,10 +55,9 @@ $qrcode_url = "https://quickchart.io/qr?text=" . urlencode($vote_url) . "&ecLeve
             background-color: #0a0a0a;
             color: var(--text-color);
             line-height: 1.6;
-            background-color: #0a0a0a;
-            background-size: 31px 31px;
             background-size: 31px 31px;
             background-image: repeating-linear-gradient(45deg, #222222 0, #222222 3.1px, #0a0a0a 0, #0a0a0a 50%);
+            background-repeat: repeat;
             background-attachment: fixed;
         }
 

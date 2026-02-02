@@ -52,9 +52,10 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
             background-color: #0a0a0a;
             color: var(--text-color);
             line-height: 1.6;
-            background: radial-gradient(circle, transparent 20%, #0a0b0b 20%, #0a0b0b 80%, transparent 80%, transparent) 0% 0% / 64px 64px, radial-gradient(circle, transparent 20%, #0a0b0b 20%, #0a0b0b 80%, transparent 80%, transparent) 32px 32px / 64px 64px, linear-gradient(#2e2e2e 2px, transparent 2px) 0px -1px / 32px 32px, linear-gradient(90deg, #2e2e2e 2px, #0a0b0b 2px) -1px 0px / 32px 32px #0a0b0b;
-            background-size: 64px 64px, 64px 64px, 32px 32px, 32px 32px;
-            background-color: #0a0b0b;
+            background-size: 31px 31px;
+            background-image: repeating-linear-gradient(45deg, #222222 0, #222222 3.1px, #0a0a0a 0, #0a0a0a 50%);
+            background-repeat: repeat;
+            background-attachment: fixed;
         }
 
         .container {
@@ -81,12 +82,13 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
 
         #gradientbar {
             height: 20px;
-            background: #2e2e2e;
-            border-radius: ; 0 0 10px 10px;
+            background: linear-gradient(90deg, #9333ea, #ec4899, #eab308);
             width: 100%;
             position: fixed;
             top: 0;
             z-index: 2;
+            background-size: 200% 200%;
+            animation: gradient 10s ease infinite;
         }
 
         @keyframes gradient {

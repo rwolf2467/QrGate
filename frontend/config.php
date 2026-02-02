@@ -11,6 +11,27 @@ define('PAYPAL_CLIENT_SECRET', 'YourPayPalClientSecretHere');
 define('PAYPAL_MODE', 'sandbox');
 define('ORIGIN_URL', 'https://qrgate.avocloud.net/');
 
+// Admin passwords - CHANGE THESE IN PRODUCTION!
+define('ADMIN_PASSWORD', 'admin123');
+define('TICKETFLOW_PASSWORD', 'ticketflow123');
+define('HANDHELD_PASSWORD', 'handheld123');
+
+// CSRF Protection
+function generateCsrfToken() {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function validateCsrfToken($token) {
+    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+}
+
+function csrfField() {
+    return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars(generateCsrfToken()) . '">';
+}
+
 
 function makeApiCall($endpoint, $method = 'GET', $data = null)
 {

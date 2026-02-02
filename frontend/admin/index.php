@@ -901,7 +901,6 @@ if ($shows) {
 
     <script>
         const API_BASE_URL = '<?php echo API_BASE_URL; ?>';
-        const API_KEY = '<?php echo API_KEY; ?>';
 
         function showToast(message, type = 'success', duration = 3000) {
             const category = type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'success';
@@ -1051,9 +1050,7 @@ if ($shows) {
 
         async function loadStatsData() {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/stats`, {
-                    headers: { 'Authorization': API_KEY }
-                });
+                const response = await fetch('admin-api-proxy.php?endpoint=stats');
                 const data = await response.json();
 
                 if (data.status === 'success' && data.data) {
@@ -1196,9 +1193,9 @@ if ($shows) {
                 ;
             } ?>
 
-            fetch(`${API_BASE_URL}/api/show/edit`, {
+            fetch('admin-api-proxy.php?endpoint=show_edit', {
                 method: 'POST',
-                headers: { 'Authorization': API_KEY, 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             })
                 .then(r => r.json())
@@ -1372,11 +1369,8 @@ if ($shows) {
             formData.append('type', type);
 
             try {
-                const response = await fetch(`${API_BASE_URL}/api/image/upload`, {
+                const response = await fetch('api.php?action=upload_image', {
                     method: 'POST',
-                    headers: {
-                        'Authorization': API_KEY,
-                    },
                     body: formData,
                 });
 

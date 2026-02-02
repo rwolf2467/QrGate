@@ -1,184 +1,209 @@
-# QrGate - Modernes Ticketing- und Zugangskontrollsystem
+# QrGate - Modern Ticketing and Access Control System
 
 ![QrGate Logo](backend/data/assets/logo.png)
 
-**QrGate** ist ein modernes, webbasiertes Ticketing- und Zugangskontrollsystem für Veranstaltungen. Es ermöglicht den Verkauf, die Verwaltung und die Validierung von Tickets über QR-Codes und bietet eine benutzerfreundliche Oberfläche für Administratoren und Besucher.
+**QrGate** is a modern, web-based ticketing and access control system for events. It enables ticket sales, management, and QR code-based validation, providing a user-friendly interface for administrators and visitors.
 
-## 📋 Übersicht
+## Overview
 
-QrGate ist ein umfassendes System für die Verwaltung von Veranstaltungen, Tickets und Zugangskontrollen. Es besteht aus einem **Backend** (Python/Quart) und einem **Frontend** (PHP/HTML/CSS/JavaScript) und bietet eine moderne, responsive Benutzeroberfläche.
+QrGate is a comprehensive system for managing events, tickets, and access control. It consists of a **Backend** (Python/Quart) and a **Frontend** (PHP) with a modern, responsive user interface.
 
-### Hauptfunktionen
+### Key Features
 
-- **Ticketverkauf**: Einfacher Kauf von Tickets über eine Weboberfläche mit Unterstützung für verschiedene Zahlungsmethoden (Barzahlung, PayPal).
-- **Zugangskontrolle**: QR-Code-basierte Validierung von Tickets für den Einlass.
-- **Verwaltungsoberfläche**: Umfassendes Admin-Panel für die Verwaltung von Veranstaltungen, Tickets und Statistiken.
-- **Mehrsprachigkeit**: Unterstützung für mehrere Sprachen (Deutsch, Englisch).
-- **Responsive Design**: Optimiert für Desktop und mobile Geräte.
+- **Ticket Sales**: Simple ticket purchase via web interface with support for various payment methods (cash, PayPal)
+- **Access Control**: QR code-based ticket validation for entry
+- **Admin Panel**: Comprehensive dashboard for managing events, tickets, and statistics
+- **Multi-language Support**: German and English
+- **Responsive Design**: Optimized for desktop and mobile devices
 
-## 🚀 Installation
+### Security Features
 
-### Voraussetzungen
+- **CSRF Protection**: All forms are protected against Cross-Site Request Forgery attacks
+- **XSS Prevention**: User inputs are sanitized using `htmlspecialchars()`
+- **Session-based Authentication**: Secure login system with PHP sessions
+- **API Key Authentication**: Backend communication secured with authorization headers
+- **Role-based Access Control**: Three user levels (Admin, Ticketflow, Handheld)
 
-- **Backend**:
-  - Python 3.7+
-  - Quart (Web-Framework)
-  - Weitere Abhängigkeiten (siehe `backend/main.py`)
+## Installation
 
-- **Frontend**:
-  - PHP 7.4+
-  - Webserver (Apache, Nginx)
-  - Composer (für PHP-Abhängigkeiten)
+### Requirements
 
-### Schritte
+**Backend:**
 
-1. **Repository klonen:**
+- Python 3.7 or higher
+- pip (Python package manager)
+
+**Frontend:**
+
+- Web server with PHP support (e.g., Apache with mod_php, Nginx with PHP-FPM, XAMPP, or LAMP)
+- PHP 7.4 or higher
+- Composer (PHP package manager)
+- PHP cURL extension enabled
+
+### Installation Steps
+
+1. **Clone the repository:**
+
    ```bash
    git clone https://github.com/rwolf2467/QrGate.git
    cd QrGate
    ```
+2. **Set up the Backend:**
 
-2. **Backend einrichten:**
    ```bash
    cd backend
-   pip install -r requirements.txt
+   pip install quart quart-cors reportlab qrcode reds_simple_logger
    ```
+3. **Set up the Frontend:**
 
-3. **Frontend einrichten:**
    ```bash
    cd frontend
    composer install
    ```
+4. **Configure the application:**
 
-4. **Konfiguration anpassen:**
-   - **Backend**: `backend/config/conf.py`
-     ```python
-     class API:
-         port = 1654
-         backend_url = "https://qrgate-backend.example.com/"
-     
-     class Auth:
-         auth_key = "YourGeneratedKeyHere"
-     
-     class Mail:
-         smtp_server = "smtp.example.com"
-         smtp_port = 587
-         smtp_user = "user@example.com"
-         smtp_password = "smtp_password"
-     ```
+   **Backend** (`backend/config/conf.py`):
+
+   ```python
+   class API:
+       port = 1654
+       backend_url = "https://your-backend-url.com/"
    
-   - **Frontend**: `frontend/config.php`
-     ```php
-     <?php
-     define('API_BASE_URL', 'http://localhost:1654');
-     define('API_KEY', 'YourGeneratedKeyHere');
-     define('PAYPAL_CLIENT_ID', 'YourPayPalClientID');
-     ```
+   class Auth:
+       auth_key = "YourSecureRandomKeyHere"
+   
+   class Mail:
+       smtp_server = "smtp.example.com"
+       smtp_port = 587
+       smtp_user = "user@example.com"
+       smtp_password = "your_smtp_password"
+   ```
 
-5. **Webserver einrichten:**
-   - Richten Sie den Webserver so ein, dass er auf das `frontend`-Verzeichnis zeigt.
-   - Stellen Sie sicher, dass die `backend/data`-Verzeichnisse beschreibbar sind.
+   **Frontend** (`frontend/config.php`):
 
-6. **Anwendung starten:**
-   - **Backend**:
-     ```bash
-     cd backend
-     python main.py
-     ```
-   - **Frontend**: Öffnen Sie die Anwendung in Ihrem Browser.
+   ```php
+   define('API_BASE_URL', 'https://your-backend-url.com');
+   define('API_KEY', 'YourSecureRandomKeyHere');  // Must match backend auth_key
+   define('PAYPAL_CLIENT_ID', 'YourPayPalClientID');
+   define('PAYPAL_CLIENT_SECRET', 'YourPayPalClientSecret');
+   
+   // Change these passwords in production!
+   define('ADMIN_PASSWORD', 'your_secure_admin_password');
+   define('TICKETFLOW_PASSWORD', 'your_secure_ticketflow_password');
+   define('HANDHELD_PASSWORD', 'your_secure_handheld_password');
+   ```
+5. **Configure the web server:**
+   - Point your web server's document root to the `frontend/` directory
+   - Ensure the `backend/data/` and `backend/codes/` directories are writable
+6. **Start the application:**
 
-## 📂 Projektstruktur
+   **Backend:**
+
+   ```bash
+   cd backend
+   python main.py
+   ```
+
+   **Frontend:** Access via your web server (e.g., `https://your-domain.com`)
+
+## Project Structure
 
 ```
 QrGate/
 ├── backend/
-│   ├── assets/              # Backend-Module (Ticketverwaltung, Validierung, etc.)
-│   ├── config/              # Konfigurationsdateien
-│   ├── data/                # Daten (Shows, Tickets)
-│   └── main.py              # Haupt-Backend-Server
+│   ├── assets/              # Backend modules (ticket management, validation, etc.)
+│   ├── config/              # Configuration files
+│   ├── codes/               # Generated PDFs and QR codes
+│   ├── data/                # Data storage (shows, tickets, stats)
+│   └── main.py              # Main backend server
 │
 ├── frontend/
-│   ├── admin/               # Admin-Oberfläche
-│   ├── help/                # Hilfeseiten
-│   ├── screens/             # Bildschirme für Veranstaltungen
-│   ├── vote/                # Abstimmungssystem
-│   ├── buy.php              # Ticketkauf
-│   ├── config.php           # Frontend-Konfiguration
-│   └── index.php            # Hauptseite
+│   ├── admin/               # Admin interface
+│   │   ├── ticketflow/      # Box office interface
+│   │   └── handheld/        # Mobile QR scanner
+│   ├── help/                # Help pages
+│   ├── screens/             # Event display screens
+│   ├── buy.php              # Ticket purchase
+│   ├── config.php           # Frontend configuration
+│   └── index.php            # Main page
 │
-└── README.md               # Diese Datei
+└── README.md
 ```
 
-## 🎟️ Verwendung
+## Usage
 
-### Ticketverkauf
+### Ticket Sales
 
-1. Navigieren Sie zur Startseite der Anwendung.
-2. Wählen Sie die gewünschte Veranstaltung aus.
-3. Füllen Sie das Formular aus und bestätigen Sie den Kauf.
-4. Ihr Ticket wird per E-Mail zugesendet oder kann heruntergeladen werden.
+1. Navigate to the application homepage
+2. Select the desired event
+3. Fill out the form and confirm the purchase
+4. Your ticket will be sent via email or can be downloaded
 
-### Zugangskontrolle
+### Access Control
 
-1. Melden Sie sich als Administrator an.
-2. Navigieren Sie zur Zugangskontrolloberfläche.
-3. Scannen Sie den QR-Code des Tickets.
-4. Das System validiert das Ticket und zeigt den Status an.
+1. Log in with handheld credentials
+2. Navigate to the access control interface
+3. Scan the ticket's QR code
+4. The system validates the ticket and displays the status
 
-### Verwaltung
+### Administration
 
-1. Melden Sie sich als Administrator an.
-2. Navigieren Sie zum Admin-Panel.
-3. Verwalten Sie Veranstaltungen, Tickets und Benutzer.
-4. Sehen Sie sich Statistiken und Berichte an.
+1. Log in as administrator
+2. Navigate to the admin panel
+3. Manage events, tickets, and view statistics
 
-## 📊 Admin-Panel
+## Admin Panel
 
-Das Admin-Panel bietet folgende Funktionen:
+The admin panel provides the following features:
 
-- **Dashboard**: Übersicht über verkaufte Tickets, verfügbare Tickets und geschätzte Einnahmen.
-- **Statistiken**: Grafische Darstellung der Ticketverkäufe und Verfügbarkeit.
-- **Veranstaltungen verwalten**: Bearbeiten von Veranstaltungseinstellungen.
-- **Termine verwalten**: Hinzufügen, Bearbeiten und Löschen von Veranstaltungsterminen.
+- **Dashboard**: Overview of sold tickets, available tickets, and estimated revenue
+- **Statistics**: Graphical display of ticket sales and availability
+- **Event Management**: Edit event settings
+- **Date Management**: Add, edit, and delete event dates
+- **Image Management**: Upload and manage event images
 
-## 🔧 Konfiguration
+## API Routes
 
-### Backend-Konfiguration
+| Route                | Method | Purpose             |
+|----------------------|--------|---------------------|
+| `/api/ticket/create`   | POST   | Create ticket       |
+| `/api/ticket/validate` | POST   | QR validation       |
+| `/api/show/get`        | GET    | Event info          |
+| `/api/show/edit`       | POST   | Update event        |
+| `/api/stats`           | GET    | Sales statistics    |
+| `/codes/pdf?tid=X`     | GET    | Download ticket PDF |
 
-Die Backend-Konfiguration erfolgt in `backend/config/conf.py`. Hier können Sie Einstellungen wie den API-Port, die Backend-URL und die Authentifizierungsschlüssel anpassen.
+## Configuration
 
-### Frontend-Konfiguration
+### Backend Configuration
 
-Die Frontend-Konfiguration erfolgt in `frontend/config.php`. Hier können Sie Einstellungen wie die API-Basis-URL, den Authentifizierungsschlüssel und die PayPal-Client-ID anpassen.
+Backend configuration is done in `backend/config/conf.py`. Here you can adjust settings such as the API port, backend URL, authentication keys, and SMTP settings for email delivery.
 
-## 🛠️ Entwicklung
+### Frontend Configuration
 
-### Beitrag leisten
+Frontend configuration is done in `frontend/config.php`. Here you can adjust settings such as the API base URL, authentication key, PayPal credentials, and user passwords.
 
-Wir freuen uns über Beiträge zur Weiterentwicklung von QrGate. Bitte beachten Sie die folgenden Schritte:
+**Important:** The `API_KEY` in the frontend must match the `auth_key` in the backend configuration.
 
-1. Forken Sie das Repository.
-2. Erstellen Sie einen neuen Branch für Ihre Änderungen.
-3. Implementieren Sie Ihre Änderungen und testen Sie sie gründlich.
-4. Erstellen Sie einen Pull Request mit einer Beschreibung Ihrer Änderungen.
+## Contributing
 
+We welcome contributions to QrGate. Please follow these steps:
 
+1. Fork the repository
+2. Create a new branch for your changes
+3. Implement and test your changes
+4. Create a pull request with a description of your changes
 
-## 📜 Lizenz
+## License
 
-QrGate wird unter der MIT-Lizenz veröffentlicht. Weitere Informationen finden Sie in der Datei [LICENSE](backend/LICENSE).
+QrGate is released under the MIT License. See the [LICENSE](backend/LICENSE) file for more information.
 
-## 🤝 Support
+## Support
 
-Für Fragen oder Unterstützung können Sie ein Issue im Repository erstellen oder uns unter der folgenden E-Mail-Adresse kontaktieren:
+For questions or support, you can create an issue in the repository or contact us at:
 
-- **E-Mail**: support@avocloud.net
-
-## 📸 Screenshots
-
-![Admin Panel](screenshots/admin_panel.png)
-![Ticket Flow](screenshots/ticket_flow.png)
-![QR Validation](screenshots/qr_validation.png)
+- **Email**: support@avocloud.net
 
 ---
 
+Developed by [avocloud.net](https://avocloud.net)

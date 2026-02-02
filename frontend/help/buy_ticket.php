@@ -1,8 +1,6 @@
 <?php
-
-
 require_once '../config.php';
-$shows = getShows();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['language'])) {
     $_SESSION['language'] = $_POST['language'];
     header("Location: " . $_SERVER['PHP_SELF']);
@@ -13,64 +11,169 @@ $languages = [
     'en' => [
         'flag' => '🇬🇧',
         'name' => 'English',
-        'how_to_buy_ticket' => 'How can I buy a ticket?',
-        'instructions' => 'INSTRUCTIONS',
-        'book_ticket' => 'How do I book a ticket?',
-        'buy_ticket' => 'How do I buy a ticket?',
-        'subtitle' => 'Here you can find all the information you need to buy a ticket for the event.',
-        '1_subtitle' => 'Here you can find all the information you need to book a ticket for the event.',
-        '2_subtitle' => 'Here you can find all the information you need to buy a ticket for the event.',
-        'step1' => 'Choose your date and click on "Buy Tickets".',
-        'step2' => 'Fill in the fields with the correct information.',
-        'step3' => 'For payment method, select "Cash payment".',
-        'step4' => 'Now click on "Book Tickets".',
-        'step5' => 'You will receive your ticket via email. But you have to pay it at the day of the event at the entrance.',
-        'step6' => 'Choose your desired date and click on "Buy Tickets".',
-        'step7' => 'Fill in all fields with the correct information.',
-        'step8' => 'For payment method, select "Online payment".',
-        'step9' => 'Now you have to choose whether you want to pay with a debit/credit card or with PayPal. Click on the appropriate option.',
-        'step10' => 'Fill in all the required fields correctly.',
-        'step11' => 'Now click on "Pay". And wait for the payment to be completed.',
-        'step12' => 'You will receive your ticket via email.',
+        'page_title' => 'Help - How to buy tickets',
+        'hero_title' => 'How to buy tickets',
+        'hero_subtitle' => 'Step-by-step guide to purchasing your event tickets',
+        'back_to_shop' => 'Back to ticket shop',
+        'method_cash' => 'Cash Payment',
+        'method_cash_subtitle' => 'Reserve now, pay at the venue',
+        'method_online' => 'Online Payment',
+        'method_online_subtitle' => 'Pay immediately with PayPal or card',
+        'step' => 'Step',
+        'cash_steps' => [
+            [
+                'title' => 'Select your event date',
+                'description' => 'On the main page, you will see all available event dates displayed as cards. Each card shows the date, time, ticket price, and how many tickets are still available. Click the "Buy Tickets" button on your desired date.'
+            ],
+            [
+                'title' => 'Enter your personal information',
+                'description' => 'A booking form will open. Fill in your first name, last name, and email address. Make sure your email is correct - this is where your ticket will be sent! If you are buying multiple tickets, you will also need to enter the names for each additional person.'
+            ],
+            [
+                'title' => 'Choose "Cash Payment"',
+                'description' => 'You will see two payment options: "Cash payment" and "Online payment". Click on the "Cash payment" button (with the coins icon). This means you will pay for your ticket at the venue on the day of the event.'
+            ],
+            [
+                'title' => 'Confirm your booking',
+                'description' => 'After selecting cash payment, a "Book Tickets" button will appear. Click it to complete your reservation. Your ticket is now reserved but not yet paid.'
+            ],
+            [
+                'title' => 'Check your email',
+                'description' => 'You will receive an email with your ticket attached as a PDF file. The ticket contains a QR code that will be scanned at the entrance. Important: Bring this ticket (printed or on your phone) and the payment amount to the event.'
+            ],
+            [
+                'title' => 'Pay at the venue',
+                'description' => 'On the day of the event, go to the entrance and show your ticket. Pay the ticket price in cash, and your ticket will be validated for entry. Keep your ticket ready for scanning!'
+            ]
+        ],
+        'online_steps' => [
+            [
+                'title' => 'Select your event date',
+                'description' => 'On the main page, browse through the available event dates. Each card displays the date, time, ticket price, and remaining availability. Find your preferred date and click "Buy Tickets".'
+            ],
+            [
+                'title' => 'Enter your personal information',
+                'description' => 'Fill out the booking form with your first name, last name, and email address. Double-check your email address - your ticket will be sent there immediately after payment. For multiple tickets, enter the name of each attendee.'
+            ],
+            [
+                'title' => 'Choose "Online Payment"',
+                'description' => 'Click on the "Online payment" button (with the credit card icon). This allows you to pay immediately using PayPal or a debit/credit card.'
+            ],
+            [
+                'title' => 'Select your payment method',
+                'description' => 'PayPal payment buttons will appear. You can either log in to your PayPal account to pay, or click "Debit or Credit Card" to pay without a PayPal account. Both options are secure.'
+            ],
+            [
+                'title' => 'Complete your payment',
+                'description' => 'Follow the PayPal instructions to complete your payment. Enter your card details or PayPal credentials. Once the payment is confirmed, your ticket is automatically marked as paid.'
+            ],
+            [
+                'title' => 'Receive your ticket',
+                'description' => 'Immediately after successful payment, you will receive an email with your ticket as a PDF attachment. The ticket contains a QR code. Simply show this QR code (on your phone or printed) at the entrance - no additional payment needed!'
+            ]
+        ],
+        'tips_title' => 'Tips',
+        'tips' => [
+            'Save your ticket email or download the PDF to make sure you have it on the event day.',
+            'If you do not receive your ticket email within a few minutes, check your spam folder.',
+            'You can show the ticket on your phone screen - no need to print it.',
+            'Each ticket has a unique QR code and can only be used once for entry.'
+        ],
+        'questions_title' => 'Still have questions?',
+        'questions_text' => 'If you need further assistance, please contact the event organizer directly.'
     ],
     'de' => [
         'flag' => '🇩🇪',
         'name' => 'Deutsch',
-        'how_to_buy_ticket' => 'Wie kann ich ein Ticket kaufen?',
-        'instructions' => 'ANLEITUNGEN',
-        'book_ticket' => 'Wie buche ich ein Ticket?',
-        'buy_ticket' => 'Wie kaufe ich ein Ticket?',
-        'subtitle' => 'Hier findest du alle Informationen, die du benötigst, um ein Ticket für die Veranstaltung zu kaufen.',
-        '1_subtitle' => 'Hier findest du alle Informationen, die du benötigst, um ein Ticket für die Veranstaltung zu buchen.',
-        '2_subtitle' => 'Hier findest du alle Informationen, die du benötigst, um ein Ticket für die Veranstaltung zu kaufen.',
-        'step1' => 'Wählen dein Datum aus und klick auf "Tickets kaufen".',
-        'step2' => 'Füll die Felder mit den richtigen Informationen aus.',
-        'step3' => 'Wähle als Zahlungsmethode "Barzahlung".',
-        'step4' => 'Klick jetzt auf "Tickets buchen".',
-        'step5' => 'Du erhälst dein Ticket per E-Mail. Aber du musst es am Tag der Veranstaltung am Eingang bezahlen.',
-        'step6' => 'Wähle dein gewünschtes Datum aus und klick auf "Tickets kaufen".',
-        'step7' => 'Füll die Felder mit den richtigen Informationen aus.',
-        'step8' => 'Wähle als Zahlungsmethode "Online-Zahlung".',
-        'step9' => 'Jetzt musst du wählen, ob du mit einer Debit-/Kreditkarte oder mit PayPal bezahlen möchtest. Klick auf die entsprechende Option.',
-        'step10' => 'Füll die Felder mit den richtigen Informationen aus.',
-        'step11' => 'Klick jetzt auf "Zahlen". Und warte bis die Zahlung abgeschlossen ist.',
-        'step12' => 'Du erhälst dein Ticket per E-Mail.',
+        'page_title' => 'Hilfe - So kaufst du Tickets',
+        'hero_title' => 'So kaufst du Tickets',
+        'hero_subtitle' => 'Schritt-für-Schritt Anleitung zum Ticketkauf',
+        'back_to_shop' => 'Zurück zum Ticketshop',
+        'method_cash' => 'Barzahlung',
+        'method_cash_subtitle' => 'Jetzt reservieren, vor Ort bezahlen',
+        'method_online' => 'Online-Zahlung',
+        'method_online_subtitle' => 'Sofort mit PayPal oder Karte bezahlen',
+        'step' => 'Schritt',
+        'cash_steps' => [
+            [
+                'title' => 'Wähle dein Veranstaltungsdatum',
+                'description' => 'Auf der Hauptseite siehst du alle verfügbaren Veranstaltungstermine als Karten. Jede Karte zeigt das Datum, die Uhrzeit, den Ticketpreis und wie viele Tickets noch verfügbar sind. Klicke auf "Tickets kaufen" bei deinem gewünschten Termin.'
+            ],
+            [
+                'title' => 'Gib deine persönlichen Daten ein',
+                'description' => 'Ein Buchungsformular öffnet sich. Trage deinen Vornamen, Nachnamen und deine E-Mail-Adresse ein. Achte darauf, dass deine E-Mail korrekt ist - dorthin wird dein Ticket gesendet! Wenn du mehrere Tickets kaufst, musst du auch die Namen der weiteren Personen angeben.'
+            ],
+            [
+                'title' => 'Wähle "Barzahlung"',
+                'description' => 'Du siehst zwei Zahlungsoptionen: "Barzahlung" und "Online-Zahlung". Klicke auf den "Barzahlung"-Button (mit dem Münzen-Symbol). Das bedeutet, dass du dein Ticket am Veranstaltungstag vor Ort bezahlst.'
+            ],
+            [
+                'title' => 'Bestätige deine Buchung',
+                'description' => 'Nach der Auswahl von Barzahlung erscheint ein "Tickets buchen"-Button. Klicke darauf, um deine Reservierung abzuschließen. Dein Ticket ist jetzt reserviert, aber noch nicht bezahlt.'
+            ],
+            [
+                'title' => 'Prüfe deine E-Mails',
+                'description' => 'Du erhältst eine E-Mail mit deinem Ticket als PDF-Anhang. Das Ticket enthält einen QR-Code, der am Eingang gescannt wird. Wichtig: Bringe dieses Ticket (ausgedruckt oder auf dem Handy) und den Geldbetrag zur Veranstaltung mit.'
+            ],
+            [
+                'title' => 'Bezahle vor Ort',
+                'description' => 'Am Veranstaltungstag gehst du zum Eingang und zeigst dein Ticket. Bezahle den Ticketpreis in bar, und dein Ticket wird für den Einlass freigeschaltet. Halte dein Ticket zum Scannen bereit!'
+            ]
+        ],
+        'online_steps' => [
+            [
+                'title' => 'Wähle dein Veranstaltungsdatum',
+                'description' => 'Auf der Hauptseite kannst du durch die verfügbaren Termine blättern. Jede Karte zeigt Datum, Uhrzeit, Ticketpreis und verbleibende Verfügbarkeit. Finde deinen Wunschtermin und klicke auf "Tickets kaufen".'
+            ],
+            [
+                'title' => 'Gib deine persönlichen Daten ein',
+                'description' => 'Fülle das Buchungsformular mit deinem Vornamen, Nachnamen und deiner E-Mail-Adresse aus. Überprüfe deine E-Mail-Adresse - dein Ticket wird sofort nach der Zahlung dorthin geschickt. Bei mehreren Tickets gib den Namen jedes Teilnehmers ein.'
+            ],
+            [
+                'title' => 'Wähle "Online-Zahlung"',
+                'description' => 'Klicke auf den "Online-Zahlung"-Button (mit dem Kreditkarten-Symbol). Damit kannst du sofort mit PayPal oder einer Debit-/Kreditkarte bezahlen.'
+            ],
+            [
+                'title' => 'Wähle deine Zahlungsmethode',
+                'description' => 'PayPal-Zahlungsbuttons erscheinen. Du kannst dich entweder in dein PayPal-Konto einloggen, oder auf "Debit- oder Kreditkarte" klicken, um ohne PayPal-Konto zu bezahlen. Beide Optionen sind sicher.'
+            ],
+            [
+                'title' => 'Schließe die Zahlung ab',
+                'description' => 'Folge den PayPal-Anweisungen, um deine Zahlung abzuschließen. Gib deine Kartendaten oder PayPal-Zugangsdaten ein. Sobald die Zahlung bestätigt ist, wird dein Ticket automatisch als bezahlt markiert.'
+            ],
+            [
+                'title' => 'Erhalte dein Ticket',
+                'description' => 'Direkt nach erfolgreicher Zahlung erhältst du eine E-Mail mit deinem Ticket als PDF-Anhang. Das Ticket enthält einen QR-Code. Zeige diesen QR-Code einfach am Eingang (auf dem Handy oder ausgedruckt) - keine weitere Zahlung nötig!'
+            ]
+        ],
+        'tips_title' => 'Tipps',
+        'tips' => [
+            'Speichere deine Ticket-E-Mail oder lade das PDF herunter, damit du es am Veranstaltungstag sicher hast.',
+            'Wenn du deine Ticket-E-Mail nicht innerhalb weniger Minuten erhältst, prüfe deinen Spam-Ordner.',
+            'Du kannst das Ticket auf deinem Handybildschirm zeigen - Ausdrucken ist nicht nötig.',
+            'Jedes Ticket hat einen einzigartigen QR-Code und kann nur einmal für den Einlass verwendet werden.'
+        ],
+        'questions_title' => 'Noch Fragen?',
+        'questions_text' => 'Wenn du weitere Hilfe benötigst, kontaktiere bitte direkt den Veranstalter.'
     ],
 ];
-$current_language = $_SESSION['language'] ?? 'en';
-?>
 
+$current_language = $_SESSION['language'] ?? 'en';
+$lang = $languages[$current_language];
+$shows = getShows();
+?>
 <!DOCTYPE html>
-<html lang="<?php echo $current_language; ?>">
+<html lang="<?php echo $current_language; ?>" class="dark">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title><?php echo htmlspecialchars($shows['orga_name']); ?> - Help</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo htmlspecialchars($shows['orga_name']); ?> - <?php echo $lang['page_title']; ?></title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.10-beta.2/dist/basecoat.cdn.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.10-beta.2/dist/js/all.min.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400..700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="<?php echo API_BASE_URL; ?>/api/image/get/logo.png?t=<?php echo time(); ?>">
-    <link
-        rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css" />
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap');
 
@@ -80,265 +183,41 @@ $current_language = $_SESSION['language'] ?? 'en';
             --text-color: #ffffff;
             --text-secondary: #888888;
             --border-color: #222222;
-            --font-family: "Quicksand", sans-serif;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
         }
 
         body {
             font-family: 'Quicksand', sans-serif;
-            background-color: var(--background-color);
-            color: var(--text-color);
-            line-height: 1.6;
-            background-color: #0a0a0a;
-            background-size: 31px 31px;
-            background-image: repeating-linear-gradient(45deg, #222222 0, #222222 3.1px, #0a0a0a 0, #0a0a0a 50%);
-            background-attachment: fixed;
         }
 
-        #gradientbar {
-            height: 14px;
-            background: linear-gradient(90deg, #9333ea, #ec4899, #eab308);
-            width: 100%;
-            position: fixed;
-            top: 0;
-            z-index: 1000;
-            background-size: 200% 200%;
-            animation: gradient 10s ease infinite;
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in;
         }
 
-        @keyframes gradient {
-            0% {
-                background-position: 0% 50%;
-            }
-
-            50% {
-                background-position: 100% 50%;
-            }
-
-            100% {
-                background-position: 0% 50%;
-            }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.5s ease-out;
         }
 
-        #particles-js {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
-            z-index: 1;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            position: relative;
-            z-index: 2;
-        }
-
-        .hero {
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding-top: 14px;
-        }
-
-        .hero-content {
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeInUp 1s ease forwards;
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
             to {
                 opacity: 1;
                 transform: translateY(0);
             }
         }
 
-        .scroll-indicator {
-            position: absolute;
-            top: 90vh;
-            left: 50%;
-            transform: translateX(-50%);
-            animation: bounce 2s infinite;
-            cursor: pointer;
-            opacity: 0.7;
-        }
-
-        @keyframes bounce {
-
-            0%,
-            20%,
-            50%,
-            80%,
-            100% {
-                transform: translateY(0) translateX(-50%);
-            }
-
-            40% {
-                transform: translateY(-20px) translateX(-50%);
-            }
-
-            60% {
-                transform: translateY(-10px) translateX(-50%);
-            }
-        }
-
-        h1 {
-            font-size: 3.5rem;
-            margin-bottom: 24px;
-            line-height: 1.2;
-        }
-
-        .highlight-purple {
+        .show-name {
+            padding: 2px 8px;
             background-color: rgba(147, 51, 234, 0.2);
-            padding: 2px 8px;
+            border-radius: 4px;
             color: rgb(216, 180, 254);
-            border-radius: 4px;
-            transition: all 0.3s ease;
-        }
-
-        .highlight-purple:hover {
-            background-color: rgba(147, 51, 234, 0.4);
-            transform: translateY(-2px);
-            cursor: pointer;
-        }
-
-        .highlight-purple:active {
-            background-color: rgba(147, 51, 234, 0.6);
-        }
-
-        .highlight-yellow {
-            background-color: rgba(234, 179, 8, 0.2);
-            padding: 2px 8px;
-            color: rgb(253, 224, 71);
-            border-radius: 4px;
-            transition: all 0.3s ease;
-        }
-
-        .highlight-yellow:hover {
-            background-color: rgba(234, 179, 8, 0.4);
-            transform: translateY(-2px);
-        }
-
-        .subtitle {
-            color: var(--text-secondary);
-            font-size: 1.3rem;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .section-header {
-            margin-bottom: 32px;
-        }
-
-        .section-title {
-            font-size: 1.1rem;
-            color: #888;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 16px;
-        }
-
-        .section-title::before {
-            content: '';
-            width: 96px;
-            height: 2px;
-            background: linear-gradient(90deg, #9333ea, #ec4899);
-            display: block;
-        }
-
-        .projects-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 24px;
-            margin-top: 32px;
-        }
-
-        .project-card {
-            background: var(--card-background);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 24px;
-            transition: transform 0.2s ease-in-out;
-        }
-
-        .project-card:hover {
-            transform: translateY(-4px);
-        }
-
-        .project-title {
-            font-size: 1.25rem;
-            margin-bottom: 12px;
-        }
-
-        .project-description {
-            color: var(--text-secondary);
-            margin-bottom: 16px;
-            font-size: 0.95rem;
-        }
-
-        .project-list {
-            color: var(--text-secondary);
-            margin-bottom: 16px;
-            margin-left: 2%;
-            font-size: 0.95rem;
-        }
-
-        .project-list-2 {
-            color: var(--text-secondary);
-            margin-bottom: 16px;
-            margin-left: 4%;
-            font-size: 0.95rem;
-        }
-
-        .tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-
-        .tag {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 4px 12px;
-            border-radius: 16px;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-
-        .project-date {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-
-        main {
-            position: relative;
-            z-index: 2;
-        }
-
-        .project-profile {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 16px;
-        }
-
-        .project-profile-picture {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
         }
 
         .language-selector {
@@ -357,102 +236,158 @@ $current_language = $_SESSION['language'] ?? 'en';
             cursor: pointer;
         }
 
-        .language-selector .flag {
-            margin-right: 5px;
+        .step-number {
+            width: 28px;
+            height: 28px;
+            min-width: 28px;
+            border-radius: 50%;
+            background-color: var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.85rem;
+            color: var(--text-color);
         }
     </style>
 </head>
 
 <body>
-    <div id="gradientbar"></div>
     <div class="language-selector">
         <form method="post" id="langForm">
-            <select name="language" onchange="changeLanguage(this.value)">
-                <?php foreach ($languages as $code => $lang): ?>
-                    <option value="<?php echo $code; ?>"
-                        <?php echo ($current_language == $code) ? 'selected' : ''; ?>>
-                        <span class="flag"><?php echo $lang['flag']; ?></span>
-                        <?php echo $lang['name']; ?>
+            <select name="language" onchange="this.form.submit()">
+                <?php foreach ($languages as $code => $l): ?>
+                    <option value="<?php echo $code; ?>" <?php echo ($current_language == $code) ? 'selected' : ''; ?>>
+                        <span class="flag"><?php echo $l['flag']; ?></span>
+                        <?php echo $l['name']; ?>
                     </option>
                 <?php endforeach; ?>
             </select>
         </form>
     </div>
-    <div class="container">
 
-        <section class="hero">
-            <div class="hero-content">
-                <h1>
-                    <?php echo $languages[$current_language]['how_to_buy_ticket']; ?>
+    <div class="animate-fade-in">
+        <!-- Hero Section -->
+        <div class="relative w-full min-h-[40vh] max-h-[50vh] flex items-center justify-center mb-8 px-4">
+            <div id="bannerBackground" class="absolute inset-0 bg-cover bg-center"></div>
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const timestamp = new Date().getTime();
+                    document.getElementById('bannerBackground').style.backgroundImage = `url('<?php echo API_BASE_URL; ?>/api/image/get/banner.png?t=${timestamp}')`;
+                });
+            </script>
+            <div class="absolute inset-0 bg-black/60"></div>
+            <div class="relative z-10 text-center max-w-2xl w-full py-6 md:py-10 px-3 rounded-xl">
+                <h1 class="text-3xl md:text-5xl font-bold mb-4 animate-fade-in-up">
+                    <?php echo $lang['hero_title']; ?>
                 </h1>
-                <p class="subtitle">
-                    <?php echo $languages[$current_language]['subtitle']; ?>
+                <p class="text-lg md:text-xl mb-6 animate-fade-in-up">
+                    <?php echo $lang['hero_subtitle']; ?>
                 </p>
+                <a href="../index.php" class="btn-primary inline-flex items-center gap-2 animate-fade-in-up">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m12 19-7-7 7-7"/>
+                        <path d="M19 12H5"/>
+                    </svg>
+                    <?php echo $lang['back_to_shop']; ?>
+                </a>
             </div>
-            <div class="scroll-indicator">
-                <i class="fas fa-chevron-down"></i>
+        </div>
+
+        <div class="container mx-auto px-4 py-8 max-w-4xl">
+            <!-- Cash Payment Section -->
+            <div class="card mb-6">
+                <div class="p-6">
+                    <header class="mb-6">
+                        <div class="flex items-center gap-3 mb-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="8" cy="8" r="6"/>
+                                <path d="M18.09 10.37A6 6 0 1 1 10.34 18"/>
+                                <path d="M7 6h1v4"/>
+                                <path d="m16.71 13.88.7.71-2.82 2.82"/>
+                            </svg>
+                            <div>
+                                <h2 class="text-xl font-bold"><?php echo $lang['method_cash']; ?></h2>
+                                <p class="text-sm text-gray-400"><?php echo $lang['method_cash_subtitle']; ?></p>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div class="space-y-4">
+                        <?php foreach ($lang['cash_steps'] as $index => $step): ?>
+                        <div class="flex gap-3">
+                            <div class="step-number"><?php echo $index + 1; ?></div>
+                            <div class="flex-1">
+                                <h3 class="font-semibold mb-1"><?php echo $step['title']; ?></h3>
+                                <p class="text-gray-400 text-sm leading-relaxed"><?php echo $step['description']; ?></p>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
             </div>
-        </section>
 
-        <main>
-            <section style="margin-top: 15vh" id="about">
-                <div class="section-header">
-                    <div class="section-title"><?php echo $languages[$current_language]['instructions']; ?></div>
-                </div>
+            <!-- Online Payment Section -->
+            <div class="card mb-6">
+                <div class="p-6">
+                    <header class="mb-6">
+                        <div class="flex items-center gap-3 mb-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect width="20" height="14" x="2" y="5" rx="2"/>
+                                <line x1="2" x2="22" y1="10" y2="10"/>
+                            </svg>
+                            <div>
+                                <h2 class="text-xl font-bold"><?php echo $lang['method_online']; ?></h2>
+                                <p class="text-sm text-gray-400"><?php echo $lang['method_online_subtitle']; ?></p>
+                            </div>
+                        </div>
+                    </header>
 
-                <div class="project-card">
-                    <div class="project-profile">
+                    <div class="space-y-4">
+                        <?php foreach ($lang['online_steps'] as $index => $step): ?>
+                        <div class="flex gap-3">
+                            <div class="step-number"><?php echo $index + 1; ?></div>
+                            <div class="flex-1">
+                                <h3 class="font-semibold mb-1"><?php echo $step['title']; ?></h3>
+                                <p class="text-gray-400 text-sm leading-relaxed"><?php echo $step['description']; ?></p>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
                     </div>
-                    <h3 class="project-title">
-                        <i class="fa-solid fa-money-bill"></i> <span><?php echo $languages[$current_language]['book_ticket']; ?></span>
-                    </h3>
-                    <p class="project-description">
-                        <span><?php echo $languages[$current_language]['1_subtitle']; ?></span>
-                        <br>
-                    <ol class="project-list">
-                        <li><?php echo $languages[$current_language]['step1']; ?></li>
-                        <li><?php echo $languages[$current_language]['step2']; ?></li>
-                        <li><?php echo $languages[$current_language]['step3']; ?></li>
-                        <li><?php echo $languages[$current_language]['step4']; ?></li>
-                        <li><?php echo $languages[$current_language]['step5']; ?></li>
-                    </ol>
-                    </p>
                 </div>
-                <br>
-                <br>
-                <div class="project-card">
-                    <div class="project-profile">
-                    </div>
-                    <h3 class="project-title">
-                        <i class="fa-solid fa-credit-card"></i> <span><?php echo $languages[$current_language]['buy_ticket']; ?></span>
-                    </h3>
-                    <p class="project-description">
-                        <span><?php echo $languages[$current_language]['2_subtitle']; ?></span>
-                        <br>
-                    <ol class="project-list">
-                        <li><?php echo $languages[$current_language]['step6']; ?></li>
-                        <li><?php echo $languages[$current_language]['step7']; ?></li>
-                        <li><?php echo $languages[$current_language]['step8']; ?></li>
-                        <li><?php echo $languages[$current_language]['step9']; ?></li>
-                        <li><?php echo $languages[$current_language]['step10']; ?></li>
-                        <li><?php echo $languages[$current_language]['step11']; ?></li>
-                        <li><?php echo $languages[$current_language]['step12']; ?></li>
-                    </ol>
-                    </p>
+            </div>
+
+            <!-- Tips Section -->
+            <div class="card mb-6">
+                <div class="p-6">
+                    <header class="mb-4">
+                        <div class="flex items-center gap-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 16v-4"/>
+                                <path d="M12 8h.01"/>
+                            </svg>
+                            <h2 class="text-xl font-bold"><?php echo $lang['tips_title']; ?></h2>
+                        </div>
+                    </header>
+                    <ul class="space-y-2">
+                        <?php foreach ($lang['tips'] as $tip): ?>
+                        <li class="flex items-start gap-2">
+                            <span class="text-gray-400 mt-1">•</span>
+                            <span class="text-gray-400 text-sm"><?php echo $tip; ?></span>
+                        </li>
+                        <?php endforeach; ?>
+                    </ul>
                 </div>
-            </section>
+            </div>
 
-
-            <footer style="margin-top: 15vh"></footer>
-        </main>
+            <!-- Questions Section -->
+            <div class="text-center py-6">
+                <h3 class="text-lg font-bold mb-2"><?php echo $lang['questions_title']; ?></h3>
+                <p class="text-gray-400 text-sm"><?php echo $lang['questions_text']; ?></p>
+            </div>
+        </div>
     </div>
 </body>
-<script>
-    function changeLanguage(language) {
-        document.getElementById('langForm').submit();
-    }
-</script>
-
-</html>
 
 </html>

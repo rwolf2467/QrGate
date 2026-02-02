@@ -1,39 +1,38 @@
 <?php
-session_start();
-
-
-
-$admin_password = 'admin123'; 
-$ticketflow_password = 'ticketflow123'; 
-$handheld_password = 'handheld123'; 
+require_once '../config.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $password = $_POST['password'] ?? '';
-    $redirect = $_GET['redirect'] ?? 'admin';
+    // CSRF validation
+    if (!isset($_POST['csrf_token']) || !validateCsrfToken($_POST['csrf_token'])) {
+        $error = 'Invalid request. Please try again.';
+    } else {
+        $password = $_POST['password'] ?? '';
+        $redirect = $_GET['redirect'] ?? 'admin';
 
-    if ($password === $admin_password) {
-        $_SESSION['admin'] = true;
+        if ($password === ADMIN_PASSWORD) {
+            $_SESSION['admin'] = true;
 
-        if ($redirect === 'ticketflow') {
+            if ($redirect === 'ticketflow') {
+                $_SESSION['ticketflow_access'] = true;
+                header('Location: ticketflow/index.php');
+            } elseif ($redirect === 'handheld') {
+                $_SESSION['handheld_access'] = true;
+                header('Location: handheld/index.php');
+            } else {
+                header('Location: index.php');
+            }
+            exit;
+        } elseif ($password === TICKETFLOW_PASSWORD) {
             $_SESSION['ticketflow_access'] = true;
             header('Location: ticketflow/index.php');
-        } elseif ($redirect === 'handheld') {
+            exit;
+        } elseif ($password === HANDHELD_PASSWORD) {
             $_SESSION['handheld_access'] = true;
             header('Location: handheld/index.php');
+            exit;
         } else {
-            header('Location: index.php');
+            $error = 'Invalid password';
         }
-        exit;
-    } elseif ($password === $ticketflow_password) {
-        $_SESSION['ticketflow_access'] = true;
-        header('Location: ticketflow/index.php');
-        exit;
-    } elseif ($password === $handheld_password) {
-        $_SESSION['handheld_access'] = true;
-        header('Location: handheld/index.php');
-        exit;
-    } else {
-        $error = 'Invalid password';
     }
 }
 
@@ -193,6 +192,7 @@ if (isset($_SESSION['admin']) && $_SESSION['admin'] === true) {
         <?php endif; ?>
 
         <form method="POST" class="form">
+            <?php echo csrfField(); ?>
             <div class="field">
                 <label for="password">Password</label>
                 <input 
@@ -218,8 +218,7 @@ if (isset($_SESSION['admin']) && $_SESSION['admin'] === true) {
         </form>
 
         <div class="footer-hint">
-            <p>Default password: <strong>admin123</strong></p>
-            <p class="mt-1">Remember to change this in production!</p>
+            <p>Powered by QrGate</p>
         </div>
     </div>
 </body>

@@ -20,8 +20,8 @@ $languages = [
         "name" => "English",
         "title_description" =>
             "This is the Cash register web-app for " .
-            $shows["orga_name"] .
-            " .",
+            htmlspecialchars($shows["orga_name"] ?? '') .
+            ".",
         "section_title_edit" => "EDIT TICKET",
         "title_edit" => "Edit a existing ticket.",
         "title_create" => "Create a new ticket.",
@@ -51,8 +51,8 @@ $languages = [
         "name" => "Deutsch",
         "title_description" =>
             "Dies ist die Cash register web-app für " .
-            $shows["orga_name"] .
-            " .",
+            htmlspecialchars($shows["orga_name"] ?? '') .
+            ".",
         "section_title_edit" => "TICKET EDITIEREN",
         "title_edit" => "Einen vorhandenes Ticket bearbeiten.",
         "title_create" => "Ein neues Ticket erstellen.",

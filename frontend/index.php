@@ -76,9 +76,7 @@ $shows = getShows();
 
             async function loadPaymentMethods() {
                 try {
-                    const response = await fetch('<?php echo API_BASE_URL; ?>/api/show/get/payment_methods', {
-                        headers: { 'Authorization': '<?php echo API_KEY; ?>' }
-                    });
+                    const response = await fetch('api-proxy.php?endpoint=payment_methods');
                     const data = await response.json();
                     if (data.status === 'success') {
                         availablePaymentMethods = data.payment_methods;
@@ -189,6 +187,18 @@ $shows = getShows();
 
         .language-selector .flag {
             margin-right: 5px;
+        }
+
+        @media (max-width: 640px) {
+            .language-selector {
+                bottom: 10px;
+                right: 10px;
+            }
+
+            .language-selector select {
+                padding: 6px;
+                font-size: 0.875rem;
+            }
         }
 
         .help-question {
@@ -311,18 +321,19 @@ $shows = getShows();
                 </h2>
                 <p class="animate-pulse demo-dialog-edit-profile-description text-sm mt-1">
                     <i class="fa-solid fa-circle-question"></i>
-                    <a href="/help/buy_ticket.php" class="text-gray-200" target="_blank">
+                    <a href="./help/buy_ticket.php" class="text-gray-200" target="_blank">
                         <span><?php echo $languages[$current_language]['need_help']; ?></span>
                     </a>
                 </p>
             </header>
             <section>
                 <form class="form grid gap-4" id="bookingForm" action="buy.php" method="POST">
+                    <?php echo csrfField(); ?>
                     <input type="hidden" name="valid_date" id="validDate">
                     <input type="hidden" name="price" id="ticketPrice">
                     <div class="grid gap-3">
                         <label for="first_name"><?php echo $languages[$current_language]['first_name']; ?></label>
-                        <input type="text" name="first_name" placeholder="Max" required>
+                        <input type="text" name="first_name" placeholder="Max" required autofocus>
                         <input type="hidden" name="payment_method" id="paymentMethodInput" value="">
                     </div>
                     <div class="grid gap-3">
@@ -331,7 +342,7 @@ $shows = getShows();
                     </div>
                     <div class="grid gap-3">
                         <label for="email"><?php echo $languages[$current_language]['email']; ?></label>
-                        <input type="text" name="email" placeholder="max@mustermann.de" required>
+                        <input type="email" name="email" placeholder="max@mustermann.de" required>
                     </div>
                     <div class="grid gap-3">
                         <label for="tickets"><?php echo $languages[$current_language]['number_of_tickets']; ?></label>
@@ -349,6 +360,7 @@ $shows = getShows();
                         <div id="paymentMethodSelection" class="flex gap-3" style="min-height: 56px;">
                             <button type="button" id="cashButton" class="btn-secondary flex-1 payment-method-btn"
                                 onclick="selectCashPayment()" data-method="cash"
+                                aria-label="<?php echo $languages[$current_language]['cash_payment']; ?>"
                                 style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 56px; padding: 0 1rem;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -362,6 +374,7 @@ $shows = getShows();
                             </button>
                             <button type="button" id="paypalButton" class="btn-primary flex-1 payment-method-btn"
                                 onclick="selectPayPalPayment()" data-method="online"
+                                aria-label="<?php echo $languages[$current_language]['online_payment']; ?>"
                                 style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 56px; padding: 0 1rem;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -372,7 +385,8 @@ $shows = getShows();
                                 <span><?php echo $languages[$current_language]['online_payment']; ?></span>
                             </button>
                         </div>
-                        <button type="submit" id="cashConfirmButton" class="btn-primary w-full mt-2 hidden">
+                        <button type="submit" id="cashConfirmButton" class="btn-primary w-full mt-2 hidden"
+                            aria-label="<?php echo $languages[$current_language]['book_tickets']; ?>">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                 stroke-linejoin="round" class="lucide lucide-badge-check-icon lucide-badge-check">
@@ -562,10 +576,11 @@ $shows = getShows();
                                             <?php if ($show['tickets_available'] > 0): ?>
                                                 <button
                                                     onclick="showBookingForm('<?php echo $id; ?>', '<?php echo $show['date']; ?>', '<?php echo $show['price']; ?>', '<?php echo $show['tickets_available']; ?>')"
-                                                    class="btn-primary">
+                                                    class="btn-primary"
+                                                    aria-label="<?php echo $languages[$current_language]['buy_tickets']; ?> - <?php $date = new DateTime($show['date']); echo $date->format('d.m.Y'); ?>">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                                                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                                        stroke-linejoin="round" class="lucide lucide-tickets-icon lucide-tickets">
+                                                        stroke-linejoin="round" class="lucide lucide-tickets-icon lucide-tickets" aria-hidden="true">
                                                         <path d="m3.173 8.18 11-5a2 2 0 0 1 2.647.993L18.56 8" />
                                                         <path d="M6 10V8" />
                                                         <path d="M6 14v1" />
@@ -575,7 +590,8 @@ $shows = getShows();
                                                     <?php echo $languages[$current_language]['buy_tickets']; ?>
                                                 </button>
                                             <?php elseif ($show['tickets_available'] == 0): ?>
-                                                <button disabled class="btn-destructive cursor-not-allowed">
+                                                <button disabled class="btn-destructive cursor-not-allowed"
+                                                    aria-label="<?php echo $languages[$current_language]['sold_out']; ?>">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                                                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                                         stroke-linejoin="round" class="lucide lucide-ticket-x-icon lucide-ticket-x">
@@ -595,56 +611,31 @@ $shows = getShows();
                 </div>
             </div>
             <script>
+                let lastFocusedElement = null;
 
                 document.addEventListener('DOMContentLoaded', initPaymentMethods);
 
-                function showBookingForm(showId, date, price, ticketsAvailable) {
+                function closeModal() {
                     const modal = document.getElementById('bookingModal');
-                    document.getElementById('bookingModal').showModal();
+                    document.getElementById('bookingModal').close();
+                    modal.classList.remove('modal-exit');
+                    document.body.style.overflow = 'auto';
 
-
+                    // Reset form state
                     document.getElementById('paymentMethodSelection').classList.remove('hidden');
                     document.getElementById('cashConfirmButton').classList.add('hidden');
                     document.getElementById('paypalButtons').classList.add('hidden');
-
+                    document.getElementById('paymentMethodInput').value = '';
 
                     if (window.paypalButtons && typeof window.paypalButtons.close === 'function') {
                         window.paypalButtons.close();
                     }
-
                     document.getElementById('paypalButtons').innerHTML = '';
 
-                    document.getElementById('validDate').value = date;
-                    document.getElementById('ticketPrice').value = price;
-                    document.body.style.overflow = 'hidden';
-
-                    const ticketsSelect = document.querySelector('select[name="tickets"]');
-                    ticketsSelect.innerHTML = '';
-
-                    console.log("Available tickets:", ticketsAvailable);
-
-                    const maxtickets = Math.min(ticketsAvailable, 10);
-                    console.log("Max tickets to display:", maxtickets);
-
-                    for (let i = 1; i <= maxtickets; i++) {
-                        const option = document.createElement('option');
-                        option.value = i;
-                        option.textContent = `${i} Ticket${i > 1 ? 's' : ''}`;
-                        ticketsSelect.appendChild(option);
+                    // Restore focus to the element that opened the modal
+                    if (lastFocusedElement) {
+                        lastFocusedElement.focus();
                     }
-
-                    initPayPalButton(price);
-                    initTicketSelector();
-                }
-                function closeModal() {
-                    const modal = document.getElementById('bookingModal');
-                    document.getElementById('bookingModal').close()
-                    setTimeout(() => {
-                        modal.classList.add('hidden');
-                        modal.classList.remove('modal-exit');
-                        document.body.style.overflow = 'auto';
-                        location.reload();
-                    }, 300);
                 }
 
 
@@ -987,6 +978,7 @@ $shows = getShows();
 
 
                 function showBookingForm(showId, date, price, ticketsAvailable) {
+                    lastFocusedElement = document.activeElement;
                     const modal = document.getElementById('bookingModal');
                     document.getElementById('bookingModal').showModal();
 
