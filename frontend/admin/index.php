@@ -46,6 +46,7 @@ if ($shows) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.10-beta.2/dist/basecoat.cdn.min.css">
     <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.10-beta.2/dist/js/all.min.js" defer></script>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400..700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="icon" type="image/png" href="<?php echo API_BASE_URL; ?>/api/image/get/logo.png?t=<?php echo time(); ?>">
 
     <style>
@@ -316,6 +317,15 @@ if ($shows) {
                                         <circle cx="9" cy="9" r="2" />
                                         <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
                                     </svg> Image Management</span></a>
+                        </li>
+                        <li><a href="#" data-section="screens"><span><svg xmlns="http://www.w3.org/2000/svg" width="24"
+                                        height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        class="lucide lucide-monitor-icon lucide-monitor">
+                                        <rect width="20" height="14" x="2" y="3" rx="2" />
+                                        <line x1="8" x2="16" y1="21" y2="21" />
+                                        <line x1="12" x2="12" y1="17" y2="21" />
+                                    </svg> Screen Software</span></a>
                         </li>
 
                     </ul>
@@ -664,7 +674,7 @@ if ($shows) {
 
                         <div class="grid gap-2">
                             <label class="label" for="paymentMethods">Payment Methods</label>
-                            <select id="paymentMethods" class="input">
+                            <select id="paymentMethods" class="select">
                                 <option value="both" <?php echo ($shows && isset($shows['payment_methods']) && $shows['payment_methods'] === 'both') ? 'selected' : ''; ?>>
                                     Both (Cash & Online)</option>
                                 <option value="cash" <?php echo ($shows && isset($shows['payment_methods']) && $shows['payment_methods'] === 'cash') ? 'selected' : ''; ?>>
@@ -893,6 +903,78 @@ if ($shows) {
 
                     </div>
                 </section>
+            </div>
+        </div>
+
+        <!-- Screen Software -->
+        <div id="screens" style="display: none">
+            <h1><svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="lucide lucide-monitor-icon lucide-monitor" style="margin-right: 10px;">
+                    <rect width="20" height="14" x="2" y="3" rx="2" />
+                    <line x1="8" x2="16" y1="21" y2="21" />
+                    <line x1="12" x2="12" y1="17" y2="21" />
+                </svg> Screen Software</h1>
+
+            <!-- Global Settings -->
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <header>
+                    <h2><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-settings-icon">
+                            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg> Global Settings</h2>
+                </header>
+                <section>
+                    <div class="grid gap-2" style="max-width: 300px;">
+                        <label class="label" for="screenLanguageMode">Language Mode</label>
+                        <select id="screenLanguageMode" class="select">
+                            <option value="both">Both (EN + DE)</option>
+                            <option value="en">English only</option>
+                            <option value="de">German only</option>
+                        </select>
+                        <p class="text-muted-foreground text-sm">Controls which languages are shown on the welcome screen.</p>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Slide Editor Layout -->
+            <div style="display: grid; grid-template-columns: 240px 1fr; gap: 1.5rem; align-items: start;">
+                <!-- Slide Strip (Left) -->
+                <div class="card" style="position: sticky; top: 1.5rem;">
+                    <header>
+                        <h2>Slides</h2>
+                    </header>
+                    <section>
+                        <div id="slideStrip" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                            <button class="btn-outline" style="flex: 1;" onclick="addSlide()">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+                                Add
+                            </button>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Slide Editor (Right) -->
+                <div id="slideEditor" class="card">
+                    <header>
+                        <h2 id="slideEditorTitle">Select a slide</h2>
+                    </header>
+                    <section id="slideEditorContent">
+                        <p class="text-muted-foreground">Click on a slide in the left panel to edit it.</p>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Save Button -->
+            <div style="margin-top: 1.5rem;">
+                <button class="btn-outline" onclick="saveScreens()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-save-icon"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg>
+                    Save All Changes
+                </button>
             </div>
         </div>
     </main>
@@ -1402,9 +1484,355 @@ if ($shows) {
             setTimeout(loadCurrentImages, 200);
         });
 
-        
+
         if (window.location.hash === '#images' || localStorage.getItem('currentAdminSection') === 'images') {
             setTimeout(loadCurrentImages, 200);
+        }
+
+        // ===== Screen Software =====
+        const iconOptions = [
+            { value: 'fa-smile', label: 'Smile' },
+            { value: 'fa-heart', label: 'Heart' },
+            { value: 'fa-ticket', label: 'Ticket' },
+            { value: 'fa-theater-masks', label: 'Theater Masks' },
+            { value: 'fa-users', label: 'Users' },
+            { value: 'fa-star', label: 'Star' },
+            { value: 'fa-music', label: 'Music' },
+            { value: 'fa-hand-peace', label: 'Peace' },
+            { value: 'fa-fire', label: 'Fire' },
+            { value: 'fa-gift', label: 'Gift' },
+            { value: 'fa-microphone', label: 'Microphone' },
+            { value: 'fa-camera', label: 'Camera' },
+        ];
+
+        const animationOptions = [
+            { value: 'none', label: 'None' },
+            { value: 'bounce 1s infinite', label: 'Bounce' },
+            { value: 'pulse 1s infinite', label: 'Pulse' },
+            { value: 'wobble 1s infinite', label: 'Wobble' },
+            { value: 'laugh 0.5s infinite', label: 'Laugh' },
+        ];
+
+        const defaultSlides = [
+            {
+                id: 'slide_1',
+                icon: 'fa-smile',
+                icon_animation: 'laugh 0.5s infinite',
+                text_en: 'Welcome to\n{orga_name}',
+                text_de: 'Willkommen bei der\n{orga_name}',
+                cast: []
+            },
+            {
+                id: 'slide_2',
+                icon: 'fa-theater-masks',
+                icon_animation: 'bounce 1s infinite',
+                text_en: '{show_title}\n{show_subtitle}',
+                text_de: '{show_title}\n{show_subtitle}',
+                cast: []
+            },
+            {
+                id: 'slide_3',
+                icon: 'fa-heart',
+                icon_animation: 'pulse 1s infinite',
+                text_en: 'We are so happy to see you here!',
+                text_de: 'Wir freuen uns sehr, dich hier zu sehen!',
+                cast: []
+            },
+            {
+                id: 'slide_4',
+                icon: 'fa-ticket',
+                icon_animation: 'wobble 1s infinite',
+                text_en: 'To ensure a quick and smooth check-in,\nplease have your ticket ready before entering.',
+                text_de: 'Um einen zügigen Check-in zu ermöglichen,\nhalte bitte dein Ticket vor dem Einlass bereit.',
+                cast: []
+            }
+        ];
+
+        let screensData = {
+            language_mode: 'both',
+            slides: []
+        };
+        let selectedSlideIndex = -1;
+
+        function loadScreensData() {
+            const showData = <?php echo json_encode($shows ?? []); ?>;
+            if (showData && showData.screens) {
+                screensData = JSON.parse(JSON.stringify(showData.screens));
+            } else {
+                screensData = {
+                    language_mode: 'both',
+                    slides: JSON.parse(JSON.stringify(defaultSlides))
+                };
+            }
+            document.getElementById('screenLanguageMode').value = screensData.language_mode || 'both';
+            renderSlideStrip();
+            if (screensData.slides.length > 0) {
+                selectSlide(0);
+            }
+        }
+
+        function renderSlideStrip() {
+            const strip = document.getElementById('slideStrip');
+            strip.innerHTML = '';
+            screensData.slides.forEach((slide, index) => {
+                const item = document.createElement('div');
+                item.style.cssText = 'padding: 0.5rem; border: 2px solid ' + (index === selectedSlideIndex ? 'var(--color-primary)' : 'var(--color-border)') + '; border-radius: var(--radius-md); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: border-color 0.2s;';
+                item.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 0;">
+                        <i class="fas ${slide.icon}" style="font-size: 1.2em; width: 24px; text-align: center;"></i>
+                        <span style="font-size: 0.85em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${slide.text_en ? slide.text_en.split('\\n')[0].substring(0, 20) : 'Slide ' + (index + 1)}</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                        <button class="btn-icon-outline" style="padding: 2px; width: 20px; height: 20px;" onclick="event.stopPropagation(); moveSlide(${index}, -1)" ${index === 0 ? 'disabled' : ''}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+                        </button>
+                        <button class="btn-icon-outline" style="padding: 2px; width: 20px; height: 20px;" onclick="event.stopPropagation(); moveSlide(${index}, 1)" ${index === screensData.slides.length - 1 ? 'disabled' : ''}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                        </button>
+                    </div>
+                `;
+                item.addEventListener('click', () => selectSlide(index));
+                strip.appendChild(item);
+            });
+        }
+
+        function selectSlide(index) {
+            selectedSlideIndex = index;
+            renderSlideStrip();
+            renderSlideEditor();
+        }
+
+        function renderSlideEditor() {
+            const container = document.getElementById('slideEditorContent');
+            const title = document.getElementById('slideEditorTitle');
+
+            if (selectedSlideIndex < 0 || selectedSlideIndex >= screensData.slides.length) {
+                title.textContent = 'Select a slide';
+                container.innerHTML = '<p class="text-muted-foreground">Click on a slide in the left panel to edit it.</p>';
+                return;
+            }
+
+            const slide = screensData.slides[selectedSlideIndex];
+            title.textContent = 'Edit Slide ' + (selectedSlideIndex + 1);
+
+            const hasCast = slide.cast && slide.cast.length > 0;
+
+            let iconOptionsHtml = iconOptions.map(o =>
+                `<option value="${o.value}" ${slide.icon === o.value ? 'selected' : ''}>${o.label}</option>`
+            ).join('');
+
+            let animOptionsHtml = animationOptions.map(o =>
+                `<option value="${o.value}" ${slide.icon_animation === o.value ? 'selected' : ''}>${o.label}</option>`
+            ).join('');
+
+            let castHtml = '';
+            if (hasCast) {
+                castHtml = slide.cast.map((member, i) => `
+                    <div style="display: flex; gap: 0.5rem; align-items: center; padding: 0.5rem; border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+                        <div style="width: 48px; height: 48px; border-radius: 50%; overflow: hidden; background: var(--color-surface-1); flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+                            ${member.image ? `<img src="${API_BASE_URL}/api/show/cast/image/${member.image}" style="width: 100%; height: 100%; object-fit: cover;">` : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'}
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 0.25rem; flex: 1;">
+                            <input type="text" class="input" value="${member.name || ''}" placeholder="Name" onchange="updateCastField(${i}, 'name', this.value)">
+                            <input type="text" class="input" value="${member.role || ''}" placeholder="Role (optional)" onchange="updateCastField(${i}, 'role', this.value)">
+                        </div>
+                        <button class="btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.8em;" onclick="document.getElementById('castFileInput_${i}').click()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                            Image
+                        </button>
+                        <input type="file" id="castFileInput_${i}" style="display: none;" accept="image/*" onchange="uploadCastMemberImage(${i}, this)">
+                        <button class="btn-icon-destructive" style="padding: 4px;" onclick="removeCastMember(${i})">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                        </button>
+                    </div>
+                `).join('');
+            }
+
+            container.innerHTML = `
+                <div class="grid gap-6">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="grid gap-2">
+                            <label class="label">Icon</label>
+                            <select class="select" onchange="updateSlideField('icon', this.value)">
+                                ${iconOptionsHtml}
+                            </select>
+                        </div>
+                        <div class="grid gap-2">
+                            <label class="label">Icon Animation</label>
+                            <select class="select" onchange="updateSlideField('icon_animation', this.value)">
+                                ${animOptionsHtml}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid gap-2">
+                        <label class="label">Text (English)</label>
+                        <textarea class="textarea" rows="3" onchange="updateSlideField('text_en', this.value)" placeholder="Use \\n for line breaks. Placeholders: {orga_name}, {show_title}, {show_subtitle}">${slide.text_en || ''}</textarea>
+                        <p class="text-muted-foreground text-sm">Use {orga_name}, {show_title}, {show_subtitle} as placeholders.</p>
+                    </div>
+
+                    <div class="grid gap-2">
+                        <label class="label">Text (German)</label>
+                        <textarea class="textarea" rows="3" onchange="updateSlideField('text_de', this.value)" placeholder="Use \\n for line breaks. Placeholders: {orga_name}, {show_title}, {show_subtitle}">${slide.text_de || ''}</textarea>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--color-border); padding-top: 1rem;">
+                        <div class="flex items-start gap-3" style="margin-bottom: 1rem;">
+                            <input type="checkbox" class="input" id="castToggle" ${hasCast ? 'checked' : ''} onchange="toggleCast(this.checked)">
+                            <div class="flex flex-col gap-1">
+                                <label class="leading-snug" for="castToggle">Show Cast on this slide</label>
+                                <p class="text-muted-foreground text-sm">Enable to display cast members on this slide.</p>
+                            </div>
+                        </div>
+
+                        <div id="castSection" style="display: ${hasCast ? 'block' : 'none'};">
+                            <div id="castMembers" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                ${castHtml}
+                            </div>
+                            <button class="btn-outline" style="margin-top: 0.75rem;" onclick="addCastMember()">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+                                Add Cast Member
+                            </button>
+                            <p class="text-muted-foreground text-sm" style="margin-top: 0.5rem;">Cast members are automatically split across multiple slides (4 per slide).</p>
+                        </div>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--color-border); padding-top: 1rem;">
+                        <button class="btn-destructive" onclick="deleteSlide(${selectedSlideIndex})">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            Delete Slide
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateSlideField(field, value) {
+            if (selectedSlideIndex < 0) return;
+            screensData.slides[selectedSlideIndex][field] = value;
+        }
+
+        function moveSlide(index, direction) {
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= screensData.slides.length) return;
+            const temp = screensData.slides[index];
+            screensData.slides[index] = screensData.slides[newIndex];
+            screensData.slides[newIndex] = temp;
+            if (selectedSlideIndex === index) selectedSlideIndex = newIndex;
+            else if (selectedSlideIndex === newIndex) selectedSlideIndex = index;
+            renderSlideStrip();
+            renderSlideEditor();
+        }
+
+        function addSlide() {
+            const newId = 'slide_' + Date.now();
+            screensData.slides.push({
+                id: newId,
+                icon: 'fa-star',
+                icon_animation: 'none',
+                text_en: '',
+                text_de: '',
+                cast: []
+            });
+            selectSlide(screensData.slides.length - 1);
+        }
+
+        async function deleteSlide(index) {
+            if (screensData.slides.length <= 1) {
+                showToast('You must have at least one slide.', 'warning');
+                return;
+            }
+            const confirmed = await showConfirmationDialog('Delete this slide? This cannot be undone.');
+            if (!confirmed) return;
+            screensData.slides.splice(index, 1);
+            if (selectedSlideIndex >= screensData.slides.length) {
+                selectedSlideIndex = screensData.slides.length - 1;
+            }
+            renderSlideStrip();
+            renderSlideEditor();
+        }
+
+        function toggleCast(enabled) {
+            if (selectedSlideIndex < 0) return;
+            const slide = screensData.slides[selectedSlideIndex];
+            if (enabled && (!slide.cast || slide.cast.length === 0)) {
+                slide.cast = [{ name: '', image: '' }];
+            } else if (!enabled) {
+                slide.cast = [];
+            }
+            renderSlideEditor();
+        }
+
+        function addCastMember() {
+            if (selectedSlideIndex < 0) return;
+            const slide = screensData.slides[selectedSlideIndex];
+            if (!slide.cast) slide.cast = [];
+            slide.cast.push({ name: '', image: '' });
+            renderSlideEditor();
+        }
+
+        function removeCastMember(castIndex) {
+            if (selectedSlideIndex < 0) return;
+            screensData.slides[selectedSlideIndex].cast.splice(castIndex, 1);
+            renderSlideEditor();
+        }
+
+        function updateCastField(castIndex, field, value) {
+            if (selectedSlideIndex < 0) return;
+            screensData.slides[selectedSlideIndex].cast[castIndex][field] = value;
+        }
+
+        async function uploadCastMemberImage(castIndex, input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('api.php?action=upload_cast_image', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (data.status === 'success' && data.filename) {
+                    screensData.slides[selectedSlideIndex].cast[castIndex].image = data.filename;
+                    renderSlideEditor();
+                    showToast('Cast image uploaded!');
+                } else {
+                    showToast('Error: ' + (data.message || 'Upload failed'), 'error');
+                }
+            } catch (err) {
+                showToast('Network error uploading image', 'error');
+            }
+        }
+
+        async function saveScreens() {
+            screensData.language_mode = document.getElementById('screenLanguageMode').value;
+
+            try {
+                const response = await fetch('api.php?action=save_screens', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ screens: screensData })
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showToast('Screen configuration saved!');
+                } else {
+                    showToast('Error: ' + (data.message || 'Save failed'), 'error');
+                }
+            } catch (err) {
+                showToast('Network error saving screens', 'error');
+            }
+        }
+
+        // Initialize screens when section is shown
+        document.querySelector('aside a[data-section="screens"]').addEventListener('click', () => {
+            setTimeout(loadScreensData, 200);
+        });
+        if (localStorage.getItem('currentAdminSection') === 'screens') {
+            setTimeout(loadScreensData, 200);
         }
     </script>
 </body>

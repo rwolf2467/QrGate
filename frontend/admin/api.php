@@ -42,6 +42,12 @@ switch ($action) {
     case 'get_current_images':
         getCurrentImages();
         break;
+    case 'save_screens':
+        saveScreens();
+        break;
+    case 'upload_cast_image':
+        uploadCastImage();
+        break;
     default:
         http_response_code(400);
         echo json_encode(['status' => 'error', 'message' => 'Invalid action']);
@@ -457,5 +463,106 @@ function deleteDay() {
         $message = $result['message'] ?? 'Failed to delete day';
         error_log('deleteDay error: ' . $message);
         echo json_encode(['status' => 'error', 'message' => $message]);
+    }
+}
+
+function saveScreens() {
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (!$input || !isset($input['screens'])) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Missing screens data']);
+        return;
+    }
+
+    $shows = getShows();
+    if (!$shows) {
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => 'Could not load shows']);
+        return;
+    }
+
+    $shows['screens'] = $input['screens'];
+    $result = updateShow($shows);
+
+    if (isset($result['status']) && $result['status'] === 'success') {
+        echo json_encode(['status' => 'success', 'message' => 'Screens saved successfully']);
+    } else {
+        http_response_code(500);
+        $message = $result['message'] ?? 'Failed to save screens';
+        echo json_encode(['status' => 'error', 'message' => $message]);
+    }
+}
+
+function uploadCastImage() {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        http_response_code(405);
+        echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
+        return;
+    }
+
+    if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'No file uploaded or upload error']);
+        return;
+    }
+
+    $file = $_FILES['file'];
+
+    $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    $detectedType = mime_content_type($file['tmp_name']);
+
+    if (!in_array($detectedType, $allowedTypes)) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Invalid file type: ' . $detectedType]);
+        return;
+    }
+
+    $maxFileSize = 5 * 1024 * 1024;
+    if ($file['size'] > $maxFileSize) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'File size exceeds 5MB limit']);
+        return;
+    }
+
+    try {
+        $ch = curl_init(API_BASE_URL . '/api/show/cast/upload');
+        if ($ch === false) {
+            throw new Exception('Failed to initialize CURL');
+        }
+
+        $headers = [
+            'Authorization: ' . API_KEY,
+        ];
+
+        $postFields = [
+            'file' => new CURLFile($file['tmp_name'], $detectedType, $file['name'])
+        ];
+
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
+
+        $response = curl_exec($ch);
+
+        if ($response === false) {
+            throw new Exception('API call failed: ' . curl_error($ch));
+        }
+
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200) {
+            $errorResponse = json_decode($response, true);
+            $errorMessage = $errorResponse['message'] ?? 'API returned error code: ' . $httpCode;
+            throw new Exception($errorMessage);
+        }
+
+        $result = json_decode($response, true);
+        echo json_encode($result);
+    } catch (Exception $e) {
+        error_log('Cast image upload error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
     }
 }

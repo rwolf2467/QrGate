@@ -53,6 +53,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ticket Scanner</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="./manifest.json">
+    <!-- Safari PWA settings -->
+    <link rel="apple-touch-icon" href="./icon-192x192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="QR Scanner">
+    <!-- Windows PWA settings -->
+    <meta name="msapplication-TileImage" content="./icon-192x192.png">
+    <meta name="msapplication-TileColor" content="#0f172a">
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#0f172a">
+    <!-- Register service worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(function(err) {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+            
+            // Listen for the 'beforeinstallprompt' event to manually trigger installation
+            let deferredPrompt;
+            window.addEventListener('beforeinstallprompt', (e) => {
+                // Prevent the mini-infobar from appearing on mobile
+                e.preventDefault();
+                // Stash the event so it can be triggered later
+                deferredPrompt = e;
+                
+                // Show the install button if we want to manually trigger the installation
+                const installButton = document.createElement('button');
+                installButton.id = 'install-button';
+                installButton.textContent = 'App installieren';
+                installButton.style.position = 'fixed';
+                installButton.style.bottom = '20px';
+                installButton.style.right = '20px';
+                installButton.style.zIndex = '1000';
+                installButton.style.padding = '10px 20px';
+                installButton.style.backgroundColor = '#4CAF50';
+                installButton.style.color = 'white';
+                installButton.style.border = 'none';
+                installButton.style.borderRadius = '5px';
+                installButton.style.cursor = 'pointer';
+                installButton.style.display = 'none'; // Initially hidden
+                
+                document.body.appendChild(installButton);
+                
+                installButton.addEventListener('click', () => {
+                    // Show the install prompt
+                    deferredPrompt.prompt();
+                    // Wait for the user to respond to the prompt
+                    deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            console.log('User accepted the install prompt');
+                        } else {
+                            console.log('User dismissed the install prompt');
+                        }
+                        deferredPrompt = null;
+                        installButton.style.display = 'none';
+                    });
+                });
+            });
+            
+            // Listen for the app installed event
+            window.addEventListener('appinstalled', () => {
+                console.log('PWA was installed');
+                const installButton = document.getElementById('install-button');
+                if (installButton) {
+                    installButton.style.display = 'none';
+                }
+            });
+        }
+    </script>
+    
     <!--<script src="https://unpkg.com/html5-qrcode"></script>-->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
@@ -151,6 +230,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h1 class="text-2xl font-bold">Handheld - Ticket Scanner</h1>
         </div>
         <div class="flex items-center gap-4">
+            <button id="install-button-header" class="btn btn-secondary" style="display:none; margin-right: 10px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="lucide lucide-download">
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7" />
+                    <path d="M12 2v12" />
+                    <path d="m8 10 4 4 4-4" />
+                </svg>
+                Install App
+            </button>
             <a href="../logout.php" class="btn-destructive">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -163,6 +252,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </a>
         </div>
     </header>
+
+    <script>
+        // Skript zum Anzeigen des Installationsbuttons im Header
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Verhindere das Standardverhalten
+            e.preventDefault();
+            // Speichere das Event für später
+            deferredPrompt = e;
+            
+            // Zeige den Installationsbutton im Header
+            const installButton = document.getElementById('install-button-header');
+            if (installButton) {
+                installButton.style.display = 'inline-flex'; // Zeige den Button an
+                installButton.onclick = () => {
+                    // Zeige den Installationsdialog
+                    deferredPrompt.prompt();
+                    
+                    // Warte auf die Benutzerantwort
+                    deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            console.log('Benutzer hat die Installation akzeptiert');
+                            installButton.style.display = 'none'; // Verstecke den Button nach erfolgreicher Installation
+                        } else {
+                            console.log('Benutzer hat die Installation abgelehnt');
+                        }
+                        deferredPrompt = null;
+                    });
+                };
+            }
+        });
+        
+        // Event für erfolgreiche Installation
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA wurde installiert');
+            const installButton = document.getElementById('install-button-header');
+            if (installButton) {
+                installButton.style.display = 'none';
+            }
+        });
+    </script>
     <main class="container mx-auto px-6 py-8">
         <div class="card">
             <header>
@@ -183,7 +314,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script>
         let lastScannedCode = '';
         let lastScanTime = 0;
-        const SCAN_COOLDOWN = 1000; 
+        const SCAN_COOLDOWN = 1000;
         const SAME_SCAN_COOLDOWN = 5000;
 
         function formatDateTime(date) {
@@ -258,7 +389,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          </span>
          <div class="ticket-info">
          <h3 class="font-bold mb-2" style="color: white;">Ticket Details:</h3>
-         
+
          <!-- Ticket ID -->
          <div class="flex items-center gap-2 mb-1">
          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ticket">
@@ -267,7 +398,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          </svg>
          <strong>Ticket ID:</strong> ${data.data.tid}
          </div>
-         
+
          <!-- Name -->
          <div class="flex items-center gap-2 mb-1">
          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user">
@@ -275,7 +406,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          </svg>
          <strong>Name:</strong> ${data.data.first_name} ${data.data.last_name}
          </div>
-         
+
          <!-- Type -->
          <div class="flex items-center gap-2 mb-1">
          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-cog">
@@ -283,7 +414,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          </svg>
          <strong>Type:</strong> ${data.data.type}
          </div>
-         
+
          <!-- Paid -->
          <div class="flex items-center gap-2 mb-1">
          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-coins">
@@ -291,7 +422,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          </svg>
          <strong>Paid:</strong> ${data.data.paid ? 'Yes' : 'No'}
          </div>
-         
+
          <!-- Valid Until -->
          <div class="flex items-center gap-2 mb-1">
          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-days">
@@ -299,7 +430,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          </svg>
          <strong>Valid on:</strong> ${data.data.valid_date} | <strong>Today?:</strong> ${getLocalDateYYYYMMDD() === data.data.valid_date ? 'Yes' : 'No'}
          </div>
-         
+
          <!-- Used At -->
          <div class="flex items-center gap-2 mb-1">
          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock-4">
@@ -307,7 +438,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          </svg>
          <strong>Used At:</strong> ${data.data.used_at || 'Not Used Yet'}
          </div>
-         
+
          <!-- Attempts Summary -->
          <div class="attempts-summary mt-3 pt-2 border-t border-gray-700">
          <div class="flex items-center gap-2 mb-1">
@@ -350,7 +481,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          </span>
          <div class="ticket-info">
          <h3 class="font-bold mb-2" style="color: white;">Ticket Details:</h3>
-         
+
          <!-- Ticket ID -->
          <div class="flex items-center gap-2 mb-1">
          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ticket">
@@ -359,7 +490,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          </svg>
          <strong>Ticket ID:</strong> ${data.data.tid}
          </div>
-         
+
          <!-- Name -->
          <div class="flex items-center gap-2 mb-1">
          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user">
@@ -367,7 +498,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          </svg>
          <strong>Name:</strong> ${data.data.first_name} ${data.data.last_name}
          </div>
-         
+
          <!-- Type -->
          <div class="flex items-center gap-2 mb-1">
          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-cog">
@@ -375,7 +506,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          </svg>
          <strong>Type:</strong> ${data.data.type}
          </div>
-         
+
          <!-- Paid -->
          <div class="flex items-center gap-2 mb-1">
          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-coins">
@@ -383,7 +514,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          </svg>
          <strong>Paid:</strong> ${data.data.paid ? 'Yes' : 'No'}
          </div>
-         
+
          <!-- Valid Until -->
          <div class="flex items-center gap-2 mb-1">
          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-days">
@@ -391,7 +522,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          </svg>
          <strong>Valid on:</strong> ${data.data.valid_date} | <strong>Today?:</strong> ${getLocalDateYYYYMMDD() === data.data.valid_date ? 'Yes' : 'No'}
          </div>
-         
+
          <!-- Used At -->
          <div class="flex items-center gap-2 mb-1">
          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock-4">
@@ -399,7 +530,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          </svg>
          <strong>Used At:</strong> ${data.data.used_at || 'Not Used Yet'}
          </div>
-         
+
          <!-- Attempts Summary -->
          <div class="attempts-summary mt-3 pt-2 border-t border-gray-700">
          <div class="flex items-center gap-2 mb-1">
@@ -422,7 +553,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
                         document.getElementById("errorMessage").innerHTML = "Ticket unvalid";
-                        document.getElementById("errorMessage").style.display = "block";
+                        document.getElementById("errorMessage").style.display = "none";
                         document.getElementById("successMessage").style.display = "none";
                     }
 

@@ -19,7 +19,8 @@ $allowedEndpoints = [
     'stats' => '/api/stats',
     'show' => '/api/show/get',
     'show_edit' => '/api/show/edit',
-    'images' => '/api/image/current'
+    'images' => '/api/image/current',
+    'cast_image' => '/api/show/cast/image/'
 ];
 
 $endpoint = $_GET['endpoint'] ?? '';

@@ -8,7 +8,7 @@ import quart_cors
 from quart import Response
 from assets.vaildate import validate_ticket
 from assets.ticket_manager import create_ticket, edit_ticket, view_ticket
-from assets.manage_show import get_show, edit_show
+from assets.manage_show import get_show, edit_show, cast_image_upload
 from assets.data import img_show
 from assets.vote import vote
 from assets.user import user_check
@@ -29,6 +29,7 @@ edit_ticket(app)
 view_ticket(app)
 get_show(app)
 edit_show(app)
+cast_image_upload(app)
 img_show(app)
 vote(app)
 user_check(app)
