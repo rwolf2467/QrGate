@@ -18,7 +18,7 @@ $languages = [
         'method_cash' => 'Cash Payment',
         'method_cash_subtitle' => 'Reserve now, pay at the venue',
         'method_online' => 'Online Payment',
-        'method_online_subtitle' => 'Pay immediately with PayPal or card',
+        'method_online_subtitle' => 'Pay immediately by card, Apple Pay, Google Pay, and more',
         'step' => 'Step',
         'cash_steps' => [
             [
@@ -57,15 +57,15 @@ $languages = [
             ],
             [
                 'title' => 'Choose "Online Payment"',
-                'description' => 'Click on the "Online payment" button (with the credit card icon). This allows you to pay immediately using PayPal or a debit/credit card.'
+                'description' => 'Click on the "Online payment / Card & More" button (with the credit card icon). A secure Stripe payment form will appear.'
             ],
             [
                 'title' => 'Select your payment method',
-                'description' => 'PayPal payment buttons will appear. You can either log in to your PayPal account to pay, or click "Debit or Credit Card" to pay without a PayPal account. Both options are secure.'
+                'description' => 'The Stripe payment form supports card payments (Visa, Mastercard, Amex), Apple Pay, Google Pay, SEPA Direct Debit, and other locally available methods. Choose whichever is most convenient for you.'
             ],
             [
                 'title' => 'Complete your payment',
-                'description' => 'Follow the PayPal instructions to complete your payment. Enter your card details or PayPal credentials. Once the payment is confirmed, your ticket is automatically marked as paid.'
+                'description' => 'Enter your payment details and click "Pay Now". Your payment is processed securely by Stripe. Once confirmed, your ticket is automatically marked as paid.'
             ],
             [
                 'title' => 'Receive your ticket',
@@ -92,7 +92,7 @@ $languages = [
         'method_cash' => 'Barzahlung',
         'method_cash_subtitle' => 'Jetzt reservieren, vor Ort bezahlen',
         'method_online' => 'Online-Zahlung',
-        'method_online_subtitle' => 'Sofort mit PayPal oder Karte bezahlen',
+        'method_online_subtitle' => 'Sofort mit Karte, Apple Pay, Google Pay und mehr bezahlen',
         'step' => 'Schritt',
         'cash_steps' => [
             [
@@ -131,15 +131,15 @@ $languages = [
             ],
             [
                 'title' => 'Wähle "Online-Zahlung"',
-                'description' => 'Klicke auf den "Online-Zahlung"-Button (mit dem Kreditkarten-Symbol). Damit kannst du sofort mit PayPal oder einer Debit-/Kreditkarte bezahlen.'
+                'description' => 'Klicke auf den "Online-Zahlung / Karte & Mehr"-Button (mit dem Kreditkarten-Symbol). Ein sicheres Stripe-Zahlungsformular erscheint.'
             ],
             [
                 'title' => 'Wähle deine Zahlungsmethode',
-                'description' => 'PayPal-Zahlungsbuttons erscheinen. Du kannst dich entweder in dein PayPal-Konto einloggen, oder auf "Debit- oder Kreditkarte" klicken, um ohne PayPal-Konto zu bezahlen. Beide Optionen sind sicher.'
+                'description' => 'Das Stripe-Formular unterstützt Kartenzahlung (Visa, Mastercard, Amex), Apple Pay, Google Pay, SEPA-Lastschrift und weitere verfügbare Methoden. Wähle die für dich bequemste Option.'
             ],
             [
                 'title' => 'Schließe die Zahlung ab',
-                'description' => 'Folge den PayPal-Anweisungen, um deine Zahlung abzuschließen. Gib deine Kartendaten oder PayPal-Zugangsdaten ein. Sobald die Zahlung bestätigt ist, wird dein Ticket automatisch als bezahlt markiert.'
+                'description' => 'Gib deine Zahlungsdaten ein und klicke auf "Jetzt bezahlen". Die Zahlung wird sicher über Stripe abgewickelt. Sobald sie bestätigt ist, wird dein Ticket automatisch als bezahlt markiert.'
             ],
             [
                 'title' => 'Erhalte dein Ticket',

@@ -68,11 +68,10 @@ $shows = getShows();
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400..700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="<?php echo API_BASE_URL; ?>/api/image/get/logo.png?t=<?php echo time(); ?>">
     <?php if ($shows !== null): ?>
-        <script
-            src="https://www.paypal.com/sdk/js?client-id=<?php echo PAYPAL_CLIENT_ID; ?>&currency=EUR&locale=<?php echo $current_language; ?>_AT"></script>
+        <script src="https://js.stripe.com/v3/"></script>
         <script>
             let availablePaymentMethods = 'both';
-
+            let stripePublishableKey = '';
 
             async function loadPaymentMethods() {
                 try {
@@ -80,15 +79,28 @@ $shows = getShows();
                     const data = await response.json();
                     if (data.status === 'success') {
                         availablePaymentMethods = data.payment_methods;
-                        console.log('Payment methods loaded:', availablePaymentMethods);
                     }
                 } catch (error) {
                     console.error('Error loading payment methods:', error);
                 }
             }
 
+            async function loadStripeKey() {
+                try {
+                    const response = await fetch('api-proxy.php?endpoint=stripe_pub_key');
+                    const data = await response.json();
+                    if (data.publishable_key) {
+                        stripePublishableKey = data.publishable_key;
+                    }
+                } catch (error) {
+                    console.error('Error loading Stripe key:', error);
+                }
+            }
 
-            document.addEventListener('DOMContentLoaded', loadPaymentMethods);
+            document.addEventListener('DOMContentLoaded', () => {
+                loadPaymentMethods();
+                loadStripeKey();
+            });
         </script>
     <?php endif; ?>
     <style>
@@ -204,15 +216,6 @@ $shows = getShows();
         .help-question {
             font-size: larger;
             margin-top: -10px;
-        }
-
-        div[class*="paypal-checkout-sandbox"] {
-            z-index: 999999 !important;
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
         }
 
         #bookingModal::backdrop {
@@ -331,6 +334,7 @@ $shows = getShows();
                     <?php echo csrfField(); ?>
                     <input type="hidden" name="valid_date" id="validDate">
                     <input type="hidden" name="price" id="ticketPrice">
+                    <input type="hidden" name="payment_intent_id" id="paymentIntentId">
                     <div class="grid gap-3">
                         <label for="first_name"><?php echo $languages[$current_language]['first_name']; ?></label>
                         <input type="text" name="first_name" placeholder="Max" required autofocus>
@@ -372,8 +376,8 @@ $shows = getShows();
                                 </svg>
                                 <span><?php echo $languages[$current_language]['cash_payment']; ?></span>
                             </button>
-                            <button type="button" id="paypalButton" class="btn-primary flex-1 payment-method-btn"
-                                onclick="selectPayPalPayment()" data-method="online"
+                            <button type="button" id="stripeButton" class="btn-primary flex-1 payment-method-btn"
+                                onclick="selectStripePayment()" data-method="online"
                                 aria-label="<?php echo $languages[$current_language]['online_payment']; ?>"
                                 style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 56px; padding: 0 1rem;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
@@ -382,7 +386,7 @@ $shows = getShows();
                                     <rect width="20" height="14" x="2" y="5" rx="2" />
                                     <line x1="2" x2="22" y1="10" y2="10" />
                                 </svg>
-                                <span><?php echo $languages[$current_language]['online_payment']; ?></span>
+                                <span><?php echo $languages[$current_language]['online_payment']; ?> / Card &amp; More</span>
                             </button>
                         </div>
                         <button type="submit" id="cashConfirmButton" class="btn-primary w-full mt-2 hidden"
@@ -395,7 +399,20 @@ $shows = getShows();
                                 <path d="m9 12 2 2 4-4" />
                             </svg> <?php echo $languages[$current_language]['book_tickets']; ?>
                         </button>
-                        <div id="paypalButtons" class="mt-4 hidden" style="margin: 8px; border-radius: 8px;"></div>
+                        <div id="stripePaymentContainer" class="mt-4 hidden">
+                            <div id="stripe-payment-element"></div>
+                            <div id="stripe-payment-error" class="hidden mt-2 text-red-400 text-sm"></div>
+                            <button type="button" id="stripeConfirmButton" class="btn-primary w-full mt-3 hidden"
+                                onclick="confirmStripePayment()">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" class="lucide lucide-lock-icon lucide-lock">
+                                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                </svg>
+                                Pay Now
+                            </button>
+                        </div>
                     </div>
                 </form>
             </section>
@@ -624,13 +641,13 @@ $shows = getShows();
                     // Reset form state
                     document.getElementById('paymentMethodSelection').classList.remove('hidden');
                     document.getElementById('cashConfirmButton').classList.add('hidden');
-                    document.getElementById('paypalButtons').classList.add('hidden');
+                    document.getElementById('stripePaymentContainer').classList.add('hidden');
+                    document.getElementById('stripeConfirmButton').classList.add('hidden');
+                    document.getElementById('stripe-payment-element').innerHTML = '';
                     document.getElementById('paymentMethodInput').value = '';
-
-                    if (window.paypalButtons && typeof window.paypalButtons.close === 'function') {
-                        window.paypalButtons.close();
-                    }
-                    document.getElementById('paypalButtons').innerHTML = '';
+                    document.getElementById('paymentIntentId').value = '';
+                    window.stripeElements = null;
+                    window.stripeInstance = null;
 
                     // Restore focus to the element that opened the modal
                     if (lastFocusedElement) {
@@ -652,28 +669,20 @@ $shows = getShows();
                     }, 100);
                 }
 
-                function selectPayPalPayment() {
+                async function selectStripePayment() {
+                    if (!validateForm()) return;
 
-
-                    document.getElementById('paymentMethodInput').value = 'paypal';
+                    document.getElementById('paymentMethodInput').value = 'stripe';
                     document.getElementById('paymentMethodSelection').classList.add('hidden');
-                    document.getElementById('paypalButtons').classList.remove('hidden');
-
-                    if (window.paypalButtons && typeof window.paypalButtons.close === 'function') {
-                        window.paypalButtons.close();
-                    }
+                    document.getElementById('stripePaymentContainer').classList.remove('hidden');
 
                     const price = parseFloat(document.getElementById('ticketPrice').value);
-                    createPayPalButtons(price);
+                    const tickets = parseInt(document.querySelector('select[name="tickets"]').value);
 
-                    const bookingModal = document.getElementById('bookingModal');
-                    bookingModal.style.zIndex = '1000';
-
-                    document.body.style.overflow = 'auto';
-
+                    await createStripeElements(price, tickets);
 
                     setTimeout(() => {
-                        document.getElementById('paypalButtons').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        document.getElementById('stripePaymentContainer').scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }, 100);
                 }
 
@@ -762,73 +771,86 @@ $shows = getShows();
                     }, 5000);
                 }
 
-                document.getElementById('paymentMethod').addEventListener('change', function (e) {
-                    const paypalButtons = document.getElementById('paypalButtons');
-                    const submitButton = document.getElementById('submitButton');
+                async function createStripeElements(pricePerTicket, tickets) {
+                    const container = document.getElementById('stripe-payment-element');
+                    const errorDiv = document.getElementById('stripe-payment-error');
+                    const confirmBtn = document.getElementById('stripeConfirmButton');
 
-                    if (e.target.value === 'paypal') {
-                        paypalButtons.classList.remove('hidden');
-                        submitButton.classList.add('hidden');
-                    } else {
-                        paypalButtons.classList.add('hidden');
-                        submitButton.classList.remove('hidden');
+                    container.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">Loading payment form…</p>';
+                    errorDiv.classList.add('hidden');
+                    confirmBtn.classList.add('hidden');
+
+                    if (!stripePublishableKey) {
+                        container.innerHTML = '';
+                        errorDiv.textContent = 'Payment is not configured. Please contact the organizer.';
+                        errorDiv.classList.remove('hidden');
+                        return;
                     }
-                });
 
-                function initPayPalButton(price) {
-                    const ticketsSelect = document.querySelector('select[name="tickets"]');
-                    let currentPrice = parseFloat(price);
+                    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+                    const formData = new FormData();
+                    formData.append('csrf_token', csrfToken);
+                    formData.append('price', pricePerTicket);
+                    formData.append('tickets', tickets);
 
-                    ticketsSelect.addEventListener('change', function () {
-                        currentPrice = parseFloat(price) * parseInt(this.value);
-                        if (window.paypalButtons && typeof window.paypalButtons.close === 'function') {
-                            window.paypalButtons.close();
-                        }
-                        createPayPalButtons(currentPrice);
+                    let intentData;
+                    try {
+                        const resp = await fetch('stripe-intent.php', { method: 'POST', body: formData });
+                        intentData = await resp.json();
+                    } catch (err) {
+                        container.innerHTML = '';
+                        errorDiv.textContent = 'Network error. Please try again.';
+                        errorDiv.classList.remove('hidden');
+                        return;
+                    }
+
+                    if (intentData.error) {
+                        container.innerHTML = '';
+                        errorDiv.textContent = intentData.error;
+                        errorDiv.classList.remove('hidden');
+                        return;
+                    }
+
+                    document.getElementById('paymentIntentId').value = intentData.payment_intent_id;
+
+                    const stripe = Stripe(stripePublishableKey);
+                    window.stripeInstance = stripe;
+
+                    const elements = stripe.elements({ clientSecret: intentData.client_secret });
+                    window.stripeElements = elements;
+
+                    const paymentElement = elements.create('payment');
+                    container.innerHTML = '';
+                    paymentElement.mount('#stripe-payment-element');
+                    paymentElement.on('ready', () => {
+                        confirmBtn.classList.remove('hidden');
                     });
-
-                    createPayPalButtons(currentPrice);
                 }
 
-                function createPayPalButtons(price) {
+                async function confirmStripePayment() {
+                    const confirmBtn = document.getElementById('stripeConfirmButton');
+                    const errorDiv = document.getElementById('stripe-payment-error');
 
-                    if (window.paypalButtons && typeof window.paypalButtons.close === 'function') {
-                        window.paypalButtons.close();
-                    }
+                    if (!window.stripeInstance || !window.stripeElements) return;
 
-                    window.paypalButtons = paypal.Buttons({
-                        style: {
-                            layout: 'vertical',
-                            backgroundColor: '#0a0b0b',
-                            color: 'black',
-                            shape: 'rect',
-                            label: 'pay',
-                        },
-                        createOrder: function (data, actions) {
-                            return actions.order.create({
-                                purchase_units: [{
-                                    amount: {
-                                        currency_code: "EUR",
-                                        value: price.toString()
-                                    }
-                                }]
-                            });
-                        },
-                        onApprove: function (data, actions) {
-                            return actions.order.capture().then(function (details) {
-                                if (details.status === 'COMPLETED') {
-                                    document.getElementById('bookingForm').submit();
-                                } else {
-                                    showError('Zahlung fehlgeschlagen. Bitte versuchen Sie es erneut.');
-                                }
-                            });
-                        },
-                        onError: function (err) {
-                            showError('PayPal error: ' + err.message);
-                        }
+                    confirmBtn.disabled = true;
+                    confirmBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="status" aria-label="Loading" class="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg> Processing…`;
+
+                    const { error } = await window.stripeInstance.confirmPayment({
+                        elements: window.stripeElements,
+                        redirect: 'if_required',
                     });
 
-                    window.paypalButtons.render('#paypalButtons');
+                    if (error) {
+                        errorDiv.textContent = error.message;
+                        errorDiv.classList.remove('hidden');
+                        confirmBtn.disabled = false;
+                        confirmBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-lock-icon lucide-lock"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Pay Now`;
+                        return;
+                    }
+
+                    // Payment succeeded — submit form to buy.php for server-side verification
+                    document.getElementById('bookingForm').submit();
                 }
 
                 document.getElementById('bookingForm').addEventListener('submit', function (e) {
@@ -953,9 +975,8 @@ $shows = getShows();
                         const method = visibleButtons[0].getAttribute('data-method');
                         if (method === 'cash') {
                             selectCashPayment();
-                        } else if (method === 'online') {
-                            selectPayPalPayment();
                         }
+                        // Do not auto-select Stripe — user must explicitly click to trigger payment intent creation
                     }
 
 
@@ -979,18 +1000,17 @@ $shows = getShows();
 
                 function showBookingForm(showId, date, price, ticketsAvailable) {
                     lastFocusedElement = document.activeElement;
-                    const modal = document.getElementById('bookingModal');
                     document.getElementById('bookingModal').showModal();
 
                     document.getElementById('paymentMethodSelection').classList.remove('hidden');
                     document.getElementById('cashConfirmButton').classList.add('hidden');
-                    document.getElementById('paypalButtons').classList.add('hidden');
-
-                    if (window.paypalButtons && typeof window.paypalButtons.close === 'function') {
-                        window.paypalButtons.close();
-                    }
-
-                    document.getElementById('paypalButtons').innerHTML = '';
+                    document.getElementById('stripePaymentContainer').classList.add('hidden');
+                    document.getElementById('stripeConfirmButton').classList.add('hidden');
+                    document.getElementById('stripe-payment-element').innerHTML = '';
+                    document.getElementById('paymentMethodInput').value = '';
+                    document.getElementById('paymentIntentId').value = '';
+                    window.stripeElements = null;
+                    window.stripeInstance = null;
 
                     document.getElementById('validDate').value = date;
                     document.getElementById('ticketPrice').value = price;
@@ -999,10 +1019,7 @@ $shows = getShows();
                     const ticketsSelect = document.querySelector('select[name="tickets"]');
                     ticketsSelect.innerHTML = '';
 
-                    console.log("Available tickets:", ticketsAvailable);
-
                     const maxtickets = Math.min(ticketsAvailable, 10);
-                    console.log("Max tickets to display:", maxtickets);
 
                     for (let i = 1; i <= maxtickets; i++) {
                         const option = document.createElement('option');
@@ -1011,21 +1028,16 @@ $shows = getShows();
                         ticketsSelect.appendChild(option);
                     }
 
-                    initPayPalButton(price);
                     initTicketSelector();
                     updatePaymentMethodButtons();
                 }
 
 
                 async function processPayment(paymentDetails) {
-
                     const available = await checkAvailability(paymentDetails.showId, paymentDetails.ticketCount);
                     if (!available) {
                         throw new Error("Nicht genügend Plätze verfügbar.");
                     }
-
-
-                    initPayPalButton(paymentDetails.price);
                 }
 
                 async function checkAvailability(showId, ticketCount) {

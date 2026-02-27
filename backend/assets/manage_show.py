@@ -40,6 +40,9 @@ def edit_show(app=quart.Quart):
             if "screens" in data:
                 show["screens"] = data["screens"]
 
+            if "stripe" in data:
+                show["stripe"] = data["stripe"]
+
             save_show(show)
             return (
                 quart.jsonify({"status": "success", "message": "Show config saved"}),
@@ -119,6 +122,27 @@ def get_show(app=quart.Quart):
                     return quart.jsonify({"status": "success", "price": price}), 200
 
             return quart.jsonify({"status": "error", "message": "Date not found"}), 404
+        except Exception as e:
+            return quart.jsonify({"status": "error", "message": str(e)}), 500
+
+    @app.route("/api/show/get/stripe_pub_key", methods=["POST", "GET"])
+    async def get_stripe_pub_key():
+        try:
+            show: dict = load_show()
+            stripe_cfg = show.get("stripe", {})
+            pub_key = stripe_cfg.get("publishable_key", "")
+            return quart.jsonify({"publishable_key": pub_key}), 200
+        except Exception as e:
+            return quart.jsonify({"status": "error", "message": str(e)}), 500
+
+    @app.route("/api/show/get/stripe", methods=["POST", "GET"])
+    async def get_stripe_config():
+        if config.Auth.auth_key != (key := quart.request.headers.get("Authorization")):
+            return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401
+        try:
+            show: dict = load_show()
+            stripe_cfg = show.get("stripe", {})
+            return quart.jsonify(stripe_cfg), 200
         except Exception as e:
             return quart.jsonify({"status": "error", "message": str(e)}), 500
 

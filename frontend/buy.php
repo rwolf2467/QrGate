@@ -1,12 +1,6 @@
 <?php
 
 require_once 'config.php';
-require 'vendor/autoload.php';
-
-use PayPalCheckoutSdk\Core\PayPalHttpClient;
-use PayPalCheckoutSdk\Core\SandboxEnvironment;
-use PayPalCheckoutSdk\Orders\OrdersCreateRequest;
-use PayPalCheckoutSdk\Orders\OrdersCaptureRequest;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
@@ -22,42 +16,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        
         $paymentMethodsResponse = makeApiCall('/api/show/get/payment_methods');
-        $allowedPaymentMethods = ['cash', 'online', 'paypal', 'bar'];
-        
+        $allowedPaymentMethods = ['cash', 'stripe', 'bar'];
+
         if (isset($paymentMethodsResponse['payment_methods'])) {
             $paymentMethods = $paymentMethodsResponse['payment_methods'];
-            
-            
+
             if ($paymentMethods === 'cash') {
                 $allowedPaymentMethods = ['cash', 'bar'];
             } elseif ($paymentMethods === 'online') {
-                $allowedPaymentMethods = ['online', 'paypal'];
+                $allowedPaymentMethods = ['stripe'];
             } elseif ($paymentMethods === 'both') {
-                $allowedPaymentMethods = ['cash', 'online', 'paypal', 'bar'];
+                $allowedPaymentMethods = ['cash', 'stripe', 'bar'];
             }
         }
-        
+
         $ticketData = [
             'first_name' => trim($_POST['first_name']),
-            'last_name' => trim($_POST['last_name']),
-            'email' => trim($_POST['email']),
-            'tickets' => (int)$_POST['tickets'],
+            'last_name'  => trim($_POST['last_name']),
+            'email'      => trim($_POST['email']),
+            'tickets'    => (int)$_POST['tickets'],
             'valid_date' => $_POST['valid_date'],
-            'price' => (float)$_POST['price'],
-            'paid' => false,
-            'method' => $_POST['payment_method'],
+            'price'      => (float)$_POST['price'],
+            'paid'       => false,
+            'method'     => $_POST['payment_method'],
             'add_people' => isset($_POST['add_people']) ? $_POST['add_people'] : []
         ];
-
 
         if ($ticketData['tickets'] < 1 || $ticketData['tickets'] > 11) {
             throw new Exception('Invalid number of people! Please do not play around with the code of this page, otherwise your access to this page will be denied.');
         }
 
-
-        
         if (!in_array($ticketData['method'], $allowedPaymentMethods)) {
             throw new Exception('Invalid payment method selected! Please do not play around with the code of this page, otherwise your access to this page will be denied.');
         }
@@ -77,7 +66,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             header('Location: index.php');
             exit;
-        } elseif ($ticketData['method'] === 'paypal') {
+
+        } elseif ($ticketData['method'] === 'stripe') {
+            $paymentIntentId = trim($_POST['payment_intent_id'] ?? '');
+
+            if (empty($paymentIntentId)) {
+                throw new Exception('Payment verification failed: no payment reference provided.');
+            }
+
+            // Retrieve Stripe config (secret key) from backend
+            $stripeConfig = makeApiCall('/api/show/get/stripe');
+
+            if (isset($stripeConfig['error']) || empty($stripeConfig['secret_key'])) {
+                throw new Exception('Payment configuration error. Please contact the organizer.');
+            }
+
+            // Verify payment server-side with Stripe (direct curl, no SDK)
+            $secretKey = $stripeConfig['secret_key'];
+            $intentId  = preg_replace('/[^a-zA-Z0-9_]/', '', $paymentIntentId); // sanitize
+
+            $ch = curl_init('https://api.stripe.com/v1/payment_intents/' . $intentId);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_USERPWD        => $secretKey . ':',
+            ]);
+            $stripeResponse = curl_exec($ch);
+            $stripeHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($stripeHttpCode !== 200) {
+                throw new Exception('Payment verification failed. Please contact the organizer.');
+            }
+
+            $intent = json_decode($stripeResponse, true);
+
+            if (($intent['status'] ?? '') !== 'succeeded') {
+                throw new Exception('Payment has not been completed. Please try again.');
+            }
+
+            // Verify amount matches expected (price per ticket × number of tickets, in cents)
+            $expectedCents = (int)round($ticketData['price'] * $ticketData['tickets'] * 100);
+            if (($intent['amount_received'] ?? 0) !== $expectedCents) {
+                throw new Exception('Payment amount mismatch. Please contact the organizer.');
+            }
+
             $ticketData['paid'] = true;
 
             $result = makeApiCall('/api/ticket/create', 'POST', $ticketData);
@@ -94,6 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             header('Location: index.php');
             exit;
+
         } else {
             throw new Exception('Unknown payment method! Please do not play around with the code of this page, otherwise your access to this page will be denied.');
         }

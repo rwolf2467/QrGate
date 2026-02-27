@@ -6,9 +6,6 @@ session_start();
 
 define('API_KEY', 'YourGeneratedKeyHere');
 define('API_BASE_URL', 'https://qrgate-backend.example.com/');
-define('PAYPAL_CLIENT_ID', 'YourPayPalClientIdHere');
-define('PAYPAL_CLIENT_SECRET', 'YourPayPalClientSecretHere');
-define('PAYPAL_MODE', 'sandbox');
 define('ORIGIN_URL', 'https://qrgate.avocloud.net/');
 
 // Admin passwords - CHANGE THESE IN PRODUCTION!

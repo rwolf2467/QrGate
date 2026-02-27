@@ -48,6 +48,9 @@ switch ($action) {
     case 'upload_cast_image':
         uploadCastImage();
         break;
+    case 'save_payment_settings':
+        savePaymentSettings();
+        break;
     default:
         http_response_code(400);
         echo json_encode(['status' => 'error', 'message' => 'Invalid action']);
@@ -564,5 +567,40 @@ function uploadCastImage() {
         error_log('Cast image upload error: ' . $e->getMessage());
         http_response_code(500);
         echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+}
+
+function savePaymentSettings() {
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (!$input) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Invalid input']);
+        return;
+    }
+
+    // Load current stripe config to preserve secret/webhook if not re-submitted
+    $current = getShows();
+    $currentStripe = $current['stripe'] ?? ['publishable_key' => '', 'secret_key' => '', 'webhook_secret' => ''];
+
+    $stripe = [
+        'publishable_key' => isset($input['publishable_key']) && $input['publishable_key'] !== ''
+            ? $input['publishable_key']
+            : $currentStripe['publishable_key'],
+        'secret_key' => isset($input['secret_key']) && $input['secret_key'] !== ''
+            ? $input['secret_key']
+            : $currentStripe['secret_key'],
+        'webhook_secret' => isset($input['webhook_secret']) && $input['webhook_secret'] !== ''
+            ? $input['webhook_secret']
+            : $currentStripe['webhook_secret'],
+    ];
+
+    $result = updateShow(['stripe' => $stripe]);
+
+    if (isset($result['status']) && $result['status'] === 'success') {
+        echo json_encode(['status' => 'success', 'message' => 'Payment settings saved']);
+    } else {
+        http_response_code(500);
+        $message = $result['message'] ?? 'Failed to save payment settings';
+        echo json_encode(['status' => 'error', 'message' => $message]);
     }
 }

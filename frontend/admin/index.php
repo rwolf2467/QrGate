@@ -327,6 +327,14 @@ if ($shows) {
                                         <line x1="12" x2="12" y1="17" y2="21" />
                                     </svg> Screen Software</span></a>
                         </li>
+                        <li><a href="#" data-section="payment-settings"><span><svg xmlns="http://www.w3.org/2000/svg"
+                                        width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        class="lucide lucide-credit-card-icon lucide-credit-card">
+                                        <rect width="20" height="14" x="2" y="5" rx="2" />
+                                        <line x1="2" x2="22" y1="10" y2="10" />
+                                    </svg> Zahlungseinstellungen</span></a>
+                        </li>
 
                     </ul>
                 </div>
@@ -975,6 +983,75 @@ if ($shows) {
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-save-icon"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg>
                     Save All Changes
                 </button>
+            </div>
+        </div>
+
+        <!-- Payment Settings -->
+        <?php
+        $stripeConfig = $shows['stripe'] ?? ['publishable_key' => '', 'secret_key' => '', 'webhook_secret' => ''];
+        $pubKeySet = !empty($stripeConfig['publishable_key']);
+        $secretKeySet = !empty($stripeConfig['secret_key']);
+        $webhookSecretSet = !empty($stripeConfig['webhook_secret']);
+        $isLiveMode = $pubKeySet && str_starts_with($stripeConfig['publishable_key'], 'pk_live_');
+        ?>
+        <div id="payment-settings" style="display: none;">
+            <h1><svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="lucide lucide-credit-card-icon lucide-credit-card" style="margin-right: 10px;">
+                    <rect width="20" height="14" x="2" y="5" rx="2" />
+                    <line x1="2" x2="22" y1="10" y2="10" />
+                </svg> Zahlungseinstellungen</h1>
+
+            <div class="card">
+                <header>
+                    <h2 style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="display: flex; align-items: center; gap: 0.5rem;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                class="lucide lucide-zap-icon lucide-zap">
+                                <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
+                            </svg>
+                            Stripe Integration
+                        </span>
+                        <?php if ($pubKeySet): ?>
+                            <span style="padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+                                <?php echo $isLiveMode ? 'background: #16a34a22; color: #4ade80; border: 1px solid #16a34a;' : 'background: #ca8a0422; color: #fbbf24; border: 1px solid #ca8a04;'; ?>">
+                                <?php echo $isLiveMode ? 'Live Mode' : 'Test Mode'; ?>
+                            </span>
+                        <?php endif; ?>
+                    </h2>
+                    <p>Enter your Stripe API keys. Keys are stored securely in shows.json. The secret key is never sent to the browser.</p>
+                </header>
+                <section>
+                    <form class="form space-y-4" style="max-width: 500px;" onsubmit="savePaymentSettings(); return false;">
+                        <div class="grid gap-3">
+                            <label class="label" for="stripe-pub-key">Publishable Key
+                                <span class="text-muted-foreground text-sm">(safe to expose)</span>
+                            </label>
+                            <input class="input" type="text" id="stripe-pub-key" placeholder="pk_live_... or pk_test_..."
+                                value="<?php echo htmlspecialchars($stripeConfig['publishable_key']); ?>">
+                        </div>
+                        <div class="grid gap-3">
+                            <label class="label" for="stripe-secret-key">Secret Key</label>
+                            <input class="input" type="password" id="stripe-secret-key"
+                                placeholder="<?php echo $secretKeySet ? '(currently set — leave blank to keep)' : 'sk_live_... or sk_test_...'; ?>">
+                            <?php if ($secretKeySet): ?>
+                                <p class="text-muted-foreground text-sm">A secret key is currently set. Enter a new value to replace it.</p>
+                            <?php endif; ?>
+                        </div>
+                        <div class="grid gap-3">
+                            <label class="label" for="stripe-webhook-secret">Webhook Secret
+                                <span class="text-muted-foreground text-sm">(optional)</span>
+                            </label>
+                            <input class="input" type="password" id="stripe-webhook-secret"
+                                placeholder="<?php echo $webhookSecretSet ? '(currently set — leave blank to keep)' : 'whsec_...'; ?>">
+                        </div>
+                        <button type="submit" class="btn-outline">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-save-icon"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg>
+                            Save Keys
+                        </button>
+                    </form>
+                </section>
             </div>
         </div>
     </main>
@@ -1833,6 +1910,36 @@ if ($shows) {
         });
         if (localStorage.getItem('currentAdminSection') === 'screens') {
             setTimeout(loadScreensData, 200);
+        }
+
+        async function savePaymentSettings() {
+            const publishableKey = document.getElementById('stripe-pub-key').value.trim();
+            const secretKey = document.getElementById('stripe-secret-key').value.trim();
+            const webhookSecret = document.getElementById('stripe-webhook-secret').value.trim();
+
+            const payload = { publishable_key: publishableKey };
+            if (secretKey !== '') payload.secret_key = secretKey;
+            if (webhookSecret !== '') payload.webhook_secret = webhookSecret;
+
+            try {
+                const response = await fetch('api.php?action=save_payment_settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showToast('Payment settings saved!');
+                    // Clear sensitive fields after save
+                    document.getElementById('stripe-secret-key').value = '';
+                    document.getElementById('stripe-webhook-secret').value = '';
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast('Error: ' + (data.message || 'Save failed'), 'error');
+                }
+            } catch (err) {
+                showToast('Network error saving payment settings', 'error');
+            }
         }
     </script>
 </body>

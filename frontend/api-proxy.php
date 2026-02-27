@@ -9,8 +9,9 @@ header('Content-Type: application/json');
 
 // Only allow specific safe endpoints for public access
 $allowedEndpoints = [
-    'payment_methods' => '/api/show/get/payment_methods',
-    'show' => '/api/show/get'
+    'payment_methods'  => '/api/show/get/payment_methods',
+    'show'             => '/api/show/get',
+    'stripe_pub_key'   => '/api/show/get/stripe_pub_key',
 ];
 
 $endpoint = $_GET['endpoint'] ?? '';
