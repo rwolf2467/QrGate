@@ -10,7 +10,7 @@ QrGate is a comprehensive system for managing events, tickets, and access contro
 
 ### Key Features
 
-- **Ticket Sales**: Simple ticket purchase via web interface with support for various payment methods (cash, PayPal)
+- **Ticket Sales**: Simple ticket purchase via web interface with support for various payment methods (cash, Stripe)
 - **Access Control**: QR code-based ticket validation for entry
 - **Admin Panel**: Comprehensive dashboard for managing events, tickets, and statistics
 - **Multi-language Support**: German and English
@@ -96,9 +96,7 @@ QrGate is a comprehensive system for managing events, tickets, and access contro
    ```php
    define('API_BASE_URL', 'https://your-backend-url.com');
    define('API_KEY', 'YourSecureRandomKeyHere');  // Must match backend auth_key
-   define('PAYPAL_CLIENT_ID', 'YourPayPalClientID');
-   define('PAYPAL_CLIENT_SECRET', 'YourPayPalClientSecret');
-   
+
    // Change these passwords in production!
    define('ADMIN_PASSWORD', 'your_secure_admin_password');
    define('TICKETFLOW_PASSWORD', 'your_secure_ticketflow_password');
@@ -193,7 +191,7 @@ Backend configuration is done in `backend/config/conf.py`. Here you can adjust s
 
 ### Frontend Configuration
 
-Frontend configuration is done in `frontend/config.php`. Here you can adjust settings such as the API base URL, authentication key, PayPal credentials, and user passwords.
+Frontend configuration is done in `frontend/config.php`. Here you can adjust settings such as the API base URL, authentication key, and user passwords. Stripe payment settings are configured directly in the Admin Dashboard.
 
 **Important:** The `API_KEY` in the frontend must match the `auth_key` in the backend configuration.
 
