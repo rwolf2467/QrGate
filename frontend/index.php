@@ -65,7 +65,7 @@ $shows = getShows();
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.10-beta.2/dist/basecoat.cdn.min.css">
     <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.10-beta.2/dist/js/all.min.js" defer></script>
-    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400..700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Quicksand:wght@400..700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="<?php echo API_BASE_URL; ?>/api/image/get/logo.png?t=<?php echo time(); ?>">
     <?php if ($shows !== null): ?>
         <script src="https://js.stripe.com/v3/"></script>
@@ -116,6 +116,10 @@ $shows = getShows();
 
         body {
             font-family: 'Quicksand', sans-serif;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Syne', sans-serif;
         }
 
         .bar {
@@ -1083,6 +1087,23 @@ $shows = getShows();
 
         <?php endif; ?>
     <?php endif; ?>
+
+    <footer class="border-t border-gray-800 mt-12 px-6 py-5 text-center text-xs text-gray-600 flex flex-col items-center gap-2">
+        <div class="flex items-center gap-1.5">
+            <?php echo htmlspecialchars($shows['orga_name'] ?? ''); ?> &mdash; Powered by
+            <a href="https://avocloud.net" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-gray-500 hover:text-gray-300 transition-colors" style="font-family:'Syne',sans-serif;font-weight:800;letter-spacing:0.04em;">
+                <svg viewBox="0 0 100 75" fill="none" class="h-4 w-auto" aria-hidden="true">
+                    <path d="M 43 65 L 11 65 L 33 10 L 67 65 L 91 12"
+                          stroke="currentColor" stroke-width="8.5"
+                          stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                AVOCLOUD.NET
+            </a>
+        </div>
+        <a href="datenschutz.php" class="text-gray-600 hover:text-gray-400 transition-colors">
+            <?php echo ($current_language === 'de') ? 'Datenschutzerklärung' : 'Privacy Policy'; ?>
+        </a>
+    </footer>
 </body>
 
 </html>
