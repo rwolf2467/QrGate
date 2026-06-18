@@ -19,27 +19,22 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
 
 ?>
 
+<?php
+$pageTitle = $showTitle;
+$assetBase = '../';
+$forceDark = true;
+$extraHead = '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" async>';
+?>
 <!DOCTYPE html>
 <html lang="de">
 
-<head>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" async>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap');
-
-        :root {
-            --background-color: #0a0a0a;
-            --card-background: #111111;
-            --text-color: #ffffff;
-            --text-secondary: rgb(157, 157, 157);
-            --border-color: #222222;
-        }
-
+<?php include __DIR__ . '/../partials/head.php'; ?>
+<body>
+<style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Quicksand', sans-serif;
         }
 
         body {
@@ -49,13 +44,11 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
             align-items: center;
             height: 100vh;
             margin: 0;
-            font-family: 'Quicksand', sans-serif;
-            background-color: #0a0a0a;
-            color: var(--text-color);
+            color: var(--avo-text);
             line-height: 1.6;
-            background-color: #0a0a0a;
+            background-color: var(--avo-bg);
             background-size: 31px 31px;
-            background-image: repeating-linear-gradient(45deg, #222222 0, #222222 3.1px, #0a0a0a 0, #0a0a0a 50%);
+            background-image: repeating-linear-gradient(45deg, var(--avo-surface) 0, var(--avo-surface) 3.1px, var(--avo-bg) 0, var(--avo-bg) 50%);
             background-repeat: repeat;
             background-attachment: fixed;
         }
@@ -64,11 +57,11 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
             max-width: 800px;
             margin: auto;
             padding: 20px;
-            background: var(--card-background);
+            background: var(--avo-surface);
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             text-align: center;
-            border: 2px solid rgba(255, 255, 255, 0.2);
+            border: 2px solid var(--avo-border);
             transition: transform 0.3s ease;
             animation: fadeIn 4s ease forwards;
         }
@@ -84,12 +77,12 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
 
         #gradientbar {
             height: 20px;
-            background: linear-gradient(90deg, #9333ea, #ec4899, #eab308);
+            background: linear-gradient(90deg, var(--avo-coral-700), var(--avo-coral-500), var(--avo-coral-300), var(--avo-coral-500), var(--avo-coral-700));
             width: 100%;
             position: fixed;
             top: 0;
             z-index: 2;
-            background-size: 200% 200%;
+            background-size: 300% 100%;
             animation: gradient 10s ease infinite;
         }
 
@@ -109,9 +102,9 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
 
         .orga-name-span {
             padding: 2px 8px;
-            background-color: rgba(147, 51, 234, 0.2);
+            background-color: color-mix(in oklab, var(--avo-primary) 16%, transparent);
             border-radius: 4px;
-            color: rgb(216, 180, 254);
+            color: var(--avo-primary);
         }
 
         @keyframes fadeOut {
@@ -154,7 +147,8 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
 
         .welcome-text {
             font-size: 5em;
-            color: var(--text-color);
+            color: var(--avo-text);
+            font-family: var(--avo-font-display);
             animation: fadeIn 2s ease forwards;
         }
 
@@ -185,12 +179,12 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
         .language-switcher i {
             margin-left: 5px;
             font-size: 0.9em;
-            color: var(--text-color);
+            color: var(--avo-text);
         }
 
         .welcome-text i {
             margin-right: 10px;
-            color: var(--text-color);
+            color: var(--avo-primary);
             font-size: 1.2em;
         }
 
@@ -204,7 +198,7 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
             display: flex;
             flex-direction: column;
             padding: 10px;
-            color: var(--text-secondary);
+            color: var(--avo-text-muted);
             font-size: 1.3em;
         }
 
@@ -293,7 +287,7 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
 
         #progressbar {
             height: 20px;
-            background-color: rgba(0, 0, 0, 0.43);
+            background-color: var(--avo-primary);
             position: fixed;
             top: 0;
             left: 0;
@@ -306,17 +300,17 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
 
         .show-subtitle {
             font-size: 0.7em;
-            color: var(--text-secondary);
+            color: var(--avo-text-muted);
         }
 
         .show-orga {
             font-size: 0.5em;
-            color: var(--text-secondary);
+            color: var(--avo-text-muted);
         }
 
         .show-title {
             font-size: 1.5em;
-            color: var(--text-color);
+            color: var(--avo-text);
         }
 
         .logo {
@@ -348,9 +342,6 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
             opacity: .7;
         }
     </style>
-</head>
-
-<body>
     <div id="gradientbar"></div>
     <div id="progressbar"></div>
     <div class="wallpaper-div"></div>
@@ -361,6 +352,7 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
     <main>
 
         <div class="content-container">
+            <div class="avo-kicker" style="font-size: 1rem; margin-bottom: 0.5rem;">// now showing</div>
             <h1 class="welcome-text" id="welcomeText" style="display: block;" aria-live="polite">
                 <i class="fas fa-theater-masks" style="animation: bounce 1s infinite;"></i>
                 <br>
@@ -374,11 +366,15 @@ if ($shows && isset($shows['orga_name'], $shows['title'])) {
             </h1>
         </div>
     </main>
-    <footer>
-        <hr style="width: 10%; border: 1px solid rgba(255, 255, 255, 0.5); margin-bottom: 5px;">
-        <p>Powered by QrGate - avocloud.net
-        </p>
-    </footer>
+    <div style="position: fixed; bottom: 0; left: 0; width: 100%; z-index: 4;">
+        <?php
+        $assetBase = '../';
+        $orgName = $orgaName;
+        $showToggle = false;
+        $privacyHref = '../datenschutz.php';
+        include __DIR__ . '/../partials/footer.php';
+        ?>
+    </div>
 </body>
 
 </html>

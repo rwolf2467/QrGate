@@ -81,6 +81,9 @@ $languages = [
 ];
 
 $current_language = $_SESSION["language"] ?? "en";
+
+$pageTitle = "Ticket Flow";
+$assetBase = "../../";
 ?>
 <?php
 function call_api($endpoint, $data, $method = 'POST') {
@@ -213,50 +216,31 @@ if (
 }
 ?>
 <!DOCTYPE html>
-<html lang="<?php echo $current_language; ?>" class="dark">
+<html lang="<?php echo $current_language; ?>">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ticket Flow</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.10-beta.2/dist/basecoat.cdn.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.10-beta.2/dist/js/all.min.js" defer></script>
-    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400..700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" href="<?php echo API_BASE_URL; ?>/api/image/get/logo.png?t=<?php echo time(); ?>">
+<?php include __DIR__ . '/../../partials/head.php'; ?>
+<body class="min-h-screen">
     <style>
-        body {
-            background-color: var(--dark);
-            color: white;
-            font-family: 'Quicksand', sans-serif;
-        }
-
-        .card {
-            background-color: var(--darker);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .card:hover {
-            border-color: var(--primary);
-        }
-
         h3 {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
         }
     </style>
-</head>
-
-<body class="bg-dark min-h-screen">
-    <div id="currentDateTime"></div>
+    <div class="avo-topbar" aria-hidden="true"></div>
+    <div id="currentDateTime" class="hidden"></div>
 
     <!-- Header -->
-    <header class="bg-darker border-b border-border px-6 py-4 flex justify-between items-center">
-        <div class="flex items-center">
-            <i class="fas fa-qrcode text-2xl text-purple-400 mr-3"></i>
+    <header class="px-6 py-4 flex justify-between items-center border-b" style="border-color: var(--avo-border); background: var(--avo-surface);">
+        <div class="flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 class="avo-coral" aria-hidden="true">
+                <rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/>
+                <rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/>
+                <path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/>
+                <path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/>
+            </svg>
             <h1 class="text-2xl font-bold">TicketFlow</h1>
         </div>
         <div class="flex items-center gap-4">
@@ -291,8 +275,9 @@ if (
     <!-- Main Content -->
     <main class="container mx-auto px-6 py-8">
         <div class="mb-8">
-            <h2 class="text-3xl font-bold mb-2">TicketFlow</h2>
-            <p class="text-gray-400"><?php echo $languages[$current_language][
+            <div class="avo-kicker mb-1">// box office</div>
+            <h2 class="text-3xl font-bold mb-2">Ticket<span class="avo-hl">Flow</span></h2>
+            <p class="avo-muted"><?php echo $languages[$current_language][
                 "title_description"
             ]; ?></p>
         </div>
@@ -434,7 +419,7 @@ if (
                         </div>
                     </form>
                 <?php else: ?>
-                    <div id="ticketinfo" class="text-gray-400">
+                    <div id="ticketinfo" class="avo-muted">
                         <p><?php echo $languages[$current_language][
                             "please_enter_ticket_id"
                         ]; ?></p>
@@ -596,5 +581,10 @@ if (
             }
         }
     </script>
+
+    <?php
+    $orgName = $shows['orga_name'] ?? '';
+    include __DIR__ . '/../../partials/footer.php';
+    ?>
 </body>
 </html>

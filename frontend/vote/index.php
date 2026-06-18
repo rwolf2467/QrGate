@@ -48,47 +48,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
-<!DOCTYPE html>
-<html lang="de">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bewertung - QR Gate</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<?php
+$pageTitle = 'Bewertung - QR Gate';
+$assetBase = '../';
+$extraHead = <<<HTML
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        :root {
-            --background-color: #0a0a0a;
-            --card-background: #111111;
-            --text-color: #ffffff;
-            --text-secondary: rgb(157, 157, 157);
-            --border-color: #222222;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Quicksand', sans-serif;
-        }
-
         body {
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
-            font-family: 'Quicksand', sans-serif;
-            background-color: #0a0a0a;
-            color: var(--text-color);
             line-height: 1.6;
-            background-color: #0a0a0a;
-            background-size: 31px 31px;
-            /*background-image: repeating-linear-gradient(45deg, #222222 0, #222222 3.1px, #0a0a0a 0, #0a0a0a 50%);*/
-            background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.7)), url(<?php echo $wallpaper_url; ?>);
+            background-image: linear-gradient(color-mix(in oklab, var(--avo-bg) 88%, transparent), color-mix(in oklab, var(--avo-bg) 80%, transparent)), url($wallpaper_url);
             background-size: cover;
             background-attachment: fixed;
         }
@@ -98,11 +72,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             width: 90%;
             margin: auto;
             padding: 20px;
-            background: var(--card-background);
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            background: var(--avo-surface);
+            border-radius: var(--avo-radius-lg);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
             text-align: center;
-            border: 2px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid var(--avo-border);
             transition: transform 0.3s ease;
         }
 
@@ -112,6 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .icon {
             margin-right: 8px;
+            color: var(--avo-primary);
         }
 
         .fa-star {
@@ -129,7 +104,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             pointer-events: none;
         }
 
-
         #responseMessage {
             position: absolute;
             top: 50%;
@@ -140,37 +114,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         textarea {
-            background-color: var(--border-color);
-            color: var(--text-color);
+            background-color: var(--avo-bg);
+            color: var(--avo-text);
+            border: 1px solid var(--avo-border);
+            border-radius: var(--avo-radius-sm);
         }
     </style>
-</head>
+HTML;
+?>
+<!DOCTYPE html>
+<html lang="de">
+
+<?php include __DIR__ . '/../partials/head.php'; ?>
 
 <body>
     <div class="container mx-auto px-4 py-8 <?php echo isset($_SESSION['has_voted']) && $_SESSION['has_voted'] === true ? 'blur-sm' : ''; ?>" style="position: relative;">
+        <div class="avo-kicker mb-2">// feedback</div>
         <h1 class="text-3xl font-bold mb-4">
             <i class="fas fa-pencil-alt icon"></i>
-            Submit your feedback to "<?php echo $shows['title']; ?>" from <?php echo $shows['orga_name']; ?>
+            Submit your <span class="avo-hl">feedback</span> to "<?php echo $shows['title']; ?>" from <?php echo $shows['orga_name']; ?>
         </h1>
-        <p class="text-lg mb-4">Average rating: <?php echo $stars; ?> stars</p>
+        <p class="text-lg mb-4 avo-muted">Average rating: <?php echo $stars; ?> stars</p>
         <form method="POST" action="">
             <div class="flex items-center mb-4">
                 <span class="mr-2">Your rating:</span>
                 <div id="starRating" class="flex cursor-pointer">
-                    <i class="fas fa-star text-gray-400" data-value="1" onclick="setRating(1)"></i>
-                    <i class="fas fa-star text-gray-400" data-value="2" onclick="setRating(2)"></i>
-                    <i class="fas fa-star text-gray-400" data-value="3" onclick="setRating(3)"></i>
-                    <i class="fas fa-star text-gray-400" data-value="4" onclick="setRating(4)"></i>
-                    <i class="fas fa-star text-gray-400" data-value="5" onclick="setRating(5)"></i>
+                    <i class="fas fa-star avo-muted" data-value="1" onclick="setRating(1)"></i>
+                    <i class="fas fa-star avo-muted" data-value="2" onclick="setRating(2)"></i>
+                    <i class="fas fa-star avo-muted" data-value="3" onclick="setRating(3)"></i>
+                    <i class="fas fa-star avo-muted" data-value="4" onclick="setRating(4)"></i>
+                    <i class="fas fa-star avo-muted" data-value="5" onclick="setRating(5)"></i>
                 </div>
                 <input type="hidden" name="rating" id="rating" value="0">
             </div>
             <div class="flex items-center mb-4">
                 <i class="fas fa-comment-dots icon"></i>
-                <textarea id="comment" name="comment" placeholder="Your comment (optional)" class="w-full p-2 border border-gray-300 rounded mb-4"></textarea>
+                <textarea id="comment" name="comment" placeholder="Your comment (optional)" class="w-full p-2 mb-4"></textarea>
             </div>
-            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded" <?php echo isset($_SESSION['has_voted']) && $_SESSION['has_voted'] === true ? 'disabled' : ''; ?>>
-                <i class="fas fa-paper-plane icon"></i>
+            <button type="submit" class="avo-btn" <?php echo isset($_SESSION['has_voted']) && $_SESSION['has_voted'] === true ? 'disabled' : ''; ?>>
+                <i class="fas fa-paper-plane" style="margin-right:8px;"></i>
                 Submit feedback
             </button>
         </form>
@@ -179,11 +161,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <?php if ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
         <div id="responseMessage" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center z-10">
-            <p class="text-lg mb-4">Average rating: <?php echo $stars; ?> stars</p>
+            <p class="text-lg mb-4 avo-muted">Average rating: <?php echo $stars; ?> stars</p>
             <?php if ($error): ?>
-                <div style="padding: 2px 8px; background-color: rgba(234, 51, 51, 0.2); border-radius: 4px; color: rgb(255, 112, 112); font-size: 1.5rem; "><?php echo $error; ?></div>
+                <div style="padding: 2px 8px; background-color: color-mix(in oklab, var(--avo-error) 20%, transparent); border-radius: 4px; color: var(--avo-error); font-size: 1.5rem; "><?php echo $error; ?></div>
             <?php elseif ($message): ?>
-                <div style="padding: 2px 8px; background-color: rgba(124, 226, 83, 0.32); border-radius: 4px; color: rgb(71, 127, 37); font-size: 1.5rem;"><?php echo $message; ?></div>
+                <div style="padding: 2px 8px; background-color: color-mix(in oklab, var(--avo-success) 24%, transparent); border-radius: 4px; color: var(--avo-success); font-size: 1.5rem;"><?php echo $message; ?></div>
             <?php endif; ?>
         </div>
     <?php endif; ?>
@@ -192,11 +174,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             document.getElementById('rating').value = value;
             const stars = document.querySelectorAll('#starRating i');
             stars.forEach(star => {
-                star.classList.remove('text-yellow-500');
-                star.classList.add('text-gray-400');
+                star.classList.remove('avo-coral');
+                star.classList.add('avo-muted');
             });
             for (let i = 0; i < value; i++) {
-                stars[i].classList.add('text-yellow-500');
+                stars[i].classList.add('avo-coral');
             }
         }
     </script>

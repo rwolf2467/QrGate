@@ -45,15 +45,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 }
-?>
-<!DOCTYPE html>
-<html lang="de" class="dark">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ticket Scanner</title>
-    
+$pageTitle = 'Ticket Scanner';
+$assetBase = '../../';
+$extraHead = <<<'HTML'
     <!-- PWA Manifest -->
     <link rel="manifest" href="./manifest.json">
     <!-- Safari PWA settings -->
@@ -63,9 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="apple-mobile-web-app-title" content="QR Scanner">
     <!-- Windows PWA settings -->
     <meta name="msapplication-TileImage" content="./icon-192x192.png">
-    <meta name="msapplication-TileColor" content="#0f172a">
-    <!-- Theme Color -->
-    <meta name="theme-color" content="#0f172a">
+    <meta name="msapplication-TileColor" content="#0B0B0B">
     <!-- Register service worker -->
     <script>
         if ('serviceWorker' in navigator) {
@@ -78,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         console.log('ServiceWorker registration failed: ', err);
                     });
             });
-            
+
             // Listen for the 'beforeinstallprompt' event to manually trigger installation
             let deferredPrompt;
             window.addEventListener('beforeinstallprompt', (e) => {
@@ -86,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 e.preventDefault();
                 // Stash the event so it can be triggered later
                 deferredPrompt = e;
-                
+
                 // Show the install button if we want to manually trigger the installation
                 const installButton = document.createElement('button');
                 installButton.id = 'install-button';
@@ -96,15 +89,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 installButton.style.right = '20px';
                 installButton.style.zIndex = '1000';
                 installButton.style.padding = '10px 20px';
-                installButton.style.backgroundColor = '#4CAF50';
-                installButton.style.color = 'white';
+                installButton.style.backgroundColor = 'var(--avo-primary)';
+                installButton.style.color = '#fff';
                 installButton.style.border = 'none';
-                installButton.style.borderRadius = '5px';
+                installButton.style.borderRadius = '11px';
                 installButton.style.cursor = 'pointer';
                 installButton.style.display = 'none'; // Initially hidden
-                
+
                 document.body.appendChild(installButton);
-                
+
                 installButton.addEventListener('click', () => {
                     // Show the install prompt
                     deferredPrompt.prompt();
@@ -120,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     });
                 });
             });
-            
+
             // Listen for the app installed event
             window.addEventListener('appinstalled', () => {
                 console.log('PWA was installed');
@@ -131,19 +124,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
         }
     </script>
-    
+
     <!--<script src="https://unpkg.com/html5-qrcode"></script>-->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.10-beta.2/dist/basecoat.cdn.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.10-beta.2/dist/js/all.min.js" defer></script>
-    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400..700&display=swap" rel="stylesheet">
     <style>
-        body {
-            color: white;
-            font-family: 'Quicksand', sans-serif;
-        }
-
         @media (max-width: 640px) {
             dialog {
                 width: auto !important;
@@ -166,7 +150,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     </style>
-</head>
+HTML;
+?>
+<!DOCTYPE html>
+<html lang="de">
+
+<?php include __DIR__ . '/../../partials/head.php'; ?>
 
 <body>
     <dialog id="spinnerPopup" class="dialog w-full sm:max-w-[425px] max-h-[612px]"
@@ -213,11 +202,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </button>
         </div>
     </dialog>
-    <header class="bg-darker border-b border-border px-6 py-4 flex justify-between items-center">
-        <div class="flex items-center">
+    <div class="avo-topbar" aria-hidden="true"></div>
+    <header class="px-6 py-4 flex justify-between items-center border-b avo-bordered avo-on-surf">
+        <div class="flex items-center gap-3">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                class="lucide lucide-scan-qr-code-icon lucide-scan-qr-code">
+                class="avo-coral lucide lucide-scan-qr-code-icon lucide-scan-qr-code">
                 <path d="M17 12v4a1 1 0 0 1-1 1h-4" />
                 <path d="M17 3h2a2 2 0 0 1 2 2v2" />
                 <path d="M17 8V7" />
@@ -227,7 +217,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
                 <rect x="7" y="7" width="5" height="5" rx="1" />
             </svg>
-            <h1 class="text-2xl font-bold">Handheld - Ticket Scanner</h1>
+            <div class="flex flex-col">
+                <span class="avo-kicker">// handheld</span>
+                <h1 class="text-2xl font-bold avo-text">Ticket <span class="avo-hl">Scanner</span></h1>
+            </div>
         </div>
         <div class="flex items-center gap-4">
             <button id="install-button-header" class="btn btn-secondary" style="display:none; margin-right: 10px;">
@@ -299,7 +292,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <header>
                 <h1>Ticket Scanner</h1>
                 <select id="appSelector" onchange="navigateToApp()"
-                    style="margin-bottom: 20px; background: var(--darker); color: white; border: 1px solid var(--border); padding: 8px; border-radius: 4px;">
+                    style="margin-bottom: 20px; background: var(--avo-surface); color: var(--avo-text); border: 1px solid var(--avo-border); padding: 8px; border-radius: 8px;">
                     <option value="index.php">Ticket Scanner</option>
                     <option value="inspector.php">Ticket Inspector</option>
                 </select>
@@ -383,12 +376,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
                         resultHTML += `
-         <span class="badge-secondary bg-green-500 text-white dark:bg-green-600 text-center mb-3 text-lg font-bold flex items-center justify-center">
+         <span class="text-white text-center mb-3 text-lg font-bold flex items-center justify-center gap-2 rounded-lg px-4 py-2" style="background: var(--avo-success);">
             <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-badge-check-icon lucide-badge-check"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg>
             ${data.message}
          </span>
          <div class="ticket-info">
-         <h3 class="font-bold mb-2" style="color: white;">Ticket Details:</h3>
+         <h3 class="font-bold mb-2 avo-text">Ticket Details:</h3>
 
          <!-- Ticket ID -->
          <div class="flex items-center gap-2 mb-1">
@@ -440,7 +433,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          </div>
 
          <!-- Attempts Summary -->
-         <div class="attempts-summary mt-3 pt-2 border-t border-gray-700">
+         <div class="attempts-summary mt-3 pt-2 border-t avo-bordered">
          <div class="flex items-center gap-2 mb-1">
          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-log-in-icon lucide-log-in"><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/></svg>
          <strong>Access Attempts:</strong> ${data.data.access_attempts?.length || 0}
@@ -475,12 +468,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
                         resultHTML += `
-         <span class="badge-secondary bg-red-500 text-white dark:bg-red-600 text-center mb-3 text-lg font-bold flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width=30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-badge-x-icon lucide-badge-x"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg>
+         <span class="text-white text-center mb-3 text-lg font-bold flex items-center justify-center gap-2 rounded-lg px-4 py-2" style="background: var(--avo-error);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-badge-x-icon lucide-badge-x"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg>
             ${data.message}
          </span>
          <div class="ticket-info">
-         <h3 class="font-bold mb-2" style="color: white;">Ticket Details:</h3>
+         <h3 class="font-bold mb-2 avo-text">Ticket Details:</h3>
 
          <!-- Ticket ID -->
          <div class="flex items-center gap-2 mb-1">
@@ -532,7 +525,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          </div>
 
          <!-- Attempts Summary -->
-         <div class="attempts-summary mt-3 pt-2 border-t border-gray-700">
+         <div class="attempts-summary mt-3 pt-2 border-t avo-bordered">
          <div class="flex items-center gap-2 mb-1">
          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-log-in-icon lucide-log-in"><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/></svg>
          <strong>Access Attempts:</strong> ${data.data.access_attempts?.length || 0}
@@ -641,6 +634,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     </script>
+    <?php
+    $assetBase = '../../';
+    $privacyHref = '../../datenschutz.php';
+    include __DIR__ . '/../../partials/footer.php';
+    ?>
 </body>
 
 </html>

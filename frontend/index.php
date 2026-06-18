@@ -54,20 +54,12 @@ $languages = [
 
 $current_language = $_SESSION['language'] ?? 'en';
 $shows = getShows();
-?>
-<!DOCTYPE html>
-<html lang="<?php echo $current_language; ?>" class="dark">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($shows['orga_name']); ?> - Tickets</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.10-beta.2/dist/basecoat.cdn.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.10-beta.2/dist/js/all.min.js" defer></script>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Quicksand:wght@400..700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" href="<?php echo API_BASE_URL; ?>/api/image/get/logo.png?t=<?php echo time(); ?>">
-    <?php if ($shows !== null): ?>
+$pageTitle = htmlspecialchars($shows['orga_name']) . ' - Tickets';
+$assetBase = '';
+$extraHead = '';
+if ($shows !== null) {
+    $extraHead = <<<HTML
         <script src="https://js.stripe.com/v3/"></script>
         <script>
             let availablePaymentMethods = 'both';
@@ -102,87 +94,17 @@ $shows = getShows();
                 loadStripeKey();
             });
         </script>
-    <?php endif; ?>
+HTML;
+}
+?>
+<!DOCTYPE html>
+<html lang="<?php echo $current_language; ?>">
+
+<?php include __DIR__ . '/partials/head.php'; ?>
+<body>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap');
-
-        :root {
-            --background-color: #0a0a0a;
-            --card-background: #111111;
-            --text-color: #ffffff;
-            --text-secondary: #888888;
-            --border-color: #222222;
-        }
-
-        body {
-            font-family: 'Quicksand', sans-serif;
-        }
-
-        h1, h2, h3, h4 {
-            font-family: 'Syne', sans-serif;
-        }
-
-        .bar {
-            background: #e4e5e4;
-        }
-
-        .bar-dark {
-            background-color: rgb(46, 46, 46);
-        }
-
-        @keyframes gradient {
-            0% {
-                background-position: 0% 50%;
-            }
-
-            50% {
-                background-position: 100% 50%;
-            }
-
-            100% {
-                background-position: 0% 50%;
-            }
-        }
-
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-in;
-        }
-
-        .animate-fade-in-up {
-            animation: fadeInUp 0.5s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .show-name {
-            padding: 2px 8px;
-            background-color: rgba(147, 51, 234, 0.2);
-            border-radius: 4px;
-            color: rgb(216, 180, 254);
-        }
-
         .orga-name {
-            color: var(--text-color);
+            color: var(--avo-text);
         }
 
         .language-selector {
@@ -252,9 +174,6 @@ $shows = getShows();
             }
         }
     </style>
-</head>
-
-<body>
     <div class="language-selector">
         <form method="post" id="langForm">
             <select name="language" onchange="this.form.submit()">
@@ -291,7 +210,7 @@ $shows = getShows();
         <div>
             <header>
                 <h2 id="message-dialog-title" class="text-2xl inline-flex gap-x-2"></h2>
-                <p id="message-dialog-description" class="text-white"></p>
+                <p id="message-dialog-description" class="avo-text"></p>
             </header>
             <footer>
                 <button class="btn-primary" onclick="document.getElementById('message-dialog').close()">Okay</button>
@@ -328,7 +247,7 @@ $shows = getShows();
                 </h2>
                 <p class="animate-pulse demo-dialog-edit-profile-description text-sm mt-1">
                     <i class="fa-solid fa-circle-question"></i>
-                    <a href="./help/buy_ticket.php" class="text-gray-200" target="_blank">
+                    <a href="./help/buy_ticket.php" class="avo-link" target="_blank">
                         <span><?php echo $languages[$current_language]['need_help']; ?></span>
                     </a>
                 </p>
@@ -430,7 +349,7 @@ $shows = getShows();
             </button>
         </div>
         <button type="button" aria-label="Close dialog" onclick="this.closest('dialog').close()"
-            class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
+            class="absolute top-4 right-4 avo-muted hover:opacity-70 transition-opacity">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                 class="lucide lucide-x">
@@ -441,15 +360,15 @@ $shows = getShows();
     </dialog>
     <?php if ($shows === null): ?>
         <div class="min-h-screen flex items-center justify-center p-4">
-            <div class="bg-red-900/50 backdrop-blur-md border border-red-700 rounded-lg p-8 max-w-md w-full text-center">
-                <svg class="w-16 h-16 mx-auto text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="backdrop-blur-md rounded-lg p-8 max-w-md w-full text-center"
+                style="background-color: color-mix(in oklab, var(--avo-error) 18%, transparent); border: 1px solid color-mix(in oklab, var(--avo-error) 45%, transparent);">
+                <svg class="w-16 h-16 mx-auto mb-4" style="color: var(--avo-error);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <h2 class="text-2xl font-bold mb-4"><?php echo $languages[$current_language]['error_loading_shows']; ?></h2>
-                <p class="text-gray-300"><?php echo $languages[$current_language]['try_again']; ?></p>
-                <button onclick="location.reload()"
-                    class="mt-6 px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg transition-colors">
+                <p class="avo-muted"><?php echo $languages[$current_language]['try_again']; ?></p>
+                <button onclick="location.reload()" class="btn-destructive mt-6">
                     Try again
                 </button>
             </div>
@@ -457,8 +376,8 @@ $shows = getShows();
     <?php else: ?>
         <?php if ($shows["store_lock"] === true): ?>
             <div class="min-h-screen flex items-center justify-center p-4">
-                <div class="bg-red-900/50 backdrop-blur-md border border-red-700 rounded-lg p-8 max-w-md w-full text-center"
-                    style="background-color: rgba(234, 51, 51, 0.2)">
+                <div class="backdrop-blur-md rounded-lg p-8 max-w-md w-full text-center"
+                    style="background-color: color-mix(in oklab, var(--avo-error) 18%, transparent); border: 1px solid color-mix(in oklab, var(--avo-error) 45%, transparent);">
                     <div style="display: flex; flex-direction: column; align-items: center; text-align: center; "><svg
                             xmlns="http://www.w3.org/2000/svg" width="85" height="85" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -468,7 +387,7 @@ $shows = getShows();
                         </svg></div>
                     <h2 class="text-2xl font-bold mb-4"><br><?php echo $languages[$current_language]['store_lock_title']; ?>
                     </h2>
-                    <p class="text-gray-300">
+                    <p class="avo-muted">
                         <?php echo str_replace('{name}', $shows['orga_name'], $languages[$current_language]['store_lock_message']); ?>
                     </p>
                 </div>
@@ -487,6 +406,7 @@ $shows = getShows();
                     </script>
                     <div class="absolute inset-0 bg-black/60"></div>
                     <div class="relative z-10 text-center max-w-2xl w-full py-6 md:py-10 px-3 rounded-xl">
+                        <div class="avo-kicker mb-2 animate-fade-in-up">// tickets</div>
                         <h1 class="orga-name text-3xl md:text-5xl font-bold mb-2 animate-fade-in-up">
                             <?php echo htmlspecialchars($shows['orga_name']); ?>
                         </h1>
@@ -920,7 +840,7 @@ $shows = getShows();
                             fieldGroup.className = 'space-y-2';
 
                             const label = document.createElement('label');
-                            label.className = 'block text-sm font-medium text-gray-200';
+                            label.className = 'block text-sm font-medium avo-muted';
 
                             label.textContent = `Name for Ticket ${i}`;
 
@@ -929,7 +849,7 @@ $shows = getShows();
                             input.name = 'add_people[]';
                             input.placeholder = 'Max Mustermann';
                             input.required = true;
-                            input.className = 'w-full p-4 rounded-lg text-white inputs transition-all';
+                            input.className = 'input w-full';
 
                             fieldGroup.appendChild(label);
                             fieldGroup.appendChild(input);
@@ -1088,22 +1008,10 @@ $shows = getShows();
         <?php endif; ?>
     <?php endif; ?>
 
-    <footer class="border-t border-gray-800 mt-12 px-6 py-5 text-center text-xs text-gray-600 flex flex-col items-center gap-2">
-        <div class="flex items-center gap-1.5">
-            <?php echo htmlspecialchars($shows['orga_name'] ?? ''); ?> &mdash; Powered by
-            <a href="https://avocloud.net" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-gray-500 hover:text-gray-300 transition-colors" style="font-family:'Syne',sans-serif;font-weight:800;letter-spacing:0.04em;">
-                <svg viewBox="0 0 100 75" fill="none" class="h-4 w-auto" aria-hidden="true">
-                    <path d="M 43 65 L 11 65 L 33 10 L 67 65 L 91 12"
-                          stroke="currentColor" stroke-width="8.5"
-                          stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                AVOCLOUD.NET
-            </a>
-        </div>
-        <a href="datenschutz.php" class="text-gray-600 hover:text-gray-400 transition-colors">
-            <?php echo ($current_language === 'de') ? 'Datenschutzerklärung' : 'Privacy Policy'; ?>
-        </a>
-    </footer>
+    <?php
+    $orgName = $shows['orga_name'] ?? '';
+    include __DIR__ . '/partials/footer.php';
+    ?>
 </body>
 
 </html>

@@ -33,27 +33,22 @@ if ($shows) {
         "availableByDate" => $availableByDate,
     ];
 }
+
+
+$pageTitle = 'QrGate Admin Panel';
+$assetBase = '../';
+$extraHead = <<<HTML
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+HTML;
 ?>
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QRGate Admin Panel</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.10-beta.2/dist/basecoat.cdn.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.10-beta.2/dist/js/all.min.js" defer></script>
-    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400..700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="icon" type="image/png" href="<?php echo API_BASE_URL; ?>/api/image/get/logo.png?t=<?php echo time(); ?>">
+<?php include __DIR__ . '/../partials/head.php'; ?>
+<body class="page">
 
     <style>
-        body {
-            font-family: 'Quicksand', sans-serif;
-        }
-
         h1 {
             font-size: 2rem;
             font-weight: 700;
@@ -223,20 +218,18 @@ if ($shows) {
             }
 
             .image-preview-container {
-                border: 1px solid var(--color-border);
-                border-radius: var(--radius-md);
+                border: 1px solid var(--avo-border);
+                border-radius: var(--avo-radius-md);
                 padding: 1rem;
                 min-height: 200px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                background-color: var(--color-surface-1);
+                background-color: var(--avo-surface);
             }
         }
     </style>
-</head>
-
-<body class="page">
+    <div class="avo-topbar" aria-hidden="true"></div>
     <div id="toaster" class="toaster" data-align="center"></div>
 
     <aside class="sidebar" data-side="left" aria-hidden="false">
@@ -380,7 +373,8 @@ if ($shows) {
             </svg></button>
         <!-- Dashboard -->
         <div id="dashboard" class="active" style="display: none">
-            <h1>Dashboard</h1>
+            <div class="avo-kicker mb-1">// control room</div>
+            <h1>Dash<span class="avo-hl">board</span></h1>
             <div class="stats-grid">
                 <div class="card">
                     <header>
@@ -493,15 +487,15 @@ if ($shows) {
                             <span style="color: <?php echo $shows[
                                 "store_lock"
                             ]
-                                ? "var(#ed3939)"
-                                : "var(#40e45b)"; ?>">
+                                ? "var(--avo-error)"
+                                : "var(--avo-success)"; ?>">
                                 <?php echo $shows["store_lock"]
                                     ? "LOCKED"
                                     : "OPEN"; ?>
                             </span>
                         </p>
                     <?php else: ?>
-                        <p style="color: var(--color-error);">Error loading event data</p>
+                        <p style="color: var(--avo-error);">Error loading event data</p>
                     <?php endif; ?>
                 </section>
             </div>
@@ -1015,7 +1009,9 @@ if ($shows) {
                         </span>
                         <?php if ($pubKeySet): ?>
                             <span style="padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
-                                <?php echo $isLiveMode ? 'background: #16a34a22; color: #4ade80; border: 1px solid #16a34a;' : 'background: #ca8a0422; color: #fbbf24; border: 1px solid #ca8a04;'; ?>">
+                                <?php echo $isLiveMode
+                                    ? 'background: color-mix(in oklab, var(--avo-success) 18%, transparent); color: var(--avo-success); border: 1px solid var(--avo-success);'
+                                    : 'background: color-mix(in oklab, var(--avo-warning) 18%, transparent); color: var(--avo-warning); border: 1px solid var(--avo-warning);'; ?>">
                                 <?php echo $isLiveMode ? 'Live Mode' : 'Test Mode'; ?>
                             </span>
                         <?php endif; ?>
@@ -1054,6 +1050,12 @@ if ($shows) {
                 </section>
             </div>
         </div>
+
+        <?php
+        $orgName = $shows['orga_name'] ?? '';
+        $current_language = 'en';
+        include __DIR__ . '/../partials/footer.php';
+        ?>
     </main>
 
     <div id="notificationContainer" class="notification-container"></div>
@@ -1111,17 +1113,24 @@ if ($shows) {
 
             if (dates.length === 0) return;
 
-            
+            const css = getComputedStyle(document.documentElement);
+            const coral = css.getPropertyValue('--avo-primary').trim();
+            const muted = css.getPropertyValue('--avo-text-muted').trim();
+            const border = css.getPropertyValue('--avo-border').trim();
+            const surface = css.getPropertyValue('--avo-surface').trim();
+            const textColor = css.getPropertyValue('--avo-text').trim();
+
+            // coral-ramp palette for categorical (pie) series
+            const coralRamp = ['#FF6B4A', '#ED5333', '#C73D20', '#FF9379', '#9C2E16', '#FFB6A4', '#FF7A5C', '#5F1C0D'];
             const generateColors = (baseColor, count) => {
                 const colors = [];
                 for (let i = 0; i < count; i++) {
-                    const shade = 100 - Math.min(80, i * 15); 
-                    colors.push(`hsl(${baseColor}, 70%, ${shade}%)`);
+                    colors.push(coralRamp[i % coralRamp.length]);
                 }
                 return colors;
             };
 
-            
+
             const salesCtx = document.getElementById('salesChart')?.getContext('2d');
             if (salesCtx) {
                 new Chart(salesCtx, {
@@ -1131,8 +1140,8 @@ if ($shows) {
                         datasets: [{
                             label: 'Tickets Sold',
                             data: soldData,
-                            backgroundColor: generateColors(270, dates.length), 
-                            borderColor: '#ffffff20',
+                            backgroundColor: generateColors(270, dates.length),
+                            borderColor: border,
                             borderWidth: 1
                         }]
                     },
@@ -1142,14 +1151,16 @@ if ($shows) {
                         plugins: {
                             legend: {
                                 labels: {
-                                    color: 'white',
+                                    color: muted,
                                     font: { size: 13 }
                                 }
                             },
                             tooltip: {
-                                titleColor: 'white',
-                                bodyColor: 'white',
-                                backgroundColor: 'rgba(30, 30, 40, 0.9)',
+                                titleColor: textColor,
+                                bodyColor: textColor,
+                                backgroundColor: surface,
+                                borderColor: border,
+                                borderWidth: 1,
                                 padding: 10,
                                 callbacks: {
                                     label: function (context) {
@@ -1172,8 +1183,8 @@ if ($shows) {
                         datasets: [{
                             label: 'Available Tickets',
                             data: availableData,
-                            backgroundColor: generateColors(140, dates.length), 
-                            borderColor: '#ffffff20',
+                            backgroundColor: generateColors(140, dates.length),
+                            borderColor: border,
                             borderWidth: 1
                         }]
                     },
@@ -1183,14 +1194,16 @@ if ($shows) {
                         plugins: {
                             legend: {
                                 labels: {
-                                    color: 'white',
+                                    color: muted,
                                     font: { size: 13 }
                                 }
                             },
                             tooltip: {
-                                titleColor: 'white',
-                                bodyColor: 'white',
-                                backgroundColor: 'rgba(30, 30, 40, 0.9)',
+                                titleColor: textColor,
+                                bodyColor: textColor,
+                                backgroundColor: surface,
+                                borderColor: border,
+                                borderWidth: 1,
                                 padding: 10,
                                 callbacks: {
                                     label: function (context) {
@@ -1215,7 +1228,14 @@ if ($shows) {
                 if (data.status === 'success' && data.data) {
                     const stats = data.data;
 
-                    
+                    const css = getComputedStyle(document.documentElement);
+                    const coral = css.getPropertyValue('--avo-primary').trim();
+                    const coralSoft = 'color-mix(in oklab, ' + coral + ' 12%, transparent)';
+                    const muted = css.getPropertyValue('--avo-text-muted').trim();
+                    const gridColor = 'color-mix(in oklab, ' + css.getPropertyValue('--avo-border').trim() + ' 70%, transparent)';
+                    // sales line = mono (theme-aware) so coral stays the single accent, distinct from the income line
+                    const salesColor = css.getPropertyValue('--avo-text').trim();
+
                     const incomeDates = Object.keys(stats.income_by_date || {});
                     const incomeValues = Object.values(stats.income_by_date || {});
 
@@ -1228,8 +1248,8 @@ if ($shows) {
                                 datasets: [{
                                     label: 'Income (€)',
                                     data: incomeValues,
-                                    borderColor: 'rgb(59, 130, 246)',
-                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                    borderColor: coral,
+                                    backgroundColor: coralSoft,
                                     tension: 0.4,
                                     fill: true
                                 }]
@@ -1237,7 +1257,7 @@ if ($shows) {
                             options: {
                                 responsive: true,
                                 plugins: {
-                                    legend: { labels: { color: 'white' } },
+                                    legend: { labels: { color: muted } },
                                     tooltip: {
                                         callbacks: {
                                             label: function (context) {
@@ -1250,16 +1270,16 @@ if ($shows) {
                                     y: {
                                         beginAtZero: true,
                                         ticks: {
-                                            color: 'white',
+                                            color: muted,
                                             callback: function (value) {
                                                 return '€' + value.toFixed(2);
                                             }
                                         },
-                                        grid: { color: 'rgba(255,255,255,0.1)' }
+                                        grid: { color: gridColor }
                                     },
                                     x: {
-                                        ticks: { color: 'white' },
-                                        grid: { color: 'rgba(255,255,255,0.1)' }
+                                        ticks: { color: muted },
+                                        grid: { color: gridColor }
                                     }
                                 }
                             }
@@ -1279,8 +1299,8 @@ if ($shows) {
                                 datasets: [{
                                     label: 'Tickets Sold',
                                     data: salesValues,
-                                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                                    borderColor: 'rgb(16, 185, 129)',
+                                    backgroundColor: 'color-mix(in oklab, ' + salesColor + ' 10%, transparent)',
+                                    borderColor: salesColor,
                                     tension: 0.4,
                                     fill: true
                                 }]
@@ -1288,7 +1308,7 @@ if ($shows) {
                             options: {
                                 responsive: true,
                                 plugins: {
-                                    legend: { labels: { color: 'white' } },
+                                    legend: { labels: { color: muted } },
                                     tooltip: {
                                         callbacks: {
                                             label: function (context) {
@@ -1300,12 +1320,12 @@ if ($shows) {
                                 scales: {
                                     y: {
                                         beginAtZero: true,
-                                        ticks: { color: 'white' },
-                                        grid: { color: 'rgba(255,255,255,0.1)' }
+                                        ticks: { color: muted },
+                                        grid: { color: gridColor }
                                     },
                                     x: {
-                                        ticks: { color: 'white' },
-                                        grid: { color: 'rgba(255,255,255,0.1)' }
+                                        ticks: { color: muted },
+                                        grid: { color: gridColor }
                                     }
                                 }
                             }
@@ -1653,7 +1673,7 @@ if ($shows) {
             strip.innerHTML = '';
             screensData.slides.forEach((slide, index) => {
                 const item = document.createElement('div');
-                item.style.cssText = 'padding: 0.5rem; border: 2px solid ' + (index === selectedSlideIndex ? 'var(--color-primary)' : 'var(--color-border)') + '; border-radius: var(--radius-md); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: border-color 0.2s;';
+                item.style.cssText = 'padding: 0.5rem; border: 2px solid ' + (index === selectedSlideIndex ? 'var(--avo-primary)' : 'var(--avo-border)') + '; border-radius: var(--avo-radius-md); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: border-color 0.2s;';
                 item.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 0;">
                         <i class="fas ${slide.icon}" style="font-size: 1.2em; width: 24px; text-align: center;"></i>
@@ -1705,8 +1725,8 @@ if ($shows) {
             let castHtml = '';
             if (hasCast) {
                 castHtml = slide.cast.map((member, i) => `
-                    <div style="display: flex; gap: 0.5rem; align-items: center; padding: 0.5rem; border: 1px solid var(--color-border); border-radius: var(--radius-md);">
-                        <div style="width: 48px; height: 48px; border-radius: 50%; overflow: hidden; background: var(--color-surface-1); flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+                    <div style="display: flex; gap: 0.5rem; align-items: center; padding: 0.5rem; border: 1px solid var(--avo-border); border-radius: var(--avo-radius-md);">
+                        <div style="width: 48px; height: 48px; border-radius: 50%; overflow: hidden; background: var(--avo-surface); flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
                             ${member.image ? `<img src="${API_BASE_URL}/api/show/cast/image/${member.image}" style="width: 100%; height: 100%; object-fit: cover;">` : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'}
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 0.25rem; flex: 1;">
@@ -1753,7 +1773,7 @@ if ($shows) {
                         <textarea class="textarea" rows="3" onchange="updateSlideField('text_de', this.value)" placeholder="Use \\n for line breaks. Placeholders: {orga_name}, {show_title}, {show_subtitle}">${slide.text_de || ''}</textarea>
                     </div>
 
-                    <div style="border-top: 1px solid var(--color-border); padding-top: 1rem;">
+                    <div style="border-top: 1px solid var(--avo-border); padding-top: 1rem;">
                         <div class="flex items-start gap-3" style="margin-bottom: 1rem;">
                             <input type="checkbox" class="input" id="castToggle" ${hasCast ? 'checked' : ''} onchange="toggleCast(this.checked)">
                             <div class="flex flex-col gap-1">
@@ -1774,7 +1794,7 @@ if ($shows) {
                         </div>
                     </div>
 
-                    <div style="border-top: 1px solid var(--color-border); padding-top: 1rem;">
+                    <div style="border-top: 1px solid var(--avo-border); padding-top: 1rem;">
                         <button class="btn-destructive" onclick="deleteSlide(${selectedSlideIndex})">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                             Delete Slide

@@ -21,27 +21,22 @@ $vote_url = ORIGIN_URL . 'vote/';
 $qrcode_url = "https://quickchart.io/qr?text=" . urlencode($vote_url) . "&ecLevel=H&margin=2&size=200&centerImageUrl=" . urlencode($logo_url);
 ?>
 
+<?php
+$pageTitle = 'Feedback — ' . $showTitle;
+$assetBase = '../';
+$forceDark = true;
+$extraHead = '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" async>';
+?>
 <!DOCTYPE html>
 <html lang="de">
 
-<head>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" async>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap');
-
-        :root {
-            --background-color: #0a0a0a;
-            --card-background: #111111;
-            --text-color: #ffffff;
-            --text-secondary: rgb(157, 157, 157);
-            --border-color: #222222;
-        }
-
+<?php include __DIR__ . '/../partials/head.php'; ?>
+<body>
+<style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Quicksand', sans-serif;
         }
 
         body {
@@ -51,12 +46,11 @@ $qrcode_url = "https://quickchart.io/qr?text=" . urlencode($vote_url) . "&ecLeve
             align-items: center;
             height: 100vh;
             margin: 0;
-            font-family: 'Quicksand', sans-serif;
-            background-color: #0a0a0a;
-            color: var(--text-color);
+            background-color: var(--avo-bg);
+            color: var(--avo-text);
             line-height: 1.6;
             background-size: 31px 31px;
-            background-image: repeating-linear-gradient(45deg, #222222 0, #222222 3.1px, #0a0a0a 0, #0a0a0a 50%);
+            background-image: repeating-linear-gradient(45deg, var(--avo-surface) 0, var(--avo-surface) 3.1px, var(--avo-bg) 0, var(--avo-bg) 50%);
             background-repeat: repeat;
             background-attachment: fixed;
         }
@@ -65,11 +59,11 @@ $qrcode_url = "https://quickchart.io/qr?text=" . urlencode($vote_url) . "&ecLeve
             max-width: 800px;
             margin: auto;
             padding: 20px;
-            background: var(--card-background);
+            background: var(--avo-surface);
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             text-align: center;
-            border: 2px solid rgba(255, 255, 255, 0.2);
+            border: 2px solid var(--avo-border);
             transition: transform 0.3s ease;
             animation: fadeIn 4s ease forwards;
         }
@@ -85,12 +79,12 @@ $qrcode_url = "https://quickchart.io/qr?text=" . urlencode($vote_url) . "&ecLeve
 
         #gradientbar {
             height: 20px;
-            background: linear-gradient(90deg, #9333ea, #ec4899, #eab308);
+            background: linear-gradient(90deg, var(--avo-coral-700), var(--avo-coral-500), var(--avo-coral-300), var(--avo-coral-500), var(--avo-coral-700));
             width: 100%;
             position: fixed;
             top: 0;
             z-index: 2;
-            background-size: 200% 200%;
+            background-size: 300% 100%;
             animation: gradient 10s ease infinite;
         }
 
@@ -110,9 +104,9 @@ $qrcode_url = "https://quickchart.io/qr?text=" . urlencode($vote_url) . "&ecLeve
 
         .orga-name-span {
             padding: 2px 8px;
-            background-color: rgba(147, 51, 234, 0.2);
+            background-color: color-mix(in oklab, var(--avo-primary) 16%, transparent);
             border-radius: 4px;
-            color: rgb(216, 180, 254);
+            color: var(--avo-primary);
         }
 
         @keyframes fadeOut {
@@ -152,7 +146,8 @@ $qrcode_url = "https://quickchart.io/qr?text=" . urlencode($vote_url) . "&ecLeve
             text-align: center;
             margin: 0;
             font-size: 3em;
-            color: var(--text-color);
+            color: var(--avo-text);
+            font-family: var(--avo-font-display);
             animation: fadeIn 2s ease forwards;
             margin-bottom: 15px;
             text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
@@ -184,12 +179,12 @@ $qrcode_url = "https://quickchart.io/qr?text=" . urlencode($vote_url) . "&ecLeve
         .language-switcher i {
             margin-left: 5px;
             font-size: 0.9em;
-            color: var(--text-color);
+            color: var(--avo-text);
         }
 
         .welcome-text i {
             margin-right: 10px;
-            color: var(--text-color);
+            color: var(--avo-primary);
             font-size: 1em;
         }
 
@@ -203,7 +198,7 @@ $qrcode_url = "https://quickchart.io/qr?text=" . urlencode($vote_url) . "&ecLeve
             display: flex;
             flex-direction: column;
             padding: 10px;
-            color: var(--text-secondary);
+            color: var(--avo-text-muted);
             font-size: 1.3em;
         }
 
@@ -292,7 +287,7 @@ $qrcode_url = "https://quickchart.io/qr?text=" . urlencode($vote_url) . "&ecLeve
 
         #progressbar {
             height: 20px;
-            background-color: rgba(0, 0, 0, 0.43);
+            background-color: var(--avo-primary);
             position: fixed;
             top: 0;
             left: 0;
@@ -317,7 +312,7 @@ $qrcode_url = "https://quickchart.io/qr?text=" . urlencode($vote_url) . "&ecLeve
             width: 350px;
             height: 350px;
             margin-top: 10px;
-            background-color: var(--border-color);
+            background-color: #ffffff;
             border-radius: 20px;
             padding: 10px;
             display: block;
@@ -354,10 +349,6 @@ $qrcode_url = "https://quickchart.io/qr?text=" . urlencode($vote_url) . "&ecLeve
             opacity: .7;
         }
     </style>
-
-</head>
-
-<body>
     <div id="gradientbar"></div>
     <div id="progressbar"></div>
     <div class="wallpaper-div"></div>
@@ -370,6 +361,7 @@ $qrcode_url = "https://quickchart.io/qr?text=" . urlencode($vote_url) . "&ecLeve
             <span id="flag-de" class="inactive" aria-label="Switch to German"><b>DE</b></span>
         </div>
         <div class="content-container">
+            <div class="avo-kicker" style="font-size: 1rem; margin-bottom: 0.5rem;">// your turn</div>
             <h1 class="welcome-text" id="welcomeText" style="display: block;" aria-live="polite">
                 <i class="fas fa-smile" style="animation: laugh 0.5s infinite;" aria-hidden="true"></i>
                 <br>
@@ -378,11 +370,15 @@ $qrcode_url = "https://quickchart.io/qr?text=" . urlencode($vote_url) . "&ecLeve
             <img src="<?php echo $qrcode_url; ?>" alt="QR Code for Voting" class="qrcode" />
         </div>
     </main>
-    <footer>
-        <hr style="width: 10%; border: 1px solid rgba(255, 255, 255, 0.5); margin-bottom: 5px;">
-        <p>Powered by QrGate - avocloud.net
-        </p>
-    </footer>
+    <div style="position: fixed; bottom: 0; left: 0; width: 100%; z-index: 4;">
+        <?php
+        $assetBase = '../';
+        $orgName = $orgaName;
+        $showToggle = false;
+        $privacyHref = '../datenschutz.php';
+        include __DIR__ . '/../partials/footer.php';
+        ?>
+    </div>
     <script>
         let currentTextIndex = 0;
         const texts = [

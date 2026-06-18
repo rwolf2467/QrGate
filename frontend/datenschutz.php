@@ -12,36 +12,11 @@ $orga_name = htmlspecialchars($shows['orga_name'] ?? 'QrGate');
 
 $current_language = $_SESSION['language'] ?? 'en';
 $is_de = $current_language === 'de';
-?>
-<!DOCTYPE html>
-<html lang="<?php echo $current_language; ?>" class="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $orga_name; ?> – <?php echo $is_de ? 'Datenschutzerklärung' : 'Privacy Policy'; ?></title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.10-beta.2/dist/basecoat.cdn.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.10-beta.2/dist/js/all.min.js" defer></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Quicksand:wght@300..700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" href="<?php echo API_BASE_URL; ?>/api/image/get/logo.png?t=<?php echo time(); ?>">
+
+$pageTitle = $orga_name . ' – ' . ($is_de ? 'Datenschutzerklärung' : 'Privacy Policy');
+$assetBase = '';
+$extraHead = <<<HTML
     <style>
-        *, *::before, *::after { font-family: 'Quicksand', sans-serif; }
-        h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
-
-        #gradientbar {
-            height: 4px;
-            background: linear-gradient(90deg, #9333ea, #ec4899, #eab308, #9333ea);
-            background-size: 300% 100%;
-            animation: gradient-move 8s ease infinite;
-        }
-        @keyframes gradient-move {
-            0%   { background-position: 0% 50%; }
-            50%  { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
         @keyframes fadein {
             from { opacity: 0; transform: translateY(12px); }
             to   { opacity: 1; transform: translateY(0); }
@@ -55,7 +30,7 @@ $is_de = $current_language === 'de';
             height: 2px;
             border-radius: 9999px;
             flex-shrink: 0;
-            background: linear-gradient(90deg, #9333ea, #ec4899);
+            background: linear-gradient(90deg, var(--avo-coral-700), var(--avo-coral-400));
         }
 
         .content-list {
@@ -67,32 +42,36 @@ $is_de = $current_language === 'de';
             margin: 0.5rem 0;
         }
         .content-list li {
-            color: var(--color-muted-foreground);
+            color: var(--avo-text-muted);
             font-size: 0.875rem;
             line-height: 1.625;
             padding-left: 1.25rem;
             position: relative;
         }
         .content-list li::before {
-            content: '\2022';
+            content: '\\2022';
             position: absolute;
             left: 0;
-            color: #9333ea;
+            color: var(--avo-primary);
         }
         .content-list li strong {
-            color: var(--color-foreground);
+            color: var(--avo-text);
             font-weight: 600;
         }
     </style>
-</head>
+HTML;
+?>
+<!DOCTYPE html>
+<html lang="<?php echo $current_language; ?>">
+<?php include __DIR__ . '/partials/head.php'; ?>
 <body class="bg-background text-foreground min-h-screen flex flex-col pt-1">
 
     <!-- Gradient bar -->
-    <div id="gradientbar" class="fixed top-0 left-0 right-0 z-50 w-full"></div>
+    <div class="avo-topbar fixed top-0 left-0 right-0 z-50"></div>
 
     <!-- Navigation -->
     <nav class="fixed top-1 left-0 right-0 z-40 flex items-center justify-between px-7 py-2.5"
-         style="background:rgba(10,10,15,0.78);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,0.07);">
+         style="background:color-mix(in oklab, var(--avo-bg) 80%, transparent);backdrop-filter:blur(16px);border-bottom:1px solid var(--avo-border);">
         <a href="index.php" class="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
@@ -100,13 +79,13 @@ $is_de = $current_language === 'de';
             <?php echo $is_de ? 'Zurück' : 'Back'; ?>
         </a>
 
-        <span class="absolute left-1/2 -translate-x-1/2 text-sm font-bold text-muted-foreground" style="font-family:'Syne',sans-serif">
+        <span class="absolute left-1/2 -translate-x-1/2 text-sm font-bold text-muted-foreground" style="font-family:var(--avo-font-display)">
             <?php echo $orga_name; ?>
         </span>
 
         <form method="POST">
             <button type="submit" name="language" value="<?php echo $is_de ? 'en' : 'de'; ?>"
-                class="h-8 px-3 rounded-full text-xs font-bold tracking-wider text-muted-foreground border border-white/15 bg-transparent hover:text-foreground hover:border-white/35 transition-colors cursor-pointer">
+                class="h-8 px-3 rounded-full text-xs font-bold tracking-wider text-muted-foreground border bg-transparent hover:text-foreground transition-colors cursor-pointer avo-bordered hover:border-[var(--avo-primary)]">
                 <?php echo $is_de ? '🇬🇧 EN' : '🇩🇪 DE'; ?>
             </button>
         </form>
@@ -117,14 +96,14 @@ $is_de = $current_language === 'de';
 
         <?php if ($is_de): ?>
 
-        <div class="section-label flex items-center gap-3 text-xs font-bold tracking-widest uppercase text-muted-foreground mb-1">DSGVO</div>
-        <h1 class="text-4xl font-extrabold tracking-tight mb-2" style="font-size:clamp(1.8rem,4vw,2.6rem)">Datenschutzerklärung</h1>
+        <div class="section-label flex items-center gap-3 mb-1"><span class="avo-kicker">// DSGVO</span></div>
+        <h1 class="text-4xl font-extrabold tracking-tight mb-2" style="font-size:clamp(1.8rem,4vw,2.6rem)">Daten<span class="avo-hl">schutz</span>erklärung</h1>
         <p class="text-muted-foreground text-sm mb-10 pb-8 border-b border-border">
             Gültig für den Ticketshop von <strong class="text-foreground"><?php echo $orga_name; ?></strong>
         </p>
 
         <!-- 01 -->
-        <div class="card p-6 mb-3 border-t-2 border-t-white/15">
+        <div class="card p-6 mb-3 border-t-2 avo-bordered" style="border-top-color: var(--avo-primary);">
             <h2 class="text-base font-bold flex items-center gap-2 mb-3">
                 <span class="badge badge-secondary text-xs">01</span> Verantwortlicher
             </h2>
@@ -265,14 +244,14 @@ $is_de = $current_language === 'de';
 
         <?php else: ?>
 
-        <div class="section-label flex items-center gap-3 text-xs font-bold tracking-widest uppercase text-muted-foreground mb-1">GDPR</div>
-        <h1 class="text-4xl font-extrabold tracking-tight mb-2" style="font-size:clamp(1.8rem,4vw,2.6rem)">Privacy Policy</h1>
+        <div class="section-label flex items-center gap-3 mb-1"><span class="avo-kicker">// GDPR</span></div>
+        <h1 class="text-4xl font-extrabold tracking-tight mb-2" style="font-size:clamp(1.8rem,4vw,2.6rem)">Privacy <span class="avo-hl">Policy</span></h1>
         <p class="text-muted-foreground text-sm mb-10 pb-8 border-b border-border">
             Applicable to the ticket shop of <strong class="text-foreground"><?php echo $orga_name; ?></strong>
         </p>
 
         <!-- 01 -->
-        <div class="card p-6 mb-3 border-t-2 border-t-white/15">
+        <div class="card p-6 mb-3 border-t-2 avo-bordered" style="border-top-color: var(--avo-primary);">
             <h2 class="text-base font-bold flex items-center gap-2 mb-3">
                 <span class="badge badge-secondary text-xs">01</span> Controller
             </h2>
@@ -412,22 +391,10 @@ $is_de = $current_language === 'de';
 
     </main>
 
-    <footer class="border-t border-border px-6 py-5 text-center text-xs text-muted-foreground flex flex-col items-center gap-2">
-        <div class="flex items-center gap-1.5">
-            <?php echo $orga_name; ?> &mdash; Powered by
-            <a href="https://avocloud.net" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors" style="font-family:'Syne',sans-serif;font-weight:800;letter-spacing:0.04em;">
-                <svg viewBox="0 0 100 75" fill="none" class="h-4 w-auto" aria-hidden="true">
-                    <path d="M 43 65 L 11 65 L 33 10 L 67 65 L 91 12"
-                          stroke="currentColor" stroke-width="8.5"
-                          stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                AVOCLOUD.NET
-            </a>
-        </div>
-        <a href="datenschutz.php" class="hover:text-foreground transition-colors">
-            <?php echo $is_de ? 'Datenschutzerklärung' : 'Privacy Policy'; ?>
-        </a>
-    </footer>
+    <?php
+    $orgName = $shows['orga_name'] ?? '';
+    include __DIR__ . '/partials/footer.php';
+    ?>
 
 </body>
 </html>

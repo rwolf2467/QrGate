@@ -1,0 +1,309 @@
+/* ==========================================================================
+   avocloud · design system for QrGate  (v1.0.0 — mono-first + coral, LOUD)
+   Mirrors /brand/tokens/avocloud.css and remaps Basecoat (shadcn) tokens.
+   LOAD ORDER: tailwind CDN  →  basecoat CDN  →  THIS FILE (must be last).
+   Light = :root defaults · Dark = html.dark overrides.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Quicksand:wght@300..700&display=swap');
+
+:root {
+  /* ---- coral ramp (mode-independent) ---- */
+  --avo-coral-50:  #FFEEEA;
+  --avo-coral-100: #FFD8CF;
+  --avo-coral-200: #FFB6A4;
+  --avo-coral-300: #FF9379;
+  --avo-coral-400: #FF7A5C;
+  --avo-coral-500: #FF6B4A;
+  --avo-coral-600: #ED5333;
+  --avo-coral-700: #C73D20;
+  --avo-coral-800: #9C2E16;
+  --avo-coral-900: #5F1C0D;
+
+  /* ---- semantic (mode-independent) ---- */
+  --avo-success: #46A758;
+  --avo-warning: #E0A33A;
+  --avo-error:   #DC3838;
+  --avo-info:    #3B82C4;
+
+  /* ---- roles · LIGHT (default) ---- */
+  --avo-bg:            #F2EFE6;
+  --avo-surface:       #E9E5D8;
+  --avo-border:        #DCD8CB;
+  --avo-text:          #141414;
+  --avo-text-muted:    #6B6B63;
+  --avo-primary:       #C73D20;
+  --avo-primary-hover: #ED5333;
+  --avo-primary-on:    #FFFFFF;
+  --avo-ascii:         #C73D20;
+  --avo-ascii-dim:     #6B6B63;
+  --avo-ascii-glow:    #C73D20;
+
+  /* ---- typography ---- */
+  --avo-font-display: 'Syne', sans-serif;
+  --avo-font-body:    'Quicksand', sans-serif;
+  --avo-font-mono:    ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, monospace;
+
+  /* ---- radius / space ---- */
+  --avo-radius-sm: 8px;  --avo-radius-md: 11px; --avo-radius-lg: 12px;
+  --avo-radius-xl: 18px; --avo-radius-pill: 999px;
+  --avo-space-1: 4px;  --avo-space-2: 8px;  --avo-space-3: 12px; --avo-space-4: 16px;
+  --avo-space-5: 24px; --avo-space-6: 32px; --avo-space-7: 48px; --avo-space-8: 64px;
+
+  /* ===== Basecoat (shadcn) token remap · LIGHT =====================
+     Components (btn-*, card, badge-*, input, dialog, select…) read these. */
+  --background:            var(--avo-bg);
+  --foreground:            var(--avo-text);
+  --card:                  var(--avo-surface);
+  --card-foreground:       var(--avo-text);
+  --popover:               var(--avo-surface);
+  --popover-foreground:    var(--avo-text);
+  --primary:               var(--avo-primary);
+  --primary-foreground:    #FFFFFF;
+  --secondary:             #DCD8CB;
+  --secondary-foreground:  var(--avo-text);
+  --muted:                 var(--avo-surface);
+  --muted-foreground:      var(--avo-text-muted);
+  --accent:                #DEDACD;
+  --accent-foreground:     var(--avo-text);
+  --destructive:           var(--avo-error);
+  --destructive-foreground:#FFFFFF;
+  --border:                var(--avo-border);
+  --input:                 var(--avo-border);
+  --ring:                  var(--avo-primary);
+  --radius:                0.7rem;
+
+  /* sidebar (admin dashboard) */
+  --sidebar:                    var(--avo-surface);
+  --sidebar-foreground:         var(--avo-text);
+  --sidebar-primary:            var(--avo-primary);
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent:             #DEDACD;
+  --sidebar-accent-foreground:  var(--avo-text);
+  --sidebar-border:             var(--avo-border);
+  --sidebar-ring:               var(--avo-primary);
+
+  /* back-compat aliases (legacy inline styles referenced these) */
+  --card-background:  var(--avo-surface);
+  --background-color: var(--avo-bg);
+  --text-color:       var(--avo-text);
+  --text-secondary:   var(--avo-text-muted);
+  --border-color:     var(--avo-border);
+}
+
+html.dark {
+  /* ---- roles · DARK ---- */
+  --avo-bg:            #0B0B0B;
+  --avo-surface:       #131313;
+  --avo-border:        #1E1E1E;
+  --avo-text:          #EDEDED;
+  --avo-text-muted:    #8A8A8A;
+  --avo-primary:       #FF6B4A;
+  --avo-primary-hover: #FF9379;
+  --avo-primary-on:    #0B0B0B;
+  --avo-ascii:         #FF6B4A;
+  --avo-ascii-dim:     #8A8A8A;
+  --avo-ascii-glow:    #FF6B4A;
+
+  /* ===== Basecoat token remap · DARK ===== */
+  --background:            var(--avo-bg);
+  --foreground:            var(--avo-text);
+  --card:                  var(--avo-surface);
+  --card-foreground:       var(--avo-text);
+  --popover:               var(--avo-surface);
+  --popover-foreground:    var(--avo-text);
+  --primary:               var(--avo-primary);
+  --primary-foreground:    #FFFFFF;
+  --secondary:             #1E1E1E;
+  --secondary-foreground:  var(--avo-text);
+  --muted:                 var(--avo-surface);
+  --muted-foreground:      var(--avo-text-muted);
+  --accent:                #232323;
+  --accent-foreground:     var(--avo-text);
+  --destructive:           var(--avo-error);
+  --destructive-foreground:#FFFFFF;
+  --border:                var(--avo-border);
+  --input:                 var(--avo-border);
+  --ring:                  var(--avo-primary);
+
+  --sidebar:                    var(--avo-surface);
+  --sidebar-foreground:         var(--avo-text);
+  --sidebar-primary:            var(--avo-primary);
+  --sidebar-primary-foreground: #0B0B0B;
+  --sidebar-accent:             #232323;
+  --sidebar-accent-foreground:  var(--avo-text);
+  --sidebar-border:             var(--avo-border);
+  --sidebar-ring:               var(--avo-primary);
+
+  --card-background:  var(--avo-surface);
+  --background-color: var(--avo-bg);
+  --text-color:       var(--avo-text);
+  --text-secondary:   var(--avo-text-muted);
+  --border-color:     var(--avo-border);
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
+body {
+  background: var(--avo-bg);
+  color: var(--avo-text);
+  font-family: var(--avo-font-body);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+h1, h2, h3, h4 { font-family: var(--avo-font-display); font-weight: 800; }
+
+/* ==========================================================================
+   Brand components  (use directly in markup)
+   ========================================================================== */
+
+/* coral highlight — ONE key phrase per headline: <span class="avo-hl">just run</span> */
+.avo-hl { color: var(--avo-primary); }
+
+/* mono kicker / eyebrow — prefix text with "// " in markup */
+.avo-kicker {
+  display: inline-block;
+  font-family: var(--avo-font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--avo-primary);
+}
+
+/* primary button */
+.avo-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  padding: 9px 17px;
+  border-radius: var(--avo-radius-md);
+  font-family: var(--avo-font-body);
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-decoration: none;
+  background: var(--avo-coral-500);
+  color: #fff;
+  border: 1.6px solid transparent;
+  cursor: pointer;
+  transition: background 0.18s, transform 0.06s;
+}
+.avo-btn:hover { background: var(--avo-coral-600); }
+.avo-btn:active { transform: translateY(1px); }
+
+/* ghost button */
+.avo-btn-ghost {
+  background: transparent;
+  border-color: var(--avo-text);
+  color: var(--avo-text);
+}
+.avo-btn-ghost:hover { background: var(--avo-text); color: var(--avo-bg); }
+
+/* tag / badge (mono, coral) */
+.avo-tag {
+  display: inline-block;
+  font-family: var(--avo-font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 3px 9px;
+  border-radius: var(--avo-radius-pill);
+  background: var(--avo-primary);
+  color: var(--avo-primary-on);
+}
+
+/* link */
+.avo-link {
+  color: var(--avo-primary);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* card */
+.avo-card {
+  background: var(--avo-surface);
+  border: 1px solid var(--avo-border);
+  border-radius: var(--avo-radius-lg);
+  padding: var(--avo-space-4);
+}
+
+/* dashed divider */
+.avo-divider {
+  border: none;
+  border-top: 1px dashed var(--avo-border);
+  margin: var(--avo-space-5) 0;
+}
+
+/* animated gradient bar (replaces old purple/pink/gold bars) */
+.avo-topbar {
+  height: 4px; width: 100%;
+  background: linear-gradient(90deg, var(--avo-coral-700), var(--avo-coral-500), var(--avo-coral-300), var(--avo-coral-500), var(--avo-coral-700));
+  background-size: 300% 100%;
+  animation: avo-bar 8s ease infinite;
+}
+@keyframes avo-bar {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* subtle ASCII motif — mono, dim, coral glow for kicker prefixes / dividers */
+.avo-ascii {
+  font-family: var(--avo-font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  color: var(--avo-ascii-dim);
+  user-select: none;
+}
+.avo-ascii .glow { color: var(--avo-ascii-glow); }
+
+/* ==========================================================================
+   Token-backed helper utilities
+   Replace hardcoded text-white / text-gray-* / bg-#111 / border-gray-* with these.
+   ========================================================================== */
+.avo-text    { color: var(--avo-text) !important; }
+.avo-muted   { color: var(--avo-text-muted) !important; }
+.avo-on-bg   { background: var(--avo-bg) !important; }
+.avo-on-surf { background: var(--avo-surface) !important; }
+.avo-bordered{ border-color: var(--avo-border) !important; }
+.avo-coral   { color: var(--avo-primary) !important; }
+
+/* ==========================================================================
+   Theme toggle button (lives in shared footer)
+   ========================================================================== */
+.avo-theme-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px;
+  border-radius: var(--avo-radius-md);
+  border: 1px solid var(--avo-border);
+  background: var(--avo-surface);
+  color: var(--avo-text);
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
+}
+.avo-theme-toggle:hover { border-color: var(--avo-primary); color: var(--avo-primary); }
+.avo-theme-toggle .icon-sun  { display: none; }
+.avo-theme-toggle .icon-moon { display: block; }
+html.dark .avo-theme-toggle .icon-sun  { display: block; }
+html.dark .avo-theme-toggle .icon-moon { display: none; }
+
+/* ==========================================================================
+   Leftover overrides — kill retired purple/pink/gold from legacy pages
+   ========================================================================== */
+/* event/show name badge (was rgba(147,51,234,.2)/light-purple text) → coral tint */
+.show-name span,
+.show-name {
+  background-color: color-mix(in oklab, var(--avo-primary) 16%, transparent);
+  color: var(--avo-primary);
+  border-radius: var(--avo-radius-sm);
+}
+/* ticket-availability progress bar */
+.bar      { background: var(--avo-primary) !important; }
+.bar-dark { background-color: var(--avo-surface) !important; border: 1px solid var(--avo-border); }
+
+/* generic fade-in animations kept from legacy (re-declared so pages can drop them) */
+.animate-fade-in    { animation: avoFadeIn 0.5s ease-in; }
+.animate-fade-in-up { animation: avoFadeInUp 0.5s ease-out; }
+@keyframes avoFadeIn   { from { opacity: 0; } to { opacity: 1; } }
+@keyframes avoFadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }

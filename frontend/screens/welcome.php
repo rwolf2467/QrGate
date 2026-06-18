@@ -92,42 +92,42 @@ foreach ($configSlides as $slide) {
     }
 }
 ?>
+<?php
+$pageTitle = $showTitle . ' — Welcome';
+$assetBase = '../';
+$forceDark = true;
+$extraHead = '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" async>';
+?>
 <!DOCTYPE html>
 <html lang="de">
-<head>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" async>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap');
-
-        :root {
-            --bg: #0a0a0a;
-            --text-color: #ffffff;
-            --text-secondary: #9d9d9d;
-            --text-dim: #666;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Quicksand', sans-serif; }
+<?php include __DIR__ . '/../partials/head.php'; ?>
+<body>
+<style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            height: 100vh; margin: 0; background-color: var(--bg); color: var(--text-color);
+            height: 100vh; margin: 0;
             line-height: 1.6; overflow: hidden;
             background-size: 31px 31px;
-            background-image: repeating-linear-gradient(45deg, #222 0, #222 3.1px, var(--bg) 0, var(--bg) 50%);
+            background-image: repeating-linear-gradient(45deg, var(--avo-surface) 0, var(--avo-surface) 3.1px, var(--avo-bg) 0, var(--avo-bg) 50%);
             background-attachment: fixed;
         }
 
         .orga-name-span {
-            padding: 2px 8px; background-color: rgba(255,255,255,0.08);
-            border-radius: 4px; color: #ddd;
+            padding: 2px 8px; background-color: color-mix(in oklab, var(--avo-primary) 16%, transparent);
+            border-radius: 4px; color: var(--avo-primary);
         }
 
         #gradientbar {
-            height: 20px; background: #555; width: 100%;
+            height: 20px; width: 100%;
             position: fixed; top: 0; z-index: 2;
+            background: linear-gradient(90deg, var(--avo-coral-700), var(--avo-coral-500), var(--avo-coral-300), var(--avo-coral-500), var(--avo-coral-700));
+            background-size: 300% 100%;
+            animation: avo-bar 8s ease infinite;
         }
         #progressbar {
-            height: 20px; background-color: #e2e2e2; border-radius: 0 0 10px 10px;
+            height: 20px; background-color: var(--avo-primary); border-radius: 0 0 10px 10px;
             position: fixed; top: 0; left: 0; width: 0; z-index: 3;
             transition: none;
         }
@@ -137,10 +137,11 @@ foreach ($configSlides as $slide) {
 
         .welcome-text {
             position: relative; width: 100%; text-align: center; margin: 0;
-            font-size: 5em; color: var(--text-color); animation: fadeIn 2s ease forwards;
+            font-size: 5em; color: var(--avo-text); animation: fadeIn 2s ease forwards;
+            font-family: var(--avo-font-display);
         }
-        .welcome-text i.slide-icon { margin-right: 10px; color: var(--text-color); font-size: 1.2em; }
-        .show-subtitle { font-size: 0.5em; color: var(--text-secondary); }
+        .welcome-text i.slide-icon { margin-right: 10px; color: var(--avo-primary); font-size: 1.2em; }
+        .show-subtitle { font-size: 0.5em; color: var(--avo-text-muted); }
 
         .language-switcher {
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
@@ -152,7 +153,7 @@ foreach ($configSlides as $slide) {
         footer {
             position: fixed; bottom: 0; width: 100%; text-align: center;
             display: flex; flex-direction: column; align-items: center;
-            padding: 10px; color: var(--text-secondary); font-size: 1.3em;
+            padding: 10px; color: var(--avo-text-muted); font-size: 1.3em;
         }
         .logo {
             bottom: 0; right: 0; margin: 30px; position: fixed; z-index: 2;
@@ -217,10 +218,11 @@ foreach ($configSlides as $slide) {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
         .cast-heading {
-            font-size: 3.5em; font-weight: 600; color: rgba(255,255,255,0.75);
+            font-size: 3.5em; font-weight: 600; color: var(--avo-text);
+            font-family: var(--avo-font-display);
             text-align: center; margin-bottom: 1rem; letter-spacing: 0.05em;
         }
-        .cast-heading i.slide-icon { margin-right: 12px; font-size: 0.85em; }
+        .cast-heading i.slide-icon { margin-right: 12px; font-size: 0.85em; color: var(--avo-primary); }
 
         .cast-stage {
             position: relative; width: 90vw; max-height: 68vh; flex: 1;
@@ -240,24 +242,24 @@ foreach ($configSlides as $slide) {
 
         .cast-img {
             width: 22vh; height: 22vh; border-radius: 50%; object-fit: cover;
-            border: 3px solid rgba(255,255,255,0.12);
+            border: 3px solid var(--avo-border);
             box-shadow: 0 8px 40px rgba(0,0,0,0.5);
         }
         .cast-placeholder-circle {
             width: 22vh; height: 22vh; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            background: rgba(255,255,255,0.04);
-            border: 3px solid rgba(255,255,255,0.1);
+            background: var(--avo-surface);
+            border: 3px solid var(--avo-border);
             box-shadow: 0 8px 40px rgba(0,0,0,0.5);
         }
-        .cast-placeholder-circle i { font-size: 5vh; color: var(--text-dim); animation: none !important; }
+        .cast-placeholder-circle i { font-size: 5vh; color: var(--avo-text-muted); animation: none !important; }
 
         .cast-name {
-            font-size: 2.8vh; font-weight: 700; color: var(--text-color);
+            font-size: 2.8vh; font-weight: 700; color: var(--avo-text);
             text-align: center; white-space: nowrap;
         }
         .cast-role {
-            font-size: 2.2vh; color: var(--text-secondary); font-style: italic;
+            font-size: 2.2vh; color: var(--avo-text-muted); font-style: italic;
             text-align: center; margin-top: -0.3rem;
         }
 
@@ -373,8 +375,6 @@ foreach ($configSlides as $slide) {
             .cast-stage[data-count="4"] .cast-card:nth-child(4) { right: 8%; }
         }
     </style>
-</head>
-<body>
     <div id="gradientbar"></div>
     <div id="progressbar"></div>
     <div class="wallpaper-div"></div>
@@ -440,10 +440,15 @@ foreach ($configSlides as $slide) {
         <?php endforeach; ?>
     </main>
 
-    <footer>
-        <hr style="width: 10%; border: 1px solid rgba(255,255,255,0.5); margin-bottom: 5px;">
-        <p>Powered by QrGate - avocloud.net</p>
-    </footer>
+    <div style="position: fixed; bottom: 0; left: 0; width: 100%; z-index: 4;">
+        <?php
+        $assetBase = '../';
+        $orgName = $orgaName;
+        $showToggle = false;
+        $privacyHref = '../datenschutz.php';
+        include __DIR__ . '/../partials/footer.php';
+        ?>
+    </div>
 
     <script>
         const languageMode = '<?php echo $languageMode; ?>';

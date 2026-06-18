@@ -161,65 +161,11 @@ $languages = [
 $current_language = $_SESSION['language'] ?? 'en';
 $lang = $languages[$current_language];
 $shows = getShows();
-?>
-<!DOCTYPE html>
-<html lang="<?php echo $current_language; ?>" class="dark">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($shows['orga_name']); ?> - <?php echo $lang['page_title']; ?></title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.10-beta.2/dist/basecoat.cdn.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.10-beta.2/dist/js/all.min.js" defer></script>
-    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400..700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" href="<?php echo API_BASE_URL; ?>/api/image/get/logo.png?t=<?php echo time(); ?>">
+$pageTitle = htmlspecialchars($shows['orga_name']) . ' - ' . $lang['page_title'];
+$assetBase = '../';
+$extraHead = <<<HTML
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap');
-
-        :root {
-            --background-color: #0a0a0a;
-            --card-background: #111111;
-            --text-color: #ffffff;
-            --text-secondary: #888888;
-            --border-color: #222222;
-        }
-
-        body {
-            font-family: 'Quicksand', sans-serif;
-        }
-
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-in;
-        }
-
-        .animate-fade-in-up {
-            animation: fadeInUp 0.5s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .show-name {
-            padding: 2px 8px;
-            background-color: rgba(147, 51, 234, 0.2);
-            border-radius: 4px;
-            color: rgb(216, 180, 254);
-        }
-
         .language-selector {
             position: fixed;
             bottom: 20px;
@@ -228,9 +174,9 @@ $shows = getShows();
         }
 
         .language-selector select {
-            background-color: var(--card-background);
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
+            background-color: var(--avo-surface);
+            color: var(--avo-text);
+            border: 1px solid var(--avo-border);
             border-radius: 4px;
             padding: 8px;
             cursor: pointer;
@@ -241,16 +187,21 @@ $shows = getShows();
             height: 28px;
             min-width: 28px;
             border-radius: 50%;
-            background-color: var(--border-color);
+            background-color: var(--avo-primary);
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
             font-size: 0.85rem;
-            color: var(--text-color);
+            color: #fff;
         }
     </style>
-</head>
+HTML;
+?>
+<!DOCTYPE html>
+<html lang="<?php echo $current_language; ?>">
+
+<?php include __DIR__ . '/../partials/head.php'; ?>
 
 <body>
     <div class="language-selector">
@@ -278,6 +229,7 @@ $shows = getShows();
             </script>
             <div class="absolute inset-0 bg-black/60"></div>
             <div class="relative z-10 text-center max-w-2xl w-full py-6 md:py-10 px-3 rounded-xl">
+                <div class="avo-kicker mb-2 animate-fade-in-up">// help</div>
                 <h1 class="text-3xl md:text-5xl font-bold mb-4 animate-fade-in-up">
                     <?php echo $lang['hero_title']; ?>
                 </h1>
@@ -308,7 +260,7 @@ $shows = getShows();
                             </svg>
                             <div>
                                 <h2 class="text-xl font-bold"><?php echo $lang['method_cash']; ?></h2>
-                                <p class="text-sm text-gray-400"><?php echo $lang['method_cash_subtitle']; ?></p>
+                                <p class="text-sm avo-muted"><?php echo $lang['method_cash_subtitle']; ?></p>
                             </div>
                         </div>
                     </header>
@@ -319,7 +271,7 @@ $shows = getShows();
                             <div class="step-number"><?php echo $index + 1; ?></div>
                             <div class="flex-1">
                                 <h3 class="font-semibold mb-1"><?php echo $step['title']; ?></h3>
-                                <p class="text-gray-400 text-sm leading-relaxed"><?php echo $step['description']; ?></p>
+                                <p class="avo-muted text-sm leading-relaxed"><?php echo $step['description']; ?></p>
                             </div>
                         </div>
                         <?php endforeach; ?>
@@ -338,7 +290,7 @@ $shows = getShows();
                             </svg>
                             <div>
                                 <h2 class="text-xl font-bold"><?php echo $lang['method_online']; ?></h2>
-                                <p class="text-sm text-gray-400"><?php echo $lang['method_online_subtitle']; ?></p>
+                                <p class="text-sm avo-muted"><?php echo $lang['method_online_subtitle']; ?></p>
                             </div>
                         </div>
                     </header>
@@ -349,7 +301,7 @@ $shows = getShows();
                             <div class="step-number"><?php echo $index + 1; ?></div>
                             <div class="flex-1">
                                 <h3 class="font-semibold mb-1"><?php echo $step['title']; ?></h3>
-                                <p class="text-gray-400 text-sm leading-relaxed"><?php echo $step['description']; ?></p>
+                                <p class="avo-muted text-sm leading-relaxed"><?php echo $step['description']; ?></p>
                             </div>
                         </div>
                         <?php endforeach; ?>
@@ -373,8 +325,8 @@ $shows = getShows();
                     <ul class="space-y-2">
                         <?php foreach ($lang['tips'] as $tip): ?>
                         <li class="flex items-start gap-2">
-                            <span class="text-gray-400 mt-1">•</span>
-                            <span class="text-gray-400 text-sm"><?php echo $tip; ?></span>
+                            <span class="avo-coral mt-1">•</span>
+                            <span class="avo-muted text-sm"><?php echo $tip; ?></span>
                         </li>
                         <?php endforeach; ?>
                     </ul>
@@ -384,27 +336,16 @@ $shows = getShows();
             <!-- Questions Section -->
             <div class="text-center py-6">
                 <h3 class="text-lg font-bold mb-2"><?php echo $lang['questions_title']; ?></h3>
-                <p class="text-gray-400 text-sm"><?php echo $lang['questions_text']; ?></p>
+                <p class="avo-muted text-sm"><?php echo $lang['questions_text']; ?></p>
             </div>
         </div>
     </div>
 
-    <footer class="border-t border-gray-800 mt-12 px-6 py-5 text-center text-xs text-gray-600 flex flex-col items-center gap-2">
-        <div class="flex items-center gap-1.5">
-            Powered by
-            <a href="https://avocloud.net" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-gray-500 hover:text-gray-300 transition-colors" style="font-family:'Syne',sans-serif;font-weight:800;letter-spacing:0.04em;">
-                <svg viewBox="0 0 100 75" fill="none" class="h-4 w-auto" aria-hidden="true">
-                    <path d="M 43 65 L 11 65 L 33 10 L 67 65 L 91 12"
-                          stroke="currentColor" stroke-width="8.5"
-                          stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                AVOCLOUD.NET
-            </a>
-        </div>
-        <a href="../datenschutz.php" class="text-gray-600 hover:text-gray-400 transition-colors">
-            <?php echo ($current_language === 'de') ? 'Datenschutzerklärung' : 'Privacy Policy'; ?>
-        </a>
-    </footer>
+    <?php
+    $orgName = $shows['orga_name'] ?? '';
+    $privacyHref = '../datenschutz.php';
+    include __DIR__ . '/../partials/footer.php';
+    ?>
 </body>
 
 </html>

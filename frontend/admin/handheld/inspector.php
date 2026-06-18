@@ -47,33 +47,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="de" class="dark">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ticket Inspector</title>
+<?php
+$pageTitle = 'Ticket Inspector';
+$assetBase = '../../';
+$extraHead = <<<'HTML'
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.10-beta.2/dist/basecoat.cdn.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.10-beta.2/dist/js/all.min.js" defer></script>
-    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400..700&display=swap" rel="stylesheet">
     <style>
-        body {
-            color: white;
-            font-family: 'Quicksand', sans-serif;
-        }
-
         @media (max-width: 640px) {
             dialog {
                 width: auto !important;
                 max-width: 90vw !important;
                 max-height: 90vh !important;
                 min-height: 50vh !important;
-                background-color: var(--card-background) !important;
-                color: var(--text-color) !important;
-                border: 1px solid var(--border-color) !important;
+                background-color: var(--avo-surface) !important;
+                color: var(--avo-text) !important;
+                border: 1px solid var(--avo-border) !important;
                 border-radius: 8px !important;
                 padding: 0 !important;
                 z-index: 1000 !important;
@@ -90,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .attempts-summary {
             margin-top: 1rem;
             padding-top: 1rem;
-            border-top: 1px solid var(--border-color);
+            border-top: 1px solid var(--avo-border);
         }
 
         .attempts-summary ul {
@@ -103,20 +91,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding: 0.5rem;
             margin: 0.25rem 0;
             border-radius: 6px;
-            background: var(--muted);
+            background: var(--avo-surface);
         }
 
         .attempts-summary li.success {
-            background: rgba(74, 198, 102, 0.2);
-            border-left: 3px solid #4caf50;
+            background: color-mix(in oklab, var(--avo-success) 20%, transparent);
+            border-left: 3px solid var(--avo-success);
         }
 
         .attempts-summary li.error {
-            background: rgba(244, 67, 54, 0.2);
-            border-left: 3px solid #f44336;
+            background: color-mix(in oklab, var(--avo-error) 20%, transparent);
+            border-left: 3px solid var(--avo-error);
         }
     </style>
-</head>
+HTML;
+?>
+<!DOCTYPE html>
+<html lang="de">
+<?php include __DIR__ . '/../../partials/head.php'; ?>
 
 <body>
     <dialog id="spinnerPopup" class="dialog w-full sm:max-w-[425px] max-h-[612px]" aria-labelledby="spinner-title"
@@ -159,11 +151,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </dialog>
 
-    <header class="bg-darker border-b border-border px-6 py-4 flex justify-between items-center">
-        <div class="flex items-center">
+    <div class="avo-topbar" aria-hidden="true"></div>
+    <header class="px-6 py-4 flex justify-between items-center" style="background: var(--avo-surface); border-bottom: 1px solid var(--avo-border);">
+        <div class="flex items-center gap-3">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                class="lucide lucide-scan-qr-code-icon lucide-scan-qr-code">
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="avo-coral"
+                style="color: var(--avo-primary);">
                 <path d="M17 12v4a1 1 0 0 1-1 1h-4" />
                 <path d="M17 3h2a2 2 0 0 1 2 2v2" />
                 <path d="M17 8V7" />
@@ -173,7 +166,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
                 <rect x="7" y="7" width="5" height="5" rx="1" />
             </svg>
-            <h1 class="text-2xl font-bold">Handheld - Ticket Inspector</h1>
+            <div>
+                <div class="avo-kicker">// handheld</div>
+                <h1 class="text-2xl font-bold">Ticket <span class="avo-hl">Inspector</span></h1>
+            </div>
         </div>
         <div class="flex items-center gap-4">
             <a href="../logout.php" class="btn-destructive">
@@ -194,7 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <header>
                 <h1>Ticket Inspector</h1>
                 <select id="appSelector" onchange="navigateToApp()"
-                    style="margin-bottom: 20px; background: var(--darker); color: white; border: 1px solid var(--border); padding: 8px; border-radius: 4px;">
+                    style="margin-bottom: 20px; background: var(--avo-surface); color: var(--avo-text); border: 1px solid var(--avo-border); padding: 8px; border-radius: 8px;">
                     <option value="inspector.php">Ticket Inspector</option>
                     <option value="index.php">Ticket Scanner</option>
                 </select>
@@ -347,7 +343,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ${data.message}
         </span>
         <div class="ticket-info">
-            <h3 class="font-bold mb-2" style="color: white;">Ticket Details:</h3>
+            <h3 class="font-bold mb-2" style="color: var(--avo-text);">Ticket Details:</h3>
             <div class="flex items-center gap-2 mb-1">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ticket">
                     <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
@@ -455,6 +451,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     </script>
+    <?php
+    $assetBase = '../../';
+    include __DIR__ . '/../../partials/footer.php';
+    ?>
 </body>
 
 </html>
