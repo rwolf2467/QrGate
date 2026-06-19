@@ -1,12 +1,18 @@
 import quart
 import config.conf as config # type: ignore
 from assets.data import load_tickets, save_tickets, load_ticket_id
-from assets.data import load_date, save_date, load_show
+from assets.data import load_date, save_date, load_show, decrement_availability
+from assets.data import release_availability, is_intent_used, mark_intent_used
 from assets.stats import log_ticket_sale
+from assets.timeutil import local_now
+import asyncio
 import os
-import json
+import hashlib
+import hmac
+from html import escape
+from werkzeug.security import safe_join
 
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, A5
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import (
@@ -16,8 +22,10 @@ from reportlab.platypus import (
     Spacer,
     Table,
     TableStyle,
+    PageBreak,
 )
 from reportlab.lib.units import inch
+import io
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -31,23 +39,371 @@ logger = Logger()
 logger.success("Ticket_manager.py loaded")
 
 
+def _authorized() -> bool:
+    """Timing-safe comparison of the Authorization header against the configured key."""
+    key = quart.request.headers.get("Authorization")
+    if not key:
+        return False
+    return hmac.compare_digest(str(key), str(config.Auth.auth_key))
+
+
+def ticket_token(tid: str) -> str:
+    """Derive a short, unguessable per-ticket access token from the secret
+    auth_key. Used to gate the otherwise-unauthenticated /codes/show and
+    /codes/pdf endpoints so tids (low-entropy, sequential-ish) can't be
+    enumerated to harvest other people's QR/PDF and present them at the gate."""
+    return hmac.new(
+        str(config.Auth.auth_key).encode(),
+        str(tid).encode(),
+        hashlib.sha256,
+    ).hexdigest()[:16]
+
+
+def _token_valid(tid: str, token: Optional[str]) -> bool:
+    """Timing-safe check that `token` matches the expected token for `tid`."""
+    if not token:
+        return False
+    return hmac.compare_digest(str(token), ticket_token(tid))
+
+
+# ---- avocloud brand palette for PDFs (mirrors frontend/assets/avocloud.css) ----
+PDF_CORAL = colors.HexColor("#C73D20")
+PDF_CORAL_LIGHT = colors.HexColor("#FFD1C6")
+PDF_INK = colors.HexColor("#141414")
+PDF_MUTED = colors.HexColor("#6B6B63")
+PDF_LINE = colors.HexColor("#DCD8CB")
+
+# A5 box-office ticket geometry
+SIMPLE_MARGIN = 26
+SIMPLE_CONTENT_W = A5[0] - 2 * SIMPLE_MARGIN
+
+# A4 public-shop ticket geometry
+STD_MARGIN = 36
+STD_CONTENT_W = A4[0] - 2 * STD_MARGIN
+
+
+def _fmt_ticket_date(d: str) -> str:
+    """ISO yyyy-mm-dd -> dd.mm.yyyy; pass through anything else (e.g. Unlimited)."""
+    if not d or d == "Unlimited":
+        return d
+    try:
+        return datetime.strptime(d, "%Y-%m-%d").strftime("%d.%m.%Y")
+    except Exception:
+        return d
+
+
+def _meaningful(s) -> bool:
+    """True if `s` is a real value (not blank / Unknown / None placeholder)."""
+    return bool(s) and str(s).strip().lower() not in ("", "unknown", "none")
+
+
+def _ensure_qr(tid: str) -> str:
+    """Make sure ./codes/{tid}.png exists; return its path."""
+    qr_image_path = f"./codes/{tid}.png"
+    if not os.path.exists(qr_image_path):
+        os.makedirs("./codes", exist_ok=True)
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,  # type: ignore
+            box_size=10,
+            border=2,
+        )
+        qr.add_data(tid)
+        qr.make(fit=True)
+        qr.make_image(fill_color="black", back_color="white").save(qr_image_path)
+    return qr_image_path
+
+
+def simple_ticket_flowables(
+    tid: str,
+    first_name: str,
+    last_name: str,
+    date: str,
+    event_time: str,
+    show_data: dict,
+):
+    """
+    Flowables for ONE box-office ticket on an A5 page, avocloud-branded:
+    coral header band, clean label/value info rows, framed QR, mono ID, footer.
+    Shared by the single-ticket PDF and the combined batch PDF so they match.
+    """
+    qr_image_path = _ensure_qr(tid)
+    base = getSampleStyleSheet()
+
+    eyebrow_style = ParagraphStyle(
+        "tf_eyebrow", parent=base["Normal"], fontName="Courier-Bold",
+        fontSize=8, textColor=PDF_CORAL_LIGHT, leading=10, spaceAfter=3,
+    )
+    title_style = ParagraphStyle(
+        "tf_title", parent=base["Normal"], fontName="Helvetica-Bold",
+        fontSize=21, textColor=colors.white, leading=24,
+    )
+    label_style = ParagraphStyle(
+        "tf_label", parent=base["Normal"], fontName="Helvetica-Bold",
+        fontSize=7.5, textColor=PDF_MUTED, leading=10,
+    )
+    value_style = ParagraphStyle(
+        "tf_value", parent=base["Normal"], fontName="Helvetica-Bold",
+        fontSize=12.5, textColor=PDF_INK, leading=15,
+    )
+    id_style = ParagraphStyle(
+        "tf_id", parent=base["Normal"], fontName="Courier-Bold",
+        fontSize=13, textColor=PDF_INK, alignment=1, leading=16,
+    )
+    note_style = ParagraphStyle(
+        "tf_note", parent=base["Normal"], fontName="Helvetica",
+        fontSize=9, textColor=PDF_MUTED, alignment=1, leading=12,
+    )
+    foot_style = ParagraphStyle(
+        "tf_foot", parent=base["Normal"], fontName="Helvetica",
+        fontSize=7.5, textColor=PDF_MUTED, alignment=1, leading=10,
+    )
+
+    els: list = []
+
+    # --- coral header band ---
+    banner = Table(
+        [[[Paragraph("// TICKET", eyebrow_style),
+           Paragraph(show_data.get("orga_name", "Event"), title_style)]]],
+        colWidths=[SIMPLE_CONTENT_W],
+    )
+    banner.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), PDF_CORAL),
+        ("LEFTPADDING", (0, 0), (-1, -1), 20),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 20),
+        ("TOPPADDING", (0, 0), (-1, -1), 18),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 18),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    els.append(banner)
+    els.append(Spacer(1, 24))
+
+    # --- info rows (label / value) ---
+    fn = str(first_name).strip() if _meaningful(first_name) else ""
+    ln = str(last_name).strip() if _meaningful(last_name) else ""
+    full_name = f"{fn} {ln}".strip()
+    rows = []
+    if full_name:                      # omit NAME row for unnamed/"Unknown" tickets
+        rows.append(("NAME", full_name))
+    date_val = _fmt_ticket_date(date) if date else ""
+    if date_val:                       # always show a date (real date or "Unlimited")
+        rows.append(("DATE", date_val))
+        if date != "Unlimited" and event_time:
+            rows.append(("TIME", event_time))
+    if rows:
+        info = Table(
+            [[Paragraph(l, label_style), Paragraph(v, value_style)] for l, v in rows],
+            colWidths=[SIMPLE_CONTENT_W * 0.26, SIMPLE_CONTENT_W * 0.74],
+        )
+        info.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING", (0, 0), (-1, -1), 7),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("LINEBELOW", (0, 0), (-1, -2), 0.5, PDF_LINE),
+        ]))
+        els.append(info)
+        els.append(Spacer(1, 28))
+
+    # --- framed QR, centered ---
+    qr_box = Table([[Image(qr_image_path, width=156, height=156)]], colWidths=[188])
+    qr_box.hAlign = "CENTER"
+    qr_box.setStyle(TableStyle([
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("BOX", (0, 0), (-1, -1), 1, PDF_LINE),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.white),
+        ("TOPPADDING", (0, 0), (-1, -1), 16),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 16),
+    ]))
+    els.append(qr_box)
+    els.append(Spacer(1, 12))
+    els.append(Paragraph(tid, id_style))
+    els.append(Spacer(1, 20))
+    els.append(Paragraph("Show this ticket at the entrance.", note_style))
+    els.append(Spacer(1, 6))
+    els.append(Paragraph("QrGate · avocloud.net", foot_style))
+    return els
+
+
+def standard_ticket_flowables(
+    tid: str,
+    first_name: str,
+    last_name: str,
+    date: str,
+    event_time: str,
+    show_data: dict,
+):
+    """
+    Flowables for the full A4 public-shop ticket, avocloud-branded:
+    coral hero band (eyebrow + event name + subtitle), a clean info card,
+    a large framed QR with mono ID, concise usage notes, and a footer.
+    Visual sibling of simple_ticket_flowables, scaled up for A4.
+    """
+    qr_image_path = _ensure_qr(tid)
+    base = getSampleStyleSheet()
+
+    eyebrow_style = ParagraphStyle(
+        "std_eyebrow", parent=base["Normal"], fontName="Courier-Bold",
+        fontSize=9, textColor=PDF_CORAL_LIGHT, leading=12, spaceAfter=4,
+    )
+    title_style = ParagraphStyle(
+        "std_title", parent=base["Normal"], fontName="Helvetica-Bold",
+        fontSize=30, textColor=colors.white, leading=34,
+    )
+    subtitle_style = ParagraphStyle(
+        "std_subtitle", parent=base["Normal"], fontName="Helvetica",
+        fontSize=12, textColor=PDF_CORAL_LIGHT, leading=16, spaceBefore=6,
+    )
+    label_style = ParagraphStyle(
+        "std_label", parent=base["Normal"], fontName="Helvetica-Bold",
+        fontSize=8.5, textColor=PDF_MUTED, leading=11,
+    )
+    value_style = ParagraphStyle(
+        "std_value", parent=base["Normal"], fontName="Helvetica-Bold",
+        fontSize=15, textColor=PDF_INK, leading=19,
+    )
+    id_style = ParagraphStyle(
+        "std_id", parent=base["Normal"], fontName="Courier-Bold",
+        fontSize=16, textColor=PDF_INK, alignment=1, leading=20,
+    )
+    note_style = ParagraphStyle(
+        "std_note", parent=base["Normal"], fontName="Helvetica",
+        fontSize=9.5, textColor=PDF_MUTED, leading=14,
+    )
+    foot_style = ParagraphStyle(
+        "std_foot", parent=base["Normal"], fontName="Helvetica",
+        fontSize=8, textColor=PDF_MUTED, alignment=1, leading=11,
+    )
+
+    els: list = []
+
+    # --- coral hero band: eyebrow + event name (+ optional subtitle) ---
+    hero_cell = [
+        Paragraph("// TICKET", eyebrow_style),
+        Paragraph(show_data.get("orga_name", "Event"), title_style),
+    ]
+    subtitle = (show_data.get("subtitle") or show_data.get("title") or "").strip()
+    if subtitle:
+        hero_cell.append(Paragraph(subtitle, subtitle_style))
+    hero = Table([[hero_cell]], colWidths=[STD_CONTENT_W])
+    hero.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), PDF_CORAL),
+        ("LEFTPADDING", (0, 0), (-1, -1), 30),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 30),
+        ("TOPPADDING", (0, 0), (-1, -1), 30),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 30),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    els.append(hero)
+    els.append(Spacer(1, 30))
+
+    # --- info card (label / value rows) ---
+    fn = str(first_name).strip() if _meaningful(first_name) else ""
+    ln = str(last_name).strip() if _meaningful(last_name) else ""
+    full_name = f"{fn} {ln}".strip()
+    rows = []
+    if full_name:                      # omit NAME row for unnamed/"Unknown" tickets
+        rows.append(("NAME", full_name))
+    date_val = _fmt_ticket_date(date) if date else ""
+    if date_val:                       # always show a date (real date or "Unlimited")
+        rows.append(("DATE", date_val))
+        if date != "Unlimited" and event_time:
+            rows.append(("TIME", event_time))
+    if rows:
+        info = Table(
+            [[Paragraph(l, label_style), Paragraph(v, value_style)] for l, v in rows],
+            colWidths=[STD_CONTENT_W * 0.22, STD_CONTENT_W * 0.78],
+        )
+        info.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F2EFE6")),
+            ("BOX", (0, 0), (-1, -1), 1, PDF_LINE),
+            ("TOPPADDING", (0, 0), (-1, -1), 13),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 13),
+            ("LEFTPADDING", (0, 0), (-1, -1), 22),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 22),
+            ("LINEBELOW", (0, 0), (-1, -2), 0.5, PDF_LINE),
+        ]))
+        els.append(info)
+        els.append(Spacer(1, 32))
+
+    # --- large framed QR, centered, with mono ID ---
+    qr_box = Table([[Image(qr_image_path, width=200, height=200)]], colWidths=[244])
+    qr_box.hAlign = "CENTER"
+    qr_box.setStyle(TableStyle([
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("BOX", (0, 0), (-1, -1), 1, PDF_LINE),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.white),
+        ("TOPPADDING", (0, 0), (-1, -1), 20),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 20),
+    ]))
+    els.append(qr_box)
+    els.append(Spacer(1, 14))
+    els.append(Paragraph(tid, id_style))
+    els.append(Spacer(1, 30))
+
+    # --- usage notes ---
+    notes = [
+        "Have this QR code ready at the entrance — it will be scanned and validated on entry.",
+        "Each ticket is valid for a single entry and only on the date shown above. "
+        "To re-enter, ask for a stamp or wristband at the exit.",
+    ]
+    for n in notes:
+        els.append(Paragraph(n, note_style))
+        els.append(Spacer(1, 7))
+
+    els.append(Spacer(1, 10))
+    div = Table([[""]], colWidths=[STD_CONTENT_W])
+    div.setStyle(TableStyle([("LINEABOVE", (0, 0), (-1, -1), 0.5, PDF_LINE)]))
+    els.append(div)
+    els.append(Spacer(1, 10))
+    els.append(Paragraph("Managed by QrGate · avocloud.net", foot_style))
+    return els
+
+
 def create_ticket(app=quart.Quart):
     @app.route("/api/ticket/create", methods=["POST"])   # type: ignore
     async def create_ticket():
-        if config.Auth.auth_key != (key := quart.request.headers.get("Authorization")):
+        if not _authorized():
             return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401
         try:
             data: dict = await quart.request.get_json()
             print(data)
 
             paid: bool = data.get("paid", False)
+            # Stripe PaymentIntent id the frontend confirmed the payment with.
+            # We use it purely for replay/idempotency protection here.
+            # NOTE: full webhook-based verification (verifying the Stripe
+            # webhook signature + intent status server-side) is the
+            # recommended next step and is out of scope for this pass.
+            payment_intent_id: Optional[str] = data.get("payment_intent_id")
             valid_date: str = str(data.get("valid_date"))
             first_name: str = str(data.get("first_name"))
             last_name: str = str(data.get("last_name"))
             email: str = str(data.get("email"))
-            tickets: int = data.get("tickets", 1) 
+            try:
+                tickets: int = int(data.get("tickets", 1))
+            except (TypeError, ValueError):
+                return (
+                    quart.jsonify(
+                        {"status": "error", "message": "Invalid ticket quantity"}
+                    ),
+                    400,
+                )
+            # Guard against zero/negative quantities that would otherwise
+            # *increase* the available count (oversell) below.
+            if tickets < 1:
+                return (
+                    quart.jsonify(
+                        {"status": "error", "message": "Invalid ticket quantity"}
+                    ),
+                    400,
+                )
             add_people: list = data.get("add_people", [])
-            t_type: str = str(data.get("type", "visitor")) 
+            t_type: str = str(data.get("type", "visitor"))
             date = load_date(valid_date)
             if not date:
                 return (
@@ -57,53 +413,70 @@ def create_ticket(app=quart.Quart):
                     400,
                 )
 
-            tickets_available = int(date["tickets_available"])
-            if tickets > tickets_available:
+            # --- payment idempotency (paid public flow) -----------------
+            # If this is a paid order tied to a Stripe PaymentIntent, make
+            # sure that intent has not already been consumed by a previous
+            # (possibly replayed) request. The cheap pre-check below is a
+            # fast-path; the real, race-safe guard is the atomic
+            # mark_intent_used() *after* the order is created.
+            enforce_intent = bool(paid) and bool(payment_intent_id)
+            if enforce_intent:
+                if await asyncio.to_thread(is_intent_used, payment_intent_id):
+                    return (
+                        quart.jsonify(
+                            {"status": "error", "message": "payment_already_used"}
+                        ),
+                        409,
+                    )
+
+            # Atomically reserve the seats so two concurrent buyers can't
+            # oversell the same date (single-statement guarded UPDATE).
+            if not await asyncio.to_thread(decrement_availability, valid_date, tickets):
                 return (
                     quart.jsonify(
                         {"status": "error", "message": "Not enough tickets available"}
                     ),
-                    400,
+                    409,
                 )
 
-            date["tickets_available"] -= tickets
-            save_date(valid_date, date)
+            # Everything after the (committed) seat reservation must give the
+            # seats back if it throws, otherwise capacity leaks with no ticket.
+            try:
+                price_per_ticket = float(date["price"])
+                amount = price_per_ticket * tickets
 
-            
-            price_per_ticket = float(date["price"])
-            log_ticket_sale(valid_date, tickets, price_per_ticket)
+                # Atomically consume the PaymentIntent BEFORE issuing tickets.
+                # If another concurrent/replayed request already consumed it,
+                # mark_intent_used returns False -> treat as a duplicate and
+                # bail out (rolling back the seats we just reserved) so a paid
+                # intent yields exactly one ticket-order.
+                if enforce_intent:
+                    main_tid = generate_ticket_id(valid_date)
+                    newly = await asyncio.to_thread(
+                        mark_intent_used, payment_intent_id, main_tid, amount
+                    )
+                    if not newly:
+                        await asyncio.to_thread(
+                            release_availability, valid_date, tickets
+                        )
+                        return (
+                            quart.jsonify(
+                                {"status": "error", "message": "payment_already_used"}
+                            ),
+                            409,
+                        )
+                else:
+                    main_tid = generate_ticket_id(valid_date)
 
-            tid = generate_ticket_id(valid_date)
-            ticket = {
-                "tid": tid,
-                "first_name": first_name,
-                "last_name": last_name,
-                "email": email,
-                "paid": paid,
-                "valid_date": valid_date,
-                "type": t_type,
-                "valid": paid,
-                "used_at": None,
-                "access_attempts": [],
-            }
-            save_tickets(tid, ticket)
+                log_ticket_sale(valid_date, tickets, price_per_ticket)
 
-            await send_email(
-                first_name,
-                last_name,
-                email,
-                tid,
-                paid,
-                date=valid_date,
-                event_time=date["time"],
-            )
+                created_tids: List[str] = []
 
-            for person in add_people:
-                tid = generate_ticket_id(valid_date)
+                tid = main_tid
                 ticket = {
                     "tid": tid,
-                    "first_name": person,
-                    "last_name": "",
+                    "first_name": first_name,
+                    "last_name": last_name,
                     "email": email,
                     "paid": paid,
                     "valid_date": valid_date,
@@ -112,16 +485,58 @@ def create_ticket(app=quart.Quart):
                     "used_at": None,
                     "access_attempts": [],
                 }
-                save_tickets(tid, ticket)
+                await asyncio.to_thread(save_tickets, tid, ticket)
+                created_tids.append(tid)
 
+                for person in add_people:
+                    tid = generate_ticket_id(valid_date)
+                    ticket = {
+                        "tid": tid,
+                        "first_name": person,
+                        "last_name": "",
+                        "email": email,
+                        "paid": paid,
+                        "valid_date": valid_date,
+                        "type": t_type,
+                        "valid": paid,
+                        "used_at": None,
+                        "access_attempts": [],
+                    }
+                    await asyncio.to_thread(save_tickets, tid, ticket)
+                    created_tids.append(tid)
+            except Exception:
+                # Roll back the reserved seats so a mid-flight failure does not
+                # silently burn capacity with no ticket issued, then re-raise.
+                await asyncio.to_thread(release_availability, valid_date, tickets)
+                raise
+
+            # Tickets are persisted; emailing must NOT be able to lose a paid
+            # ticket. A slow/broken mail server only costs the email, never
+            # the (already committed) order.
+            try:
                 await send_email(
-                    person,
-                    "",
+                    first_name,
+                    last_name,
                     email,
-                    tid,
+                    main_tid,
                     paid,
                     date=valid_date,
                     event_time=date["time"],
+                )
+                for tid, person in zip(created_tids[1:], add_people):
+                    await send_email(
+                        person,
+                        "",
+                        email,
+                        tid,
+                        paid,
+                        date=valid_date,
+                        event_time=date["time"],
+                    )
+            except Exception as mail_err:
+                logger.error(
+                    f"Ticket created but email delivery failed for "
+                    f"{main_tid}: {mail_err}"
                 )
 
             return (
@@ -136,7 +551,7 @@ def create_ticket(app=quart.Quart):
 
     @app.route("/api/ticketflow/create", methods=["POST"])   # type: ignore
     async def create_ticket_flow():
-        if config.Auth.auth_key != (key := quart.request.headers.get("Authorization")):
+        if not _authorized():
             return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401
 
         data: dict = await quart.request.get_json()
@@ -156,9 +571,25 @@ def create_ticket(app=quart.Quart):
         first_name: str = first_name_input if first_name_input else "Unknown"
         last_name: str = last_name_input if last_name_input else "Unknown"
         email: Optional[str] = email_input if email_input else None
-        tickets: int = tickets_input if tickets_input else 1
+        try:
+            tickets: int = int(tickets_input) if tickets_input else 1
+        except (TypeError, ValueError):
+            return (
+                quart.jsonify({"status": "error", "message": "Invalid ticket quantity"}),
+                400,
+            )
+        # Guard against zero/negative quantities that would otherwise
+        # *increase* the available count (oversell) below.
+        if tickets < 1:
+            return (
+                quart.jsonify({"status": "error", "message": "Invalid ticket quantity"}),
+                400,
+            )
 
-        
+
+        # Whether we committed a seat reservation that must be rolled back if
+        # the rest of the flow fails (kept False for admin/vip/Unlimited).
+        reserved = False
         if not valid_date or valid_date.strip() == "":
             if t_type not in ("admin", "vip"):
                 return (
@@ -172,7 +603,7 @@ def create_ticket(app=quart.Quart):
                 )
             valid_date = "Unlimited"
         else:
-            date_info:dict = load_date(valid_date) 
+            date_info:dict = load_date(valid_date)
             if t_type not in ("admin", "vip"):
                 if not date_info:
                     return (
@@ -181,7 +612,8 @@ def create_ticket(app=quart.Quart):
                         ),
                         400,
                     )
-                if tickets > int(date_info["tickets_available"]):
+                # Atomically reserve the seats to prevent concurrent oversell.
+                if not await asyncio.to_thread(decrement_availability, valid_date, tickets):
                     return (
                         quart.jsonify(
                             {
@@ -189,60 +621,83 @@ def create_ticket(app=quart.Quart):
                                 "message": "Not enough tickets available",
                             }
                         ),
-                        400,
+                        409,
                     )
-                date_info["tickets_available"] -= tickets
-                save_date(valid_date, date_info)
-                
-                
+                reserved = True
+
                 price_per_ticket = float(date_info["price"])
                 log_ticket_sale(valid_date, tickets, price_per_ticket)
 
-        
-        raw_tid = data.get("tid")
-        if raw_tid is None or str(raw_tid).strip() == "":
-            tid = generate_ticket_id(valid_date)
-        else:
-            tid = str(raw_tid).strip()
+        # Everything after the (committed) seat reservation must give the seats
+        # back if it throws, otherwise capacity leaks with no ticket issued.
+        try:
+            raw_tid = data.get("tid")
+            if raw_tid is None or str(raw_tid).strip() == "":
+                tid = generate_ticket_id(valid_date)
+            else:
+                tid = str(raw_tid).strip()
+                # Refuse to overwrite an existing ticket via a client-supplied id
+                # (would otherwise allow forging/clobbering tickets, incl. admin/vip).
+                if await asyncio.to_thread(load_ticket_id, tid) is not None:
+                    if reserved:
+                        await asyncio.to_thread(release_availability, valid_date, tickets)
+                    return (
+                        quart.jsonify(
+                            {"status": "error", "message": "Ticket ID already exists"}
+                        ),
+                        409,
+                    )
 
-        
-        ticket = {
-            "tid": tid,
-            "first_name": first_name,
-            "last_name": last_name,
-            "email": email,
-            "paid": paid,
-            "valid_date": valid_date,
-            "type": t_type,
-            "valid": paid,
-            "used_at": None,
-            "access_attempts": [],
-        }
-        print(ticket)
-        save_tickets(tid, ticket)
+            ticket = {
+                "tid": tid,
+                "first_name": first_name,
+                "last_name": last_name,
+                "email": email,
+                "paid": paid,
+                "valid_date": valid_date,
+                "type": t_type,
+                "valid": paid,
+                "used_at": None,
+                "access_attempts": [],
+            }
+            print(ticket)
+            await asyncio.to_thread(save_tickets, tid, ticket)
 
-        
-        
-        if valid_date != "Unlimited":
-            date_info_loaded = load_date(valid_date)
-            date_info: dict = date_info_loaded if date_info_loaded is not None else {"time": ""}
-        else:
-            date_info = {"time": ""}
+            if valid_date != "Unlimited":
+                date_info_loaded = await asyncio.to_thread(load_date, valid_date)
+                date_info: dict = date_info_loaded if date_info_loaded is not None else {"time": ""}
+            else:
+                date_info = {"time": ""}
 
-        event_time = date_info.get("time", "") if valid_date != "Unlimited" else ""
-        generate_ticket_pdf(tid, first_name, last_name, valid_date, event_time, variant="simple")
-
-        
-        if email:
-            await send_email(
-                first_name,
-                last_name,
-                email,
-                tid,
-                paid,
-                date=valid_date,
-                event_time=event_time,
+            event_time = date_info.get("time", "") if valid_date != "Unlimited" else ""
+            await asyncio.to_thread(
+                generate_ticket_pdf, tid, first_name, last_name, valid_date,
+                event_time, "simple",
             )
+        except Exception:
+            # Roll back the reserved seats so a mid-flight failure does not
+            # silently burn capacity with no ticket issued, then re-raise.
+            if reserved:
+                await asyncio.to_thread(release_availability, valid_date, tickets)
+            raise
+
+        # Ticket is persisted; emailing must NOT be able to lose it. A slow or
+        # broken mail server only costs the email, never the committed ticket.
+        if email:
+            try:
+                await send_email(
+                    first_name,
+                    last_name,
+                    email,
+                    tid,
+                    paid,
+                    date=valid_date,
+                    event_time=event_time,
+                )
+            except Exception as mail_err:
+                logger.error(
+                    f"Ticket {tid} created but email delivery failed: {mail_err}"
+                )
 
         return (
             quart.jsonify(
@@ -252,13 +707,61 @@ def create_ticket(app=quart.Quart):
         )
 
 
+def build_combined_simple_pdf(tids: List[str]):
+    """
+    Build ONE printable PDF holding every given ticket as its own A5 page
+    (avocloud-branded 'simple' box-office layout). Returns an io.BytesIO, or
+    None if none of the tids resolve to a stored ticket. Used by
+    /codes/pdf?tids=a,b,c so the box office prints a whole batch in one job.
+    """
+    tickets = load_tickets()
+    show_data = load_show()
+
+    elements: list = []
+    found = 0
+    for tid in tids:
+        ticket = tickets.get(tid)
+        if not ticket:
+            continue
+
+        first_name = ticket.get("first_name", "") or ""
+        last_name = ticket.get("last_name", "") or ""
+        date = ticket.get("valid_date", "") or ""
+        event_time = ""
+        if date and date != "Unlimited":
+            di = load_date(date)
+            event_time = di.get("time", "") if di else ""
+
+        if found > 0:
+            elements.append(PageBreak())
+        elements.extend(
+            simple_ticket_flowables(
+                tid, first_name, last_name, date, event_time, show_data
+            )
+        )
+        found += 1
+
+    if found == 0:
+        return None
+
+    buf = io.BytesIO()
+    pdf = SimpleDocTemplate(
+        buf, pagesize=A5,
+        rightMargin=SIMPLE_MARGIN, leftMargin=SIMPLE_MARGIN,
+        topMargin=SIMPLE_MARGIN, bottomMargin=SIMPLE_MARGIN,
+    )
+    pdf.build(elements)
+    buf.seek(0)
+    return buf
+
+
 def generate_ticket_pdf(
     tid: str,
     first_name: str,
     last_name: str,
     date: str,
     event_time: str,
-    variant: str = "standard",  
+    variant: str = "standard",
 ):
     """
     Generates a printable PDF ticket and saves it to ./codes/{tid}.pdf
@@ -291,199 +794,160 @@ def generate_ticket_pdf(
     styles = getSampleStyleSheet()
 
     if variant == "simple":
-        
-        from reportlab.lib.pagesizes import A5
-
         pdf = SimpleDocTemplate(
             pdf_filename,
             pagesize=A5,
-            rightMargin=20,
-            leftMargin=20,
-            topMargin=20,
-            bottomMargin=20,
+            rightMargin=SIMPLE_MARGIN,
+            leftMargin=SIMPLE_MARGIN,
+            topMargin=SIMPLE_MARGIN,
+            bottomMargin=SIMPLE_MARGIN,
         )
-        elements = []
-
-        
-        title = Paragraph(f"Ticket – {show_data['orga_name']}", styles["Heading1"])
-        elements.append(title)
-        elements.append(Spacer(1, 12))
-
-        
-        name = Paragraph(f"<b>Name:</b> {first_name} {last_name}", styles["Normal"])
-        tid_para = Paragraph(f"<b>ID:</b> {tid}", styles["Normal"])
-        elements.extend([name, Spacer(1, 6), tid_para, Spacer(1, 12)])
-
-        
-        if date and date != "Unlimited":
-            date_para = Paragraph(f"<b>Date:</b> {date}", styles["Normal"])
-            elements.append(date_para)
-            if event_time:
-                time_para = Paragraph(f"<b>Time:</b> {event_time}", styles["Normal"])
-                elements.append(time_para)
-            elements.append(Spacer(1, 12))
-
-        
-        note = Paragraph("Show this ticket at entrance.", styles["Normal"])
-        elements.append(note)
-        elements.append(Spacer(1, 20))
-
-        
-        elements.append(Spacer(1, 80))  
-
-        qr_image_left = Image(qr_image_path, width=80, height=80)
-        qr_image_right = Image(qr_image_path, width=80, height=80)
-
-        ticket_id = Paragraph(f"ID: {tid}", styles["Normal"])
-        name_short = Paragraph(f"{first_name} {last_name}", styles["Normal"])
-
-        date_display = Paragraph(f"Date: {date}" if date else "", styles["Normal"])
-        time_display = Paragraph(
-            f"Time: {event_time}" if event_time else "", styles["Normal"]
+        elements = simple_ticket_flowables(
+            tid, first_name, last_name, date, event_time, show_data
         )
-
-        qr_table = Table(
-            [
-                [[ticket_id, name_short], [date_display, time_display]],
-                [qr_image_left, qr_image_right],
-            ],
-            colWidths=[2.2 * inch, 2.2 * inch],
-        )
-
-        qr_table.setStyle(
-            TableStyle(
-                [
-                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                    ("GRID", (0, 0), (-1, -1), 0, colors.transparent),
-                    ("LINEBELOW", (0, 0), (-1, 0), 0.5, colors.black),
-                    ("LINEBEFORE", (1, 0), (1, -1), 0.5, colors.black),
-                ]
-            )
-        )
-
-        elements.append(qr_table)
-        elements.append(Spacer(1, 10))
-
-        managed_by = Paragraph("QrGate - avocloud.net", styles["Normal"])
-        elements.append(managed_by)
 
     else:
-        
-        from reportlab.lib.pagesizes import A4
-
         pdf = SimpleDocTemplate(
             pdf_filename,
             pagesize=A4,
-            rightMargin=30,
-            leftMargin=30,
-            topMargin=-5,
-            bottomMargin=10,
+            rightMargin=STD_MARGIN,
+            leftMargin=STD_MARGIN,
+            topMargin=STD_MARGIN,
+            bottomMargin=STD_MARGIN,
         )
-        elements = []
-
-        banner_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "data",
-            "assets",
-            "banner.png",
+        elements = standard_ticket_flowables(
+            tid, first_name, last_name, date, event_time, show_data
         )
 
-        if os.path.exists(banner_path):
-            banner = Image(banner_path, width=8.5 * inch, height=2.5 * inch)
-            banner.hAlign = "CENTER"
-            elements.append(banner)
-            elements.append(Spacer(1, 30))
-
-        title = Paragraph(
-            f"Your ticket for the event at {show_data['orga_name']}", styles["Title"]
-        )
-        elements.append(title)
-        elements.append(Spacer(1, 30))
-
-        usage_message_1 = Paragraph(
-            "This ticket, once paid for, will allow you to go directly to the entrance. The ticket will be checked upon entry and then immediately validated.",
-            styles["Normal"],
-        )
-        elements.append(usage_message_1)
-
-        elements.append(Spacer(1, 5))
-
-        usage_message_2 = Paragraph(
-            "This ticket can only be used once. To re-enter, a stamp or ribbon is required, which will be issued at the exit on request. Please note that this ticket is only valid on the day specified.",
-            styles["Normal"],
-        )
-        elements.append(usage_message_2)
-
-        elements.append(Spacer(1, 5))
-
-        description3 = Paragraph(
-            "Children under the age stated on the website may enter free of charge.",
-            styles["Normal"],
-        )
-        elements.append(description3)
-
-        elements.append(Spacer(1, 12))
-
-        description2 = Paragraph(
-            "The QR code below is required to validate your ticket. Please have this ticket ready before entering.",
-            styles["Normal"],
-        )
-        elements.append(description2)
-
-        elements.append(Spacer(1, 20))
-
-        closing_message = Paragraph(
-            f"We wish you lots of fun during your stay at {show_data['orga_name']}.",
-            styles["Normal"],
-        )
-        elements.append(closing_message)
-        elements.append(Spacer(1, 20))
-
-        elements.append(Spacer(1, 180))
-
-        qr_image_left = Image(qr_image_path, width=100, height=100)
-        qr_image_right = Image(qr_image_path, width=100, height=100)
-
-        ticket_id = Paragraph(f"Ticket ID: {tid}", styles["Normal"])
-        name = Paragraph(f"Name: {first_name} {last_name}", styles["Normal"])
-        date_para = Paragraph(f"Date: {date}", styles["Normal"])
-        time_para = Paragraph(f"Time: {event_time}", styles["Normal"])
-
-        qr_table = Table(
-            [
-                [[ticket_id, name], [date_para, time_para]],
-                [qr_image_left, qr_image_right],
-            ],
-            colWidths=[3.5 * inch, 3.5 * inch],
-        )
-
-        qr_table.setStyle(
-            TableStyle(
-                [
-                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                    ("GRID", (0, 0), (-1, -1), 0, colors.transparent),
-                    ("LINEBELOW", (0, 0), (-1, 0), 0.5, colors.black),
-                    ("LINEBEFORE", (1, 0), (1, -1), 0.5, colors.black),
-                ]
-            )
-        )
-
-        elements.append(qr_table)
-        elements.append(Spacer(1, 20))
-
-        managed_by_style = ParagraphStyle(
-            name="ManagedBy",
-            parent=styles["Normal"],
-            alignment=1,
-        )
-        managed_by = Paragraph("Managed by QrGate - avocloud.net", managed_by_style)
-        elements.append(managed_by)
-
-    
     pdf.build(elements)
     return pdf_filename
+
+
+def _ticket_email_html(
+    *,
+    event_name: str,
+    subtitle: str,
+    headline: str,
+    status_msg: str,
+    full_name: str,
+    date_val: str,
+    event_time: str,
+    tid: str,
+    qr_url: str,
+) -> str:
+    """
+    Build an email-client-safe, avocloud-branded ticket email (table layout,
+    inline styles, no fixed positioning / CSS animations / web fonts).
+    All dynamic strings must already be HTML-escaped by the caller.
+    """
+    def _row(label: str, value: str, last: bool = False) -> str:
+        border = "" if last else "border-bottom:1px solid #DCD8CB;"
+        return (
+            "<tr>"
+            f'<td style="padding:11px 0;{border}font-family:Arial,Helvetica,sans-serif;'
+            "font-size:11px;font-weight:bold;letter-spacing:1px;color:#6B6B63;"
+            'text-transform:uppercase;vertical-align:middle;width:30%;">'
+            f"{label}</td>"
+            f'<td style="padding:11px 0;{border}font-family:Arial,Helvetica,sans-serif;'
+            'font-size:15px;font-weight:bold;color:#141414;vertical-align:middle;">'
+            f"{value}</td>"
+            "</tr>"
+        )
+
+    info: list = []
+    if full_name:
+        info.append(("NAME", full_name))
+    if date_val:
+        info.append(("DATE", date_val))
+        if date_val != "Unlimited" and event_time:
+            info.append(("TIME", event_time))
+    rows_html = "".join(
+        _row(lbl, val, last=(i == len(info) - 1)) for i, (lbl, val) in enumerate(info)
+    )
+    info_table = (
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+        'style="margin:0 0 28px 0;border-collapse:collapse;">'
+        f"{rows_html}</table>"
+        if rows_html
+        else ""
+    )
+
+    subtitle_html = (
+        f'<div style="margin-top:6px;font-family:Arial,Helvetica,sans-serif;'
+        f'font-size:13px;color:#FFD8CF;">{subtitle}</div>'
+        if subtitle
+        else ""
+    )
+
+    return f"""\
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>{event_name} · Ticket</title>
+</head>
+<body style="margin:0;padding:0;background-color:#F2EFE6;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F2EFE6;margin:0;padding:0;">
+    <tr>
+      <td align="center" style="padding:28px 12px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background-color:#FFFFFF;border:1px solid #DCD8CB;border-radius:14px;overflow:hidden;">
+
+          <!-- coral header band -->
+          <tr>
+            <td style="background-color:#C73D20;padding:34px 36px;">
+              <div style="font-family:'Courier New',Courier,monospace;font-size:12px;font-weight:bold;letter-spacing:3px;color:#FFD8CF;">// TICKET</div>
+              <div style="margin-top:8px;font-family:Arial,Helvetica,sans-serif;font-size:28px;font-weight:bold;line-height:1.15;color:#FFFFFF;">{event_name}</div>
+              {subtitle_html}
+            </td>
+          </tr>
+
+          <!-- body -->
+          <tr>
+            <td style="padding:32px 36px 8px 36px;">
+              <h1 style="margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;font-size:21px;font-weight:bold;color:#141414;">{headline}</h1>
+              <p style="margin:0 0 26px 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#6B6B63;">{status_msg}</p>
+              {info_table}
+            </td>
+          </tr>
+
+          <!-- QR -->
+          <tr>
+            <td align="center" style="padding:0 36px 8px 36px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" style="border:1px solid #DCD8CB;border-radius:12px;background-color:#FFFFFF;">
+                <tr><td style="padding:18px;">
+                  <img src="{qr_url}" alt="Ticket QR code" width="200" height="200" style="display:block;width:200px;height:200px;">
+                </td></tr>
+              </table>
+              <div style="margin:14px 0 4px 0;font-family:'Courier New',Courier,monospace;font-size:16px;font-weight:bold;letter-spacing:1px;color:#141414;">
+                <a href="{qr_url}" style="color:#141414;text-decoration:none;">{tid}</a>
+              </div>
+            </td>
+          </tr>
+
+          <!-- usage note -->
+          <tr>
+            <td style="padding:22px 36px 8px 36px;">
+              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12.5px;line-height:1.6;color:#6B6B63;">
+                Have this QR code ready at the entrance — it is scanned and validated on entry. Each ticket is valid for a single entry on the date shown above. To re-enter, ask for a stamp or wristband at the exit. Your ticket is also attached as a PDF.
+              </p>
+            </td>
+          </tr>
+
+          <!-- footer -->
+          <tr>
+            <td style="padding:18px 36px 28px 36px;border-top:1px solid #DCD8CB;">
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#6B6B63;">Managed by QrGate · avocloud.net</div>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
 
 
 async def send_email(
@@ -501,14 +965,19 @@ async def send_email(
     Automatically generates the PDF if needed.
     """
     if not email:
-        return  
+        return
+
+    # Reject addresses containing CR/LF (or stray whitespace) to prevent
+    # SMTP/email header injection via the recipient address.
+    email = str(email).strip()
+    if not email or any(c in email for c in "\r\n") or "@" not in email:
+        logger.error(f"Refusing to send email to invalid address: {email!r}")
+        return
 
     
     pdf_path = f"./codes/{tid}.pdf"
     if not os.path.exists(pdf_path):
         generate_ticket_pdf(tid, first_name, last_name, date, event_time)
-
-    qr_image_path = f"./codes/{tid}.png"
 
     message = MIMEMultipart()
     message["From"] = config.Mail.smtp_user
@@ -516,76 +985,58 @@ async def send_email(
 
     show_data = load_show()
 
+    # --- shared, escaped values for the branded template ---
+    fn = str(first_name).strip() if _meaningful(first_name) else ""
+    ln = str(last_name).strip() if _meaningful(last_name) else ""
+    full_name = escape(f"{fn} {ln}".strip())
+    date_val = escape(_fmt_ticket_date(date)) if date else ""
+    event_name = escape(str(show_data.get("orga_name", "Event")))
+    subtitle = escape(
+        str(show_data.get("subtitle") or show_data.get("title") or "").strip()
+    )
+    event_time_e = escape(str(event_time)) if event_time else ""
+    safe_tid = escape(str(tid))
+    # Include the per-ticket HMAC token so the (otherwise public) /codes/show
+    # endpoint accepts this legitimate request while rejecting tid enumeration.
+    qr_url = (
+        f"{config.API.backend_url}/codes/show?tid={tid}"
+        f"&token={ticket_token(tid)}"
+    )
+
     if type != "normal":
         message["Subject"] = (config.Mail.mail_title_paid).format(id=str(first_name))
-        html_content = f"""
-        <!DOCTYPE html>
-        <html lang="de">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>QrGate E-Mail</title>
-        </head>
-        <body style="background-color: #0a0a0a; color: #ffffff; font-family: Arial, sans-serif; line-height: 1.6;background-size: 23px 23px;background-image: repeating-linear-gradient(45deg, #222222 0, #222222 2.3000000000000003px, #0a0a0a 0, #0a0a0a 50%);background-attachment: fixed;">
-            <div style="height: 14px;background: linear-gradient(90deg, #9333ea, #ec4899, #eab308);width: 100%;position: fixed;top: 0;z-index: 1000;background-size: 200% 200%;animation: gradient 10s ease infinite;"></div>
-            <table width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                    <td align="center">
-                        <h1 style="font-size: 3.5rem; color: #ffffff;">Your QrGate Ticket <span style="background-color: rgba(147, 51, 234, 0.2);padding: 2px 8px;color: rgb(216, 180, 254);border-radius: 4px;transition: all 0.3s ease;">has been paid</span></h1>
-                        <p style="color: #888888;">Your ticket has been paid for on site. This email serves as confirmation that your ticket has been paid for.</p>
-                        <p style="color: #888888;">Below and in the attachment you will find your ticket again. Use the QrCode to get through the entrance.</p>
-                        <p style="color: #888888;">This ticket is for <span style="background-color: rgba(234, 176, 51, 0.2);padding: 2px 8px;color: rgb(255, 176, 112);border-radius: 4px;transition: all 0.3s ease;">{first_name} {last_name}</span>.</p>
-                        <p style="color: #888888;">The QR code below is required to validate your ticket. Please have this ticket ready before entering.</p>
-                        <img src="{config.API.backend_url}/codes/show?tid={tid}" alt="QR-Code" style="width: 200px; height: 200px; border: 4px solid #222222; border-radius: 8px;">
-                        <p style="color: #888888; font-size: small;"><a href="{config.API.backend_url}/codes/show?tid={tid}">{tid}</a></p>
-                        <p style="color: #888888;">This ticket can only be used once. To re-enter, a stamp or ribbon is required, which will be issued at the exit on request.<br>We wish you lots of fun during your stay.</p>
-                        <br>
-                        <p style="color: #888888; font-size: small;">Managed by Qr-Gate - avocloud.net</p>
-                    </td>
-                </tr>
-            </table>
-        </body>
-        </html>
-        """
+        headline = 'Your ticket has been <span style="color:#C73D20;">paid</span>'
+        status_msg = (
+            "Your ticket was paid for on site — this email confirms the payment. "
+            "Your ticket below (and the attached PDF) is ready for entry."
+        )
     else:
         message["Subject"] = (config.Mail.mail_title).format(id=str(first_name))
-        paid_message_html = (
-            "Your ticket is paid and ready to use."
-            if paid
-            else """As your ticket <span style="background-color: rgba(234, 51, 51, 0.2);padding: 2px 8px;color: rgb(254, 180, 180);border-radius: 4px;transition: all 0.3s ease;">has not yet been paid</span> for, it cannot yet be used. We therefore ask you to pay for your tickets on the day of the event at the entrence in order to activate it"""
-        )
-        html_content = f"""
-        <!DOCTYPE html>
-        <html lang="de">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>QrGate E-Mail</title>
-        </head>
-        <body style="background-color: #0a0a0a; color: #ffffff; font-family: Arial, sans-serif; line-height: 1.6;background-size: 23px 23px;background-image: repeating-linear-gradient(45deg, #222222 0, #222222 2.3000000000000003px, #0a0a0a 0, #0a0a0a 50%);background-attachment: fixed;">
-            <div style="height: 14px;background: linear-gradient(90deg, #9333ea, #ec4899, #eab308);width: 100%;position: fixed;top: 0;z-index: 1000;background-size: 200% 200%;animation: gradient 10s ease infinite;"></div>
-            <table width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                    <td align="center">
-                        <h1 style="font-size: 3.5rem; color: #ffffff;">Your QrGate <span style="background-color: rgba(147, 51, 234, 0.2);padding: 2px 8px;color: rgb(216, 180, 254);border-radius: 4px;transition: all 0.3s ease;">Ticket</span></h1>
-                        <p style="color: #888888;">{paid_message_html}</p>
-                        <p style="color: #888888;">This ticket is for <span style="background-color: rgba(234, 176, 51, 0.2);padding: 2px 8px;color: rgb(255, 176, 112);border-radius: 4px;transition: all 0.3s ease;">{first_name} {last_name}</span>.</p>
-                        <p style="color: #888888;">The QR code below is required to validate your ticket. Please have this ticket ready before entering.</p>
-                        <img src="{config.API.backend_url}/codes/show?tid={tid}" alt="QR-Code" style="width: 200px; height: 200px; border: 4px solid #222222; border-radius: 8px;">
-                        <p style="color: #888888; font-size: small;"><a href="{config.API.backend_url}/codes/show?tid={tid}">{tid}</a></p>
-                        <p style="color: #888888;">This ticket can only be used once. To re-enter, a stamp or ribbon is required, which will be issued at the exit on request.<br>We wish you lots of fun during your stay.</p>
-                        <br>
-                        <p style="color: #888888; font-size: small;">Managed by Qr-Gate - avocloud.net</p>
-                    </td>
-                </tr>
-            </table>
-        </body>
-        </html>
-        """
+        if paid:
+            headline = 'Your ticket is <span style="color:#C73D20;">ready</span>'
+            status_msg = "Your ticket is paid and ready to use."
+        else:
+            headline = 'Your <span style="color:#C73D20;">ticket</span>'
+            status_msg = (
+                "Your ticket has not been paid yet, so it can't be used. "
+                "Please pay at the entrance on the day of the event to activate it."
+            )
+
+    html_content = _ticket_email_html(
+        event_name=event_name,
+        subtitle=subtitle,
+        headline=headline,
+        status_msg=status_msg,
+        full_name=full_name,
+        date_val=date_val,
+        event_time=event_time_e,
+        tid=safe_tid,
+        qr_url=qr_url,
+    )
 
     message.attach(MIMEText(html_content, "html"))
 
-    
+
     with open(pdf_path, "rb") as pdf_file:
         part = MIMEApplication(pdf_file.read(), Name=os.path.basename(pdf_path))
         part["Content-Disposition"] = (
@@ -593,17 +1044,28 @@ async def send_email(
         )
         message.attach(part)
 
-    
-    with smtplib.SMTP(config.Mail.smtp_server, config.Mail.smtp_port) as server:
-        server.starttls()
-        server.login(config.Mail.smtp_user, config.Mail.smtp_password)
-        server.sendmail(config.Mail.smtp_user, email, message.as_string())
+    # The whole SMTP handshake (connect/STARTTLS/login/sendmail) is blocking
+    # and can take seconds against a slow server; running it directly in this
+    # async function would freeze the entire event loop. Offload it to a worker
+    # thread so other requests keep being served. A connection timeout keeps a
+    # dead mail server from hanging the worker indefinitely.
+    raw_message = message.as_string()
+
+    def _send_blocking() -> None:
+        with smtplib.SMTP(
+            config.Mail.smtp_server, config.Mail.smtp_port, timeout=15
+        ) as server:
+            server.starttls()
+            server.login(config.Mail.smtp_user, config.Mail.smtp_password)
+            server.sendmail(config.Mail.smtp_user, email, raw_message)
+
+    await asyncio.to_thread(_send_blocking)
 
 
 def edit_ticket(app=quart.Quart):
     @app.route("/api/ticket/edit", methods=["POST"])   # type: ignore
     async def edit_ticket():
-        if config.Auth.auth_key != (key := quart.request.headers.get("Authorization")):
+        if not _authorized():
             return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401
 
         try:
@@ -675,7 +1137,7 @@ def edit_ticket(app=quart.Quart):
 def view_ticket(app=quart.Quart):
     @app.route("/api/ticket/get", methods=["GET", "POST"])    # type: ignore
     async def view_ticket():
-        if config.Auth.auth_key != (key := quart.request.headers.get("Authorization")):
+        if not _authorized():
             return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401
         try:
             data: dict = await quart.request.get_json()
@@ -713,13 +1175,46 @@ def view_ticket(app=quart.Quart):
     @app.route("/codes/show", methods=["GET"])   # type: ignore
     async def show_code():
         tid = quart.request.args.get("tid")
-        return await quart.send_file(f"./codes/{tid}.png")
+        if not tid:
+            return quart.jsonify({"error": "Missing tid"}), 400
+        # Require a valid per-ticket HMAC token so the bare (low-entropy) tid
+        # can't be enumerated to harvest other people's QR codes.
+        if not _token_valid(tid, quart.request.args.get("token")):
+            return quart.jsonify({"error": "Forbidden"}), 403
+        # Prevent path traversal: only serve files inside ./codes
+        safe_path = safe_join("./codes", f"{tid}.png")
+        if safe_path is None or not os.path.isfile(safe_path):
+            return quart.jsonify({"error": "Image not found"}), 404
+        return await quart.send_file(safe_path)
 
     @app.route("/codes/pdf", methods=["GET"])    # type: ignore
     async def show_pdf():
+        # Batch: one combined multi-page PDF for ?tids=a,b,c (box-office print job).
+        # Each tid must carry its token in a parallel ?tokens=t1,t2,t3 list so the
+        # batch endpoint can't be used to enumerate arbitrary tickets either.
+        tids_param = quart.request.args.get("tids")
+        if tids_param:
+            tids = [t.strip() for t in tids_param.split(",") if t.strip()]
+            tokens_param = quart.request.args.get("tokens", "")
+            tokens = [t.strip() for t in tokens_param.split(",")]
+            if len(tokens) != len(tids) or not all(
+                _token_valid(t, tok) for t, tok in zip(tids, tokens)
+            ):
+                return quart.jsonify({"error": "Forbidden"}), 403
+            buf = build_combined_simple_pdf(tids)
+            if buf is None:
+                return quart.jsonify({"error": "PDF not found"}), 404
+            return quart.Response(buf.getvalue(), mimetype="application/pdf")
+
         tid = quart.request.args.get("tid")
-        pdf_path = f"./codes/{tid}.pdf"
-        if os.path.exists(pdf_path):
+        if not tid:
+            return quart.jsonify({"error": "Missing tid"}), 400
+        # Require a valid per-ticket HMAC token (see /codes/show).
+        if not _token_valid(tid, quart.request.args.get("token")):
+            return quart.jsonify({"error": "Forbidden"}), 403
+        # Prevent path traversal: only serve files inside ./codes
+        pdf_path = safe_join("./codes", f"{tid}.pdf")
+        if pdf_path is not None and os.path.isfile(pdf_path):
             return await quart.send_file(pdf_path, mimetype="application/pdf")
         else:
             return quart.jsonify({"error": "PDF not found"}), 404
@@ -730,8 +1225,7 @@ def get_available_tickets(app=quart.Quart):
     async def available_tickets(show_id):
         try:
 
-            with open("backend/data/shows.json", "r") as f:
-                shows_data = json.load(f)
+            shows_data = load_show()
 
             if show_id not in shows_data["dates"]:
                 return (
@@ -752,10 +1246,15 @@ def get_available_tickets(app=quart.Quart):
 
 
 def generate_ticket_id(valid_date):
-    date_parts = valid_date.split("-")
-    year = date_parts[0]
-    month = date_parts[1]
-    day = date_parts[2]
+    date_parts = str(valid_date or "").split("-")
+    if len(date_parts) == 3 and all(date_parts):
+        year, month, day = date_parts[0], date_parts[1], date_parts[2]
+    else:
+        # Dateless tickets (admin/vip -> "Unlimited") have no YYYY-MM-DD to
+        # derive the prefix from; fall back to today's local date so the ID
+        # keeps the YYYY-DDMM-XXXX format and stays unique.
+        today = local_now().date()
+        year, month, day = f"{today.year:04d}", f"{today.month:02d}", f"{today.day:02d}"
 
     letters = string.ascii_uppercase
     digits = string.digits

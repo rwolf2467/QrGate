@@ -9,7 +9,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $password = $_POST['password'] ?? '';
         $redirect = $_GET['redirect'] ?? 'admin';
 
-        if ($password === ADMIN_PASSWORD) {
+        if (hash_equals(ADMIN_PASSWORD, $password)) {
+            // prevent session fixation: issue a fresh session id on login
+            session_regenerate_id(true);
             $_SESSION['admin'] = true;
 
             if ($redirect === 'ticketflow') {
@@ -22,11 +24,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Location: index.php');
             }
             exit;
-        } elseif ($password === TICKETFLOW_PASSWORD) {
+        } elseif (hash_equals(TICKETFLOW_PASSWORD, $password)) {
+            session_regenerate_id(true);
             $_SESSION['ticketflow_access'] = true;
             header('Location: ticketflow/index.php');
             exit;
-        } elseif ($password === HANDHELD_PASSWORD) {
+        } elseif (hash_equals(HANDHELD_PASSWORD, $password)) {
+            session_regenerate_id(true);
             $_SESSION['handheld_access'] = true;
             header('Location: handheld/index.php');
             exit;

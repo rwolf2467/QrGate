@@ -48,108 +48,118 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $pageTitle = 'Ticket Scanner';
 $assetBase = '../../';
+$forceDark = true; // handheld is a kiosk-style app — lock to dark
 $extraHead = <<<'HTML'
-    <!-- PWA Manifest -->
+    <link rel="stylesheet" href="./handheld.css">
+    <style>
+        /* connectivity pill — always visible so door staff can see the door's
+           link health at a glance. Hint only; never affects ticket verdicts. */
+        .hh-net {
+            display: inline-flex; align-items: center; gap: 6px;
+            height: 42px; padding: 0 12px;
+            border-radius: var(--avo-radius-pill);
+            border: 1px solid var(--avo-border);
+            background: var(--avo-surface);
+            font-size: 0.72rem; font-weight: 700; line-height: 1;
+            white-space: nowrap; flex-shrink: 0;
+        }
+        .hh-net__dot {
+            width: 9px; height: 9px; border-radius: 999px;
+            background: var(--avo-text-muted); flex-shrink: 0;
+        }
+        .hh-net.is-online {
+            color: var(--avo-success);
+            border-color: color-mix(in oklab, var(--avo-success) 45%, var(--avo-border));
+        }
+        .hh-net.is-online .hh-net__dot { background: var(--avo-success); }
+        .hh-net.is-offline {
+            color: var(--avo-error);
+            border-color: color-mix(in oklab, var(--avo-error) 50%, var(--avo-border));
+        }
+        .hh-net.is-offline .hh-net__dot { background: var(--avo-error); }
+        .hh-net.is-reconnecting {
+            color: #d98a00;
+            border-color: color-mix(in oklab, #d98a00 50%, var(--avo-border));
+        }
+        .hh-net.is-reconnecting .hh-net__dot {
+            background: #d98a00; animation: hh-net-pulse 0.9s ease-in-out infinite;
+        }
+        @keyframes hh-net-pulse { 50% { opacity: 0.25; } }
+
+        /* dock extras: manual entry + auto-advance toggle */
+        .hh-dock__extras { display: flex; flex-direction: column; gap: 10px; }
+        .hh-manual {
+            display: none; gap: 8px; align-items: stretch;
+        }
+        .hh-manual.show { display: flex; }
+        .hh-manual__input {
+            flex: 1 1 auto; min-width: 0;
+            padding: 12px 14px;
+            border: 1px solid var(--avo-border);
+            border-radius: var(--avo-radius-md);
+            background: var(--avo-bg);
+            color: var(--avo-text);
+            font-family: var(--avo-font-mono); font-size: 0.95rem;
+        }
+        .hh-manual__input:focus {
+            outline: none;
+            border-color: var(--avo-primary);
+        }
+        .hh-manual__input::placeholder { color: var(--avo-text-muted); }
+        .hh-manual__btn {
+            flex: 0 0 auto;
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 0 16px;
+            border: 0; border-radius: var(--avo-radius-md);
+            background: var(--avo-primary); color: #fff;
+            font-weight: 700; font-size: 0.9rem; cursor: pointer;
+        }
+        .hh-manual__btn:active { transform: translateY(1px); }
+        .hh-aa {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            font-size: 0.72rem; font-weight: 700;
+            color: var(--avo-text-muted);
+            text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .hh-aa input { width: 16px; height: 16px; accent-color: var(--avo-primary); }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+
+    <!-- PWA -->
     <link rel="manifest" href="./manifest.json">
-    <!-- Safari PWA settings -->
     <link rel="apple-touch-icon" href="./icon-192x192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="QR Scanner">
-    <!-- Windows PWA settings -->
-    <meta name="msapplication-TileImage" content="./icon-192x192.png">
-    <meta name="msapplication-TileColor" content="#0B0B0B">
-    <!-- Register service worker -->
+    <meta name="mobile-web-app-capable" content="yes">
     <script>
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(function(registration) {
-                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                    })
-                    .catch(function(err) {
-                        console.log('ServiceWorker registration failed: ', err);
-                    });
-            });
-
-            // Listen for the 'beforeinstallprompt' event to manually trigger installation
-            let deferredPrompt;
-            window.addEventListener('beforeinstallprompt', (e) => {
-                // Prevent the mini-infobar from appearing on mobile
-                e.preventDefault();
-                // Stash the event so it can be triggered later
-                deferredPrompt = e;
-
-                // Show the install button if we want to manually trigger the installation
-                const installButton = document.createElement('button');
-                installButton.id = 'install-button';
-                installButton.textContent = 'App installieren';
-                installButton.style.position = 'fixed';
-                installButton.style.bottom = '20px';
-                installButton.style.right = '20px';
-                installButton.style.zIndex = '1000';
-                installButton.style.padding = '10px 20px';
-                installButton.style.backgroundColor = 'var(--avo-primary)';
-                installButton.style.color = '#fff';
-                installButton.style.border = 'none';
-                installButton.style.borderRadius = '11px';
-                installButton.style.cursor = 'pointer';
-                installButton.style.display = 'none'; // Initially hidden
-
-                document.body.appendChild(installButton);
-
-                installButton.addEventListener('click', () => {
-                    // Show the install prompt
-                    deferredPrompt.prompt();
-                    // Wait for the user to respond to the prompt
-                    deferredPrompt.userChoice.then((choiceResult) => {
-                        if (choiceResult.outcome === 'accepted') {
-                            console.log('User accepted the install prompt');
-                        } else {
-                            console.log('User dismissed the install prompt');
-                        }
-                        deferredPrompt = null;
-                        installButton.style.display = 'none';
-                    });
-                });
-            });
-
-            // Listen for the app installed event
-            window.addEventListener('appinstalled', () => {
-                console.log('PWA was installed');
-                const installButton = document.getElementById('install-button');
-                if (installButton) {
-                    installButton.style.display = 'none';
-                }
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('./sw.js').catch(function () {});
             });
         }
+        // PWA install — surfaces the install icon in the top bar when offered
+        let hhDeferredPrompt = null;
+        window.addEventListener('beforeinstallprompt', function (e) {
+            e.preventDefault();
+            hhDeferredPrompt = e;
+            var b = document.getElementById('hhInstall');
+            if (b) {
+                b.style.display = 'inline-flex';
+                b.onclick = function () {
+                    hhDeferredPrompt.prompt();
+                    hhDeferredPrompt.userChoice.finally(function () {
+                        hhDeferredPrompt = null;
+                        b.style.display = 'none';
+                    });
+                };
+            }
+        });
+        window.addEventListener('appinstalled', function () {
+            var b = document.getElementById('hhInstall');
+            if (b) b.style.display = 'none';
+        });
     </script>
-
-    <!--<script src="https://unpkg.com/html5-qrcode"></script>-->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-    <style>
-        @media (max-width: 640px) {
-            dialog {
-                width: auto !important;
-                max-width: 90vw !important;
-                max-height: 90vh !important;
-                min-height: 50vh !important;
-                background-color: var(--card-background) !important;
-                color: var(--text-color) !important;
-                border: 1px solid var(--border-color) !important;
-                border-radius: 8px !important;
-                padding: 0 !important;
-                z-index: 1000 !important;
-                margin: auto !important;
-            }
-
-            dialog>div {
-                max-height: calc(80vh - 4rem);
-                overflow-y: auto;
-                width: 100%;
-            }
-        }
-    </style>
 HTML;
 ?>
 <!DOCTYPE html>
@@ -158,487 +168,180 @@ HTML;
 <?php include __DIR__ . '/../../partials/head.php'; ?>
 
 <body>
-    <dialog id="spinnerPopup" class="dialog w-full sm:max-w-[425px] max-h-[612px]"
-        aria-labelledby="demo-dialog-edit-profile-title" aria-describedby="demo-dialog-edit-profile-description"
-        onclick="if (event.target === this) this.close()">
-
-
-        <div
-            class="flex min-w-0 flex-1 flex-col items-center justify-center gap-6 rounded-lg p-6 text-center text-balance md:p-12 text-neutral-800 dark:text-neutral-300">
-            <header class="flex max-w-sm flex-col items-center gap-3 text-center">
-                <div
-                    class="mb-2 bg-muted text-foreground flex size-10 shrink-0 items-center justify-center rounded-lg [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                        role="status" aria-label="Loading" class="animate-spin size-8">
-                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    <div class="hh-app">
+        <!-- top bar -->
+        <header class="hh-bar">
+            <div class="hh-bar__brand">
+                <span class="hh-bar__icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 12v4a1 1 0 0 1-1 1h-4" />
+                        <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+                        <path d="M17 8V7" />
+                        <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+                        <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+                        <path d="M7 17h.01" />
+                        <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+                        <rect x="7" y="7" width="5" height="5" rx="1" />
                     </svg>
+                </span>
+                <div>
+                    <div class="hh-bar__kicker">// handheld</div>
+                    <div class="hh-bar__title">Scanner</div>
                 </div>
-                <h3 class="text-lg font-semibold tracking-tight">Processing your request</h3>
-                <p class="text-muted-foreground text-sm/relaxed">Please wait while we process your request. Do not
-                    refresh the page.</p>
-            </header>
+            </div>
+            <div class="hh-bar__actions">
+                <span id="hhNet" class="hh-net" role="status" aria-live="polite"
+                    title="Verbindungsstatus">
+                    <span id="hhNetDot" class="hh-net__dot"></span>
+                    <span id="hhNetLabel" class="hh-net__label">Online</span>
+                </span>
+                <button id="hhInstall" class="hh-iconbtn" style="display:none" aria-label="App installieren">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7" />
+                        <path d="M12 2v12" />
+                        <path d="m8 10 4 4 4-4" />
+                    </svg>
+                </button>
+                <button id="hhTorch" class="hh-iconbtn" style="display:none" aria-label="Taschenlampe">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6c0 2-2 2-2 4v9a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-9c0-2-2-2-2-4V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1z" />
+                        <path d="M6 6h12" />
+                        <path d="M12 12v3" />
+                    </svg>
+                </button>
+                <a href="../logout.php" class="hh-iconbtn hh-iconbtn--danger" aria-label="Logout">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m16 17 5-5-5-5" />
+                        <path d="M21 12H9" />
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    </svg>
+                </a>
+            </div>
+        </header>
 
-        </div>
-
-
-    </dialog>
-    <dialog id="resultPopup" class="dialog w-full sm:max-w-[425px] max-h-[612px]">
-        <div class="max-h-[80vh] overflow-y-auto p-6">
-            <header>
-                <h3 id="successMessage"><b>Ticket valid</b></h3>
-                <h3 id="errorMessage"><b>Ticket unvalid</b></h3>
-            </header>
-            <section>
-                <div id="resultContent"></div>
-            </section>
-            <button type="button" aria-label="Close dialog" onclick="this.closest('dialog').close()">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    class="lucide lucide-x-icon lucide-x">
-                    <path d="M18 6 6 18" />
-                    <path d="m6 6 12 12" />
+        <!-- camera stage -->
+        <div class="hh-stage">
+            <div id="reader"></div>
+            <div class="hh-frame">
+                <div class="hh-frame__box">
+                    <span></span><span></span><span></span><span></span>
+                    <div class="hh-frame__laser"></div>
+                </div>
+                <div class="hh-frame__hint">QR-Code im Rahmen positionieren</div>
+            </div>
+            <div id="hhStart" class="hh-start">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m2 2 20 20" />
+                    <path d="M9 9a3 3 0 0 0 4.24 4.24" />
+                    <path d="M16.07 16.07A6.5 6.5 0 0 1 6 12V8" />
+                    <path d="M3.59 3.59A2 2 0 0 0 3 5v3" />
+                    <path d="M14 6h6a2 2 0 0 1 2 2v3" />
                 </svg>
-            </button>
-        </div>
-    </dialog>
-    <div class="avo-topbar" aria-hidden="true"></div>
-    <header class="px-6 py-4 flex justify-between items-center border-b avo-bordered avo-on-surf">
-        <div class="flex items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                class="avo-coral lucide lucide-scan-qr-code-icon lucide-scan-qr-code">
-                <path d="M17 12v4a1 1 0 0 1-1 1h-4" />
-                <path d="M17 3h2a2 2 0 0 1 2 2v2" />
-                <path d="M17 8V7" />
-                <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
-                <path d="M3 7V5a2 2 0 0 1 2-2h2" />
-                <path d="M7 17h.01" />
-                <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
-                <rect x="7" y="7" width="5" height="5" rx="1" />
-            </svg>
-            <div class="flex flex-col">
-                <span class="avo-kicker">// handheld</span>
-                <h1 class="text-2xl font-bold avo-text">Ticket <span class="avo-hl">Scanner</span></h1>
+                <h2>Kamera starten</h2>
+                <p id="hhStartMsg">Tippe, um den Scanner zu starten.</p>
+                <button id="hhStartBtn" class="hh-bigbtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="6 3 20 12 6 21 6 3" />
+                    </svg>
+                    Scanner starten
+                </button>
             </div>
         </div>
-        <div class="flex items-center gap-4">
-            <button id="install-button-header" class="btn btn-secondary" style="display:none; margin-right: 10px;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    class="lucide lucide-download">
-                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7" />
-                    <path d="M12 2v12" />
-                    <path d="m8 10 4 4 4-4" />
+
+        <!-- bottom dock -->
+        <nav class="hh-dock">
+            <div class="hh-dock__extras">
+                <!-- manual ticket-id fallback: damaged/unscannable QR, or a phone
+                     whose camera permission was denied. Goes through the SAME
+                     server validate endpoint as a scan — no client-side admit. -->
+                <div id="hhManual" class="hh-manual show">
+                    <input id="hhManualInput" class="hh-manual__input" type="text"
+                        inputmode="text" autocomplete="off" autocapitalize="characters"
+                        spellcheck="false" enterkeyhint="go"
+                        placeholder="Ticket-ID manuell eingeben" aria-label="Ticket-ID manuell eingeben">
+                    <button id="hhManualBtn" class="hh-manual__btn" type="button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" aria-hidden="true">
+                            <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
+                        </svg>
+                        Prüfen
+                    </button>
+                </div>
+                <!-- auto-advance: VALID results auto-dismiss after ~1.2s (green
+                     flash + sound kept). FAIL always waits for a manual tap. -->
+                <label class="hh-aa">
+                    <input id="hhAutoAdvance" type="checkbox">
+                    Auto-Weiter bei gültig
+                </label>
+            </div>
+            <div id="hhClock" class="hh-clock"></div>
+            <div class="hh-seg">
+                <a href="index.php" class="active">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 12v4a1 1 0 0 1-1 1h-4" /><path d="M17 3h2a2 2 0 0 1 2 2v2" /><path d="M17 8V7" />
+                        <path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M7 17h.01" />
+                        <path d="M7 21H5a2 2 0 0 1-2-2v-2" /><rect x="7" y="7" width="5" height="5" rx="1" />
+                    </svg>
+                    Scanner
+                </a>
+                <a href="inspector.php">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+                    </svg>
+                    Inspector
+                </a>
+            </div>
+        </nav>
+    </div>
+
+    <!-- result sheet -->
+    <div id="hhResult" class="hh-result">
+        <div class="hh-result__head">
+            <div id="hhResultIcon" class="hh-result__icon"></div>
+            <div id="hhResultStatus" class="hh-result__status"></div>
+            <div id="hhResultMsg" class="hh-result__msg"></div>
+        </div>
+        <div id="hhResultBody" class="hh-result__body"></div>
+        <div class="hh-result__foot">
+            <button id="hhDismiss" class="hh-bigbtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 12v4a1 1 0 0 1-1 1h-4" /><path d="M17 3h2a2 2 0 0 1 2 2v2" /><path d="M17 8V7" />
+                    <path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M7 17h.01" />
+                    <path d="M7 21H5a2 2 0 0 1-2-2v-2" /><rect x="7" y="7" width="5" height="5" rx="1" />
                 </svg>
-                Install App
+                Weiter scannen
             </button>
-            <a href="../logout.php" class="btn-destructive">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    class="lucide lucide-log-out-icon lucide-log-out">
-                    <path d="m16 17 5-5-5-5" />
-                    <path d="M21 12H9" />
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                </svg>
-                Logout
-            </a>
         </div>
-    </header>
+    </div>
+
+    <div id="hhSpinner" class="hh-spinner">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Loading">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+        </svg>
+    </div>
+    <div id="hhToast" class="hh-toast"></div>
 
     <script>
-        // Skript zum Anzeigen des Installationsbuttons im Header
-        let deferredPrompt;
-        
-        window.addEventListener('beforeinstallprompt', (e) => {
-            // Verhindere das Standardverhalten
-            e.preventDefault();
-            // Speichere das Event für später
-            deferredPrompt = e;
-            
-            // Zeige den Installationsbutton im Header
-            const installButton = document.getElementById('install-button-header');
-            if (installButton) {
-                installButton.style.display = 'inline-flex'; // Zeige den Button an
-                installButton.onclick = () => {
-                    // Zeige den Installationsdialog
-                    deferredPrompt.prompt();
-                    
-                    // Warte auf die Benutzerantwort
-                    deferredPrompt.userChoice.then((choiceResult) => {
-                        if (choiceResult.outcome === 'accepted') {
-                            console.log('Benutzer hat die Installation akzeptiert');
-                            installButton.style.display = 'none'; // Verstecke den Button nach erfolgreicher Installation
-                        } else {
-                            console.log('Benutzer hat die Installation abgelehnt');
-                        }
-                        deferredPrompt = null;
-                    });
-                };
-            }
-        });
-        
-        // Event für erfolgreiche Installation
-        window.addEventListener('appinstalled', () => {
-            console.log('PWA wurde installiert');
-            const installButton = document.getElementById('install-button-header');
-            if (installButton) {
-                installButton.style.display = 'none';
-            }
-        });
+        window.HH_CONFIG = {
+            mode: 'validate',
+            payloadKey: 'ticketId',
+            validText: 'Gültig',
+            invalidText: 'Ungültig',
+            showTimeline: false
+        };
     </script>
-    <main class="container mx-auto px-6 py-8">
-        <div class="card">
-            <header>
-                <h1>Ticket Scanner</h1>
-                <select id="appSelector" onchange="navigateToApp()"
-                    style="margin-bottom: 20px; background: var(--avo-surface); color: var(--avo-text); border: 1px solid var(--avo-border); padding: 8px; border-radius: 8px;">
-                    <option value="index.php">Ticket Scanner</option>
-                    <option value="inspector.php">Ticket Inspector</option>
-                </select>
-            </header>
-            <section>
-                <div id="currentDateTime"></div>
-                <div id="reader"></div>
-                <div id="result"></div>
-            </section>
-        </div>
-    </main>
-    <script>
-        let lastScannedCode = '';
-        let lastScanTime = 0;
-        const SCAN_COOLDOWN = 1000;
-        const SAME_SCAN_COOLDOWN = 5000;
-
-        function formatDateTime(date) {
-            return date.toLocaleTimeString('de-DE', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
-        }
-        function getLocalDateYYYYMMDD() {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
-        function onScanSuccess(decodedText) {
-            const currentTime = Date.now();
-
-
-            if (decodedText === lastScannedCode && (currentTime - lastScanTime < SAME_SCAN_COOLDOWN)) {
-                return;
-            }
-
-            lastScannedCode = decodedText;
-            lastScanTime = currentTime;
-
-
-            document.getElementById('spinnerPopup').showModal();
-
-
-            fetch(window.location.href, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    ticketId: decodedText
-                })
-            })
-                .then(response => {
-
-                    document.getElementById('spinnerPopup').close();
-                    return response.json().then(data => {
-                        if (!response.ok) {
-
-                            throw new Error(data.message || 'API-Fehler');
-                        }
-                        return data;
-                    });
-                })
-                .then(data => {
-
-                    document.getElementById('spinnerPopup').close();
-                    const resultPopup = document.getElementById('resultPopup');
-                    resultPopup.showModal();
-
-                    let resultHTML = `
-                 `;
-
-                    if (data.status === 'success') {
-                        const successAudio = new Audio('./success.mp3');
-                        successAudio.play().catch(error => {
-                            console.error('Fehler beim Abspielen von success.mp3:', error);
-                        });
-
-
-                        resultHTML += `
-         <span class="text-white text-center mb-3 text-lg font-bold flex items-center justify-center gap-2 rounded-lg px-4 py-2" style="background: var(--avo-success);">
-            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-badge-check-icon lucide-badge-check"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg>
-            ${data.message}
-         </span>
-         <div class="ticket-info">
-         <h3 class="font-bold mb-2 avo-text">Ticket Details:</h3>
-
-         <!-- Ticket ID -->
-         <div class="flex items-center gap-2 mb-1">
-         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ticket">
-         <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
-         <path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/>
-         </svg>
-         <strong>Ticket ID:</strong> ${data.data.tid}
-         </div>
-
-         <!-- Name -->
-         <div class="flex items-center gap-2 mb-1">
-         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user">
-         <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-         </svg>
-         <strong>Name:</strong> ${data.data.first_name} ${data.data.last_name}
-         </div>
-
-         <!-- Type -->
-         <div class="flex items-center gap-2 mb-1">
-         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-cog">
-         <path d="M11 10.27 7 3.34"/><path d="m11 13.73-4 6.93"/><path d="M12 22v-2"/><path d="M12 2v2"/><path d="M14 12h8"/><path d="m17 20.66-1-1.73"/><path d="m17 3.34-1 1.73"/><path d="M2 12h2"/><path d="m20.66 17-1.73-1"/><path d="m20.66 7-1.73 1"/><path d="m3.34 17 1.73-1"/><path d="m3.34 7 1.73 1"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="12" r="8"/>
-         </svg>
-         <strong>Type:</strong> ${data.data.type}
-         </div>
-
-         <!-- Paid -->
-         <div class="flex items-center gap-2 mb-1">
-         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-coins">
-         <circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/>
-         </svg>
-         <strong>Paid:</strong> ${data.data.paid ? 'Yes' : 'No'}
-         </div>
-
-         <!-- Valid Until -->
-         <div class="flex items-center gap-2 mb-1">
-         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-days">
-         <path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/>
-         </svg>
-         <strong>Valid on:</strong> ${data.data.valid_date} | <strong>Today?:</strong> ${getLocalDateYYYYMMDD() === data.data.valid_date ? 'Yes' : 'No'}
-         </div>
-
-         <!-- Used At -->
-         <div class="flex items-center gap-2 mb-1">
-         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock-4">
-         <path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="10"/>
-         </svg>
-         <strong>Used At:</strong> ${data.data.used_at || 'Not Used Yet'}
-         </div>
-
-         <!-- Attempts Summary -->
-         <div class="attempts-summary mt-3 pt-2 border-t avo-bordered">
-         <div class="flex items-center gap-2 mb-1">
-         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-log-in-icon lucide-log-in"><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/></svg>
-         <strong>Access Attempts:</strong> ${data.data.access_attempts?.length || 0}
-         </div>
-         <div class="flex items-center gap-2 mb-1">
-         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check">
-           <circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>
-         </svg>
-         <strong>Successful Attempts:</strong> ${data.data.access_attempts?.filter(a => a.status === 'success').length || 0}
-         </div>
-         <div class="flex items-center gap-2">
-         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-alert-icon lucide-circle-alert"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
-         <strong>Failed Attempts:</strong> ${data.data.access_attempts?.filter(a => a.status === 'error').length || 0}
-         </div>
-         </div>
-         </div>
-         `;
-                        resultPopup.classList.add('valid');
-                        resultPopup.classList.remove('invalid');
-
-                        document.getElementById("successMessage").innerHTML = "Ticket valid";
-                        document.getElementById("successMessage").style.display = "block";
-                        document.getElementById("errorMessage").style.display = "none";
-                    } else {
-                        const errorAudio = new Audio('./error.mp3');
-                        errorAudio.play().catch(error => {
-                            console.error('Fehler beim Abspielen von error.mp3:', error);
-                        });
-
-                        resultPopup.classList.add('invalid');
-                        resultPopup.classList.remove('valid');
-
-
-                        resultHTML += `
-         <span class="text-white text-center mb-3 text-lg font-bold flex items-center justify-center gap-2 rounded-lg px-4 py-2" style="background: var(--avo-error);">
-            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-badge-x-icon lucide-badge-x"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg>
-            ${data.message}
-         </span>
-         <div class="ticket-info">
-         <h3 class="font-bold mb-2 avo-text">Ticket Details:</h3>
-
-         <!-- Ticket ID -->
-         <div class="flex items-center gap-2 mb-1">
-         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ticket">
-         <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
-         <path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/>
-         </svg>
-         <strong>Ticket ID:</strong> ${data.data.tid}
-         </div>
-
-         <!-- Name -->
-         <div class="flex items-center gap-2 mb-1">
-         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user">
-         <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-         </svg>
-         <strong>Name:</strong> ${data.data.first_name} ${data.data.last_name}
-         </div>
-
-         <!-- Type -->
-         <div class="flex items-center gap-2 mb-1">
-         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-cog">
-         <path d="M11 10.27 7 3.34"/><path d="m11 13.73-4 6.93"/><path d="M12 22v-2"/><path d="M12 2v2"/><path d="M14 12h8"/><path d="m17 20.66-1-1.73"/><path d="m17 3.34-1 1.73"/><path d="M2 12h2"/><path d="m20.66 17-1.73-1"/><path d="m20.66 7-1.73 1"/><path d="m3.34 17 1.73-1"/><path d="m3.34 7 1.73 1"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="12" r="8"/>
-         </svg>
-         <strong>Type:</strong> ${data.data.type}
-         </div>
-
-         <!-- Paid -->
-         <div class="flex items-center gap-2 mb-1">
-         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-coins">
-         <circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/>
-         </svg>
-         <strong>Paid:</strong> ${data.data.paid ? 'Yes' : 'No'}
-         </div>
-
-         <!-- Valid Until -->
-         <div class="flex items-center gap-2 mb-1">
-         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-days">
-         <path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/>
-         </svg>
-         <strong>Valid on:</strong> ${data.data.valid_date} | <strong>Today?:</strong> ${getLocalDateYYYYMMDD() === data.data.valid_date ? 'Yes' : 'No'}
-         </div>
-
-         <!-- Used At -->
-         <div class="flex items-center gap-2 mb-1">
-         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock-4">
-         <path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="10"/>
-         </svg>
-         <strong>Used At:</strong> ${data.data.used_at || 'Not Used Yet'}
-         </div>
-
-         <!-- Attempts Summary -->
-         <div class="attempts-summary mt-3 pt-2 border-t avo-bordered">
-         <div class="flex items-center gap-2 mb-1">
-         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-log-in-icon lucide-log-in"><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/></svg>
-         <strong>Access Attempts:</strong> ${data.data.access_attempts?.length || 0}
-         </div>
-         <div class="flex items-center gap-2 mb-1">
-         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check">
-           <circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>
-         </svg>
-         <strong>Successful Attempts:</strong> ${data.data.access_attempts?.filter(a => a.status === 'success').length || 0}
-         </div>
-         <div class="flex items-center gap-2">
-         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-alert-icon lucide-circle-alert"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
-         <strong>Failed Attempts:</strong> ${data.data.access_attempts?.filter(a => a.status === 'error').length || 0}
-         </div>
-         </div>
-         </div>
-         `;
-
-
-                        document.getElementById("errorMessage").innerHTML = "Ticket unvalid";
-                        document.getElementById("errorMessage").style.display = "none";
-                        document.getElementById("successMessage").style.display = "none";
-                    }
-
-
-                    resultContent.innerHTML = resultHTML;
-                })
-                .catch(error => {
-
-                    document.getElementById('spinnerPopup').close();
-                    const errorAudio = new Audio('error.mp3');
-                    errorAudio.play().catch(error => {
-                        console.error('Fehler beim Abspielen von error.mp3:', error);
-                    });
-                    const resultPopup = document.getElementById('resultPopup');
-                    const blurBackground = document.getElementById('blurBackground');
-                    blurBackground.style.display = 'block';
-                    resultPopup.showModal();
-                    resultContent.innerHTML = `
-                     <strong><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-alert-icon lucide-circle-alert"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg> ${error.message}</strong>
-                     <div class="timestamp">Time: ${formatDateTime(new Date())}</div>
-                 `;
-
-                    resultPopup.classList.add('invalid');
-                    resultPopup.classList.remove('valid');
-                });
-        }
-
-        function closePopup() {
-            const resultPopup = document.getElementById('resultPopup');
-            const blurBackground = document.getElementById('blurBackground');
-            blurBackground.style.display = 'none';
-            resultPopup.close();
-            lastScannedCode = '';
-            lastScanTime = 0;
-        }
-
-        function updateDateTime() {
-            const now = new Date();
-            const formattedDateTime = now.toLocaleString('de-DE', {
-                dateStyle: 'short',
-                timeStyle: 'medium'
-            });
-            document.getElementById('currentDateTime').innerText = formattedDateTime;
-        }
-
-
-        setInterval(updateDateTime, 1000);
-        updateDateTime();
-
-
-        setInterval(() => {
-            const selectElement = document.getElementById('html5-qrcode-select-camera');
-            if (selectElement) {
-                document.querySelectorAll("#html5-qrcode-select-camera option").forEach(option => {
-                    if (option.textContent.includes("front")) {
-                        option.remove();
-                    }
-                });
-                selectElement.selectedIndex = 0;
-                clearInterval(this);
-            }
-        }, 1000);
-
-        const html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", {
-            fps: 1,
-            qrbox: {
-                width: 150,
-                height: 150
-            },
-            aspectRatio: 0.3,
-            rememberLastUsedCamera: true
-        }
-        );
-        html5QrcodeScanner.render(onScanSuccess);
-        setTimeout(() => {
-            html5QrcodeScanner.start();
-        }, 1500);
-
-
-        function navigateToApp() {
-            const selectedApp = document.getElementById('appSelector').value;
-            if (selectedApp) {
-                window.location.href = selectedApp;
-            }
-        }
-    </script>
-    <?php
-    $assetBase = '../../';
-    $privacyHref = '../../datenschutz.php';
-    include __DIR__ . '/../../partials/footer.php';
-    ?>
+    <script src="./scanner.js"></script>
 </body>
 
 </html>

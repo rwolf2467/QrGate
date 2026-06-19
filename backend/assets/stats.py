@@ -1,9 +1,9 @@
-import json
+import hmac
 import quart
 from typing import Dict, Any
-from datetime import datetime
 from reds_simple_logger import Logger
-from assets.data import load_show
+from assets.data import load_show, _load_stats_dict, _save_stats_dict, log_sale
+from assets.timeutil import today_iso
 import config.conf as config # type: ignore
 
 logger = Logger()
@@ -11,41 +11,31 @@ logger.success("Stats.py loaded")
 
 
 def load_stats() -> Dict[str, Any]:
-    """Load statistics from stats.json"""
+    """Load statistics from the SQLite store.
+    Shape: {"sales_by_date": {date: count}, "income_by_date": {date: amount}}."""
     try:
-        with open("data/stats.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        
+        return _load_stats_dict()
+    except Exception:
         return {"sales_by_date": {}, "income_by_date": {}}
 
 
 def save_stats(stats: Dict[str, Any]):
-    """Save statistics to stats.json"""
-    with open("data/stats.json", "w", encoding="utf-8") as f:
-        json.dump(stats, f, indent=4)
+    """Persist statistics to the SQLite store (same shape as before)."""
+    _save_stats_dict(stats)
 
 
 def log_ticket_sale(date: str, tickets_sold: int, price_per_ticket: float):
-    """Log a ticket sale to statistics"""
-    stats = load_stats()
-    
-    
-    current_date = datetime.now().strftime("%Y-%m-%d")
-    
-    if current_date in stats["sales_by_date"]:
-        stats["sales_by_date"][current_date] += tickets_sold
-    else:
-        stats["sales_by_date"][current_date] = tickets_sold
-    
-    
+    """Log a ticket sale to statistics.
+
+    Keyed by today_iso() (the event-timezone calendar date), preserving the
+    original "sales today" intent — the `date` param is intentionally ignored,
+    same as before, but now we use the timezone-aware date instead of the
+    server's naive UTC clock. Accumulation is done by the atomic data.log_sale
+    upsert so concurrent buys can't lose updates (no load -> mutate -> save
+    read-modify-write race)."""
+    current_date = today_iso()
     income = tickets_sold * price_per_ticket
-    if current_date in stats["income_by_date"]:
-        stats["income_by_date"][current_date] += income
-    else:
-        stats["income_by_date"][current_date] = income
-    
-    save_stats(stats)
+    log_sale(current_date, tickets_sold, income)
     logger.info(f"Logged sale: {tickets_sold} tickets on {current_date}, income: €{income:.2f}")
 
 
@@ -57,9 +47,10 @@ def get_statistics():
 def get_stats_api(app=quart.Quart):
     @app.route("/api/stats", methods=["GET"])   # type: ignore
     async def get_stats():
-        if config.Auth.auth_key != (key := quart.request.headers.get("Authorization")):
+        key = quart.request.headers.get("Authorization")
+        if not key or not hmac.compare_digest(str(key), str(config.Auth.auth_key)):
             return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401
-        
+
         try:
             stats = get_statistics()
             return quart.jsonify({
@@ -68,4 +59,4 @@ def get_stats_api(app=quart.Quart):
             }), 200
         except Exception as e:
             logger.error(f"Error getting stats: {str(e)}")
-            return quart.jsonify({"status": "error", "message": str(e)}), 500
+            return quart.jsonify({"status": "error", "message": "Internal server error"}), 500

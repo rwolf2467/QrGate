@@ -1,8 +1,16 @@
 import quart
-import datetime
+import hmac
+import asyncio
 import config.conf as config
 from typing import Dict, Optional
-from assets.data import load_tickets, save_tickets, load_ticket_id
+from assets.data import (
+    load_tickets,
+    save_tickets,
+    load_ticket_id,
+    mark_ticket_used,
+    append_access_attempt,
+)
+from assets.timeutil import local_now
 from reds_simple_logger import Logger
 
 logger = Logger()
@@ -13,12 +21,10 @@ def validate_ticket(app: quart.Quart):
     @app.route("/api/ticket/validate", methods=["POST", "GET"])
     async def validate_ticket():
 
-        time = datetime.datetime.now(
-            tz=datetime.timezone(datetime.timedelta(hours=config.utc_offset))
-        )
+        time = local_now()
 
         auth_key = quart.request.headers.get("Authorization")
-        if config.Auth.auth_key != auth_key:
+        if not auth_key or not hmac.compare_digest(str(auth_key), str(config.Auth.auth_key)):
             return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401
 
         try:
@@ -34,7 +40,25 @@ def validate_ticket(app: quart.Quart):
                     400,
                 )
 
-            ticket: Dict = load_ticket_id(ticket_id)
+            # Look up the ticket OFF the event loop. A genuine "no such row"
+            # returns None and falls through to the 200 "not found" denial; a
+            # real DB error (lock/transient) raises and is turned into a 500
+            # below so we never deny a valid customer because of a DB hiccup.
+            try:
+                ticket: Optional[Dict] = await asyncio.to_thread(
+                    load_ticket_id, ticket_id
+                )
+            except Exception as e:
+                app.logger.error(f"DB error loading ticket {ticket_id}: {e}")
+                return (
+                    quart.jsonify(
+                        {
+                            "status": "error",
+                            "message": "internal error, try again",
+                        }
+                    ),
+                    500,
+                )
             app.logger.debug(f"Loaded ticket: {ticket}")
 
             if not ticket:
@@ -61,16 +85,18 @@ def validate_ticket(app: quart.Quart):
                     200,
                 )
 
+            now_str = str(time.strftime("%Y.%m.%d - %H:%M:%S"))
+
             if ticket.get("type") == "admin":
                 ticket["access_attempts"].append(
                     {
                         "status": "success",
                         "type": "valid - ADMIN ACCESS",
-                        "time": str(time.strftime("%Y.%m.%d - %H:%M:%S")),
+                        "time": now_str,
                     }
                 )
-                ticket["used_at"] = str(time.strftime("%Y.%m.%d - %H:%M:%S"))
-                save_tickets(ticket_id, ticket)
+                ticket["used_at"] = now_str
+                await asyncio.to_thread(save_tickets, ticket_id, ticket)
                 return (
                     quart.jsonify(
                         {
@@ -87,11 +113,11 @@ def validate_ticket(app: quart.Quart):
                     {
                         "status": "success",
                         "type": "valid",
-                        "time": str(time.strftime("%Y.%m.%d - %H:%M:%S")),
+                        "time": now_str,
                     }
                 )
-                ticket["used_at"] = str(time.strftime("%Y.%m.%d - %H:%M:%S"))
-                save_tickets(ticket_id, ticket)
+                ticket["used_at"] = now_str
+                await asyncio.to_thread(save_tickets, ticket_id, ticket)
                 return (
                     quart.jsonify(
                         {
@@ -105,14 +131,13 @@ def validate_ticket(app: quart.Quart):
 
             if not ticket.get("paid", False):
                 logger.debug.info(f"Ticket is not paid: {ticket_id}")
-                ticket["access_attempts"].append(
-                    {
-                        "status": "error",
-                        "type": "not_paid",
-                        "time": str(time.strftime("%Y.%m.%d - %H:%M:%S")),
-                    }
-                )
-                save_tickets(ticket_id, ticket)
+                attempt = {
+                    "status": "error",
+                    "type": "not_paid",
+                    "time": now_str,
+                }
+                await asyncio.to_thread(append_access_attempt, ticket_id, attempt)
+                ticket["access_attempts"].append(attempt)
                 return (
                     quart.jsonify(
                         {
@@ -126,14 +151,13 @@ def validate_ticket(app: quart.Quart):
 
             if not ticket.get("valid", False):
                 logger.debug.info(f"Ticket is not valid: {ticket_id}")
-                ticket["access_attempts"].append(
-                    {
-                        "status": "error",
-                        "type": "already_used",
-                        "time": str(time.strftime("%Y.%m.%d - %H:%M:%S")),
-                    }
-                )
-                save_tickets(ticket_id, ticket)
+                attempt = {
+                    "status": "error",
+                    "type": "already_used",
+                    "time": now_str,
+                }
+                await asyncio.to_thread(append_access_attempt, ticket_id, attempt)
+                ticket["access_attempts"].append(attempt)
                 return (
                     quart.jsonify(
                         {
@@ -145,17 +169,16 @@ def validate_ticket(app: quart.Quart):
                     200,
                 )
 
-            valid_date = ticket.get("valid_date")
+            valid_date = str(ticket.get("valid_date") or "").strip()
 
-            if valid_date != str(time.date().isoformat()):
-                ticket["access_attempts"].append(
-                    {
-                        "status": "error",
-                        "type": "invalid_date",
-                        "time": str(time.strftime("%Y.%m.%d - %H:%M:%S")),
-                    }
-                )
-                save_tickets(ticket_id, ticket)
+            if valid_date != time.date().isoformat():
+                attempt = {
+                    "status": "error",
+                    "type": "invalid_date",
+                    "time": now_str,
+                }
+                await asyncio.to_thread(append_access_attempt, ticket_id, attempt)
+                ticket["access_attempts"].append(attempt)
                 logger.debug.info(f"Ticket is not valid today: {ticket_id}")
                 return (
                     quart.jsonify(
@@ -168,17 +191,42 @@ def validate_ticket(app: quart.Quart):
                     200,
                 )
 
-            ticket["valid"] = False
-            ticket["used_at"] = str(time.strftime("%Y.%m.%d - %H:%M:%S"))
-            ticket["access_attempts"].append(
+            used_at = now_str
+            # Atomically claim the ticket: only ONE concurrent validation can
+            # win this (used_at goes from NULL -> set in a single UPDATE).
+            if not await asyncio.to_thread(mark_ticket_used, ticket_id, used_at):
+                # Lost the race: another scan already used this ticket.
+                attempt = {
+                    "status": "error",
+                    "type": "already_used",
+                    "time": used_at,
+                }
+                await asyncio.to_thread(append_access_attempt, ticket_id, attempt)
+                logger.debug.info(f"Ticket already used (race): {ticket_id}")
+                return (
+                    quart.jsonify(
+                        {
+                            "status": "error",
+                            "message": "Ticket already used",
+                            "data": await asyncio.to_thread(load_ticket_id, ticket_id),
+                        }
+                    ),
+                    200,
+                )
+
+            # We won the claim; record the successful access attempt atomically.
+            # mark_ticket_used already set used_at and valid=0, so only append the
+            # audit entry (targeted JSON1 update, not a full-row rewrite).
+            await asyncio.to_thread(
+                append_access_attempt,
+                ticket_id,
                 {
                     "status": "success",
                     "type": "valid",
-                    "time": str(time.strftime("%Y.%m.%d - %H:%M:%S")),
-                }
+                    "time": used_at,
+                },
             )
-            save_tickets(ticket_id, ticket)
-            ticket: Dict = load_ticket_id(ticket_id)
+            ticket = await asyncio.to_thread(load_ticket_id, ticket_id)
             logger.info(f"Ticket validated: {ticket_id}")
             return (
                 quart.jsonify(

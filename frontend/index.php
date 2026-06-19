@@ -3,7 +3,7 @@ require_once 'config.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['language'])) {
     $_SESSION['language'] = $_POST['language'];
-    header("Location: " . $_SERVER['PHP_SELF']);
+    header("Location: index.php");
     exit();
 }
 
@@ -11,8 +11,9 @@ $languages = [
     'en' => [
         'flag' => '🇬🇧',
         'name' => 'Englisch',
-        'error_loading_shows' => 'Error loading shows',
-        'try_again' => 'Please try again later or contact support.',
+        'error_loading_shows' => "We can't load events right now",
+        'try_again' => 'Please try again shortly. If this keeps happening, contact the organizer.',
+        'try_again_button' => 'Try again',
         'buy_tickets' => 'Buy Tickets',
         'first_name' => 'First Name',
         'last_name' => 'Last Name',
@@ -32,8 +33,9 @@ $languages = [
     'de' => [
         'flag' => '🇩🇪',
         'name' => 'Deutsch',
-        'error_loading_shows' => 'Fehler beim Laden der Shows',
-        'try_again' => 'Bitte versuche es später erneut oder kontaktiere den Support.',
+        'error_loading_shows' => 'Veranstaltungen können gerade nicht geladen werden',
+        'try_again' => 'Bitte versuchen Sie es in Kürze erneut. Falls das Problem weiterhin besteht, kontaktieren Sie den Veranstalter.',
+        'try_again_button' => 'Erneut versuchen',
         'buy_tickets' => 'Tickets kaufen',
         'first_name' => 'Vorname',
         'last_name' => 'Nachname',
@@ -53,9 +55,12 @@ $languages = [
 ];
 
 $current_language = $_SESSION['language'] ?? 'en';
+if (!isset($languages[$current_language])) {
+    $current_language = 'en';
+}
 $shows = getShows();
 
-$pageTitle = htmlspecialchars($shows['orga_name']) . ' - Tickets';
+$pageTitle = htmlspecialchars($shows['orga_name'] ?? 'QrGate') . ' - Tickets';
 $assetBase = '';
 $extraHead = '';
 if ($shows !== null) {
@@ -255,6 +260,11 @@ HTML;
             <section>
                 <form class="form grid gap-4" id="bookingForm" action="buy.php" method="POST">
                     <?php echo csrfField(); ?>
+                    <!-- Honeypot: hidden from real users; bots that fill it are rejected. -->
+                    <div aria-hidden="true" style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;">
+                        <label for="website">Website</label>
+                        <input type="text" name="website" id="website" tabindex="-1" autocomplete="off">
+                    </div>
                     <input type="hidden" name="valid_date" id="validDate">
                     <input type="hidden" name="price" id="ticketPrice">
                     <input type="hidden" name="payment_intent_id" id="paymentIntentId">
@@ -369,7 +379,7 @@ HTML;
                 <h2 class="text-2xl font-bold mb-4"><?php echo $languages[$current_language]['error_loading_shows']; ?></h2>
                 <p class="avo-muted"><?php echo $languages[$current_language]['try_again']; ?></p>
                 <button onclick="location.reload()" class="btn-destructive mt-6">
-                    Try again
+                    <?php echo $languages[$current_language]['try_again_button']; ?>
                 </button>
             </div>
         </div>
@@ -388,7 +398,7 @@ HTML;
                     <h2 class="text-2xl font-bold mb-4"><br><?php echo $languages[$current_language]['store_lock_title']; ?>
                     </h2>
                     <p class="avo-muted">
-                        <?php echo str_replace('{name}', $shows['orga_name'], $languages[$current_language]['store_lock_message']); ?>
+                        <?php echo str_replace('{name}', htmlspecialchars($shows['orga_name']), $languages[$current_language]['store_lock_message']); ?>
                     </p>
                 </div>
             </div>

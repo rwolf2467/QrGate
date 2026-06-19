@@ -14,12 +14,12 @@ $languages = [
 ];
 
 if (isset($_POST['language'])) {
-    $_SESSION['language'] = $_POST['language'];
-    header('Location: ' . $_SERVER['PHP_SELF']);
+    $_SESSION['language'] = isset($languages[$_POST['language']]) ? $_POST['language'] : $config['default_language'];
+    header('Location: ' . basename($_SERVER['PHP_SELF']));
     exit();
 }
 
-if (!isset($_SESSION['language'])) {
+if (!isset($_SESSION['language']) || !isset($languages[$_SESSION['language']])) {
     $_SESSION['language'] = $config['default_language'];
 }
 
@@ -101,8 +101,8 @@ if (isset($_POST['translate'])) {
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const elements = document.querySelectorAll('[data-translate]');
-        const currentLang = '<?php echo $_SESSION['language']; ?>';
-        const defaultLang = '<?php echo $config['default_language']; ?>';
+        const currentLang = <?php echo json_encode($_SESSION['language']); ?>;
+        const defaultLang = <?php echo json_encode($config['default_language']); ?>;
 
         if (currentLang === defaultLang) return;
 

@@ -33,6 +33,15 @@ if (!isset($allowedEndpoints[$endpoint])) {
 }
 
 if ($method === 'POST') {
+    // CSRF protection: any POST here mutates backend state (e.g. show_edit).
+    // GET requests are pure reads and stay unguarded so dashboards load.
+    $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? $_POST['csrf_token'] ?? '';
+    if (!validateCsrfToken($token)) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Invalid or missing CSRF token']);
+        exit;
+    }
+
     $input = file_get_contents('php://input');
     $data = json_decode($input, true);
     $result = makeApiCall($allowedEndpoints[$endpoint], 'POST', $data);

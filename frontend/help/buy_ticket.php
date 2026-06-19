@@ -2,8 +2,8 @@
 require_once '../config.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['language'])) {
-    $_SESSION['language'] = $_POST['language'];
-    header("Location: " . $_SERVER['PHP_SELF']);
+    $_SESSION['language'] = in_array($_POST['language'], ['de', 'en'], true) ? $_POST['language'] : 'en';
+    header("Location: buy_ticket.php");
     exit();
 }
 
@@ -159,10 +159,13 @@ $languages = [
 ];
 
 $current_language = $_SESSION['language'] ?? 'en';
+if (!isset($languages[$current_language])) {
+    $current_language = 'en';
+}
 $lang = $languages[$current_language];
 $shows = getShows();
 
-$pageTitle = htmlspecialchars($shows['orga_name']) . ' - ' . $lang['page_title'];
+$pageTitle = htmlspecialchars($shows['orga_name'] ?? 'QrGate') . ' - ' . $lang['page_title'];
 $assetBase = '../';
 $extraHead = <<<HTML
     <style>

@@ -9,11 +9,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Invalid request. Please try again.');
         }
 
-        $requiredFields = ['first_name', 'last_name', 'tickets', 'valid_date', 'payment_method', 'price'];
+        // Honeypot: a hidden field no real user fills in. If it has a value,
+        // it's almost certainly a bot — silently bounce back to the homepage.
+        if (!empty($_POST['website'])) {
+            error_log('buy.php: honeypot triggered from IP ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+            header('Location: index.php');
+            exit;
+        }
+
+        $requiredFields = ['first_name', 'last_name', 'email', 'tickets', 'valid_date', 'payment_method', 'price'];
         foreach ($requiredFields as $field) {
             if (!isset($_POST[$field]) || empty($_POST[$field])) {
                 throw new Exception("Feld '$field' ist erforderlich");
             }
+        }
+
+        // Email is required in the UI but was previously optional server-side.
+        // A paid ticket with no/invalid email is never delivered.
+        $email = trim($_POST['email']);
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new Exception('Please enter a valid email address.');
         }
 
         $paymentMethodsResponse = makeApiCall('/api/show/get/payment_methods');
@@ -31,19 +46,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        $ticketCount = (int)$_POST['tickets'];
+
+        // Validate add_people: must be a flat array of bounded-length strings.
+        // An attacker can otherwise submit a nested array and abuse it downstream.
+        $addPeople = [];
+        if (isset($_POST['add_people'])) {
+            if (!is_array($_POST['add_people'])) {
+                throw new Exception('Invalid additional names! Please do not play around with the code of this page, otherwise your access to this page will be denied.');
+            }
+            foreach ($_POST['add_people'] as $person) {
+                if (!is_string($person)) {
+                    throw new Exception('Invalid additional names! Please do not play around with the code of this page, otherwise your access to this page will be denied.');
+                }
+                $addPeople[] = mb_substr(trim($person), 0, 100);
+            }
+        }
+
+        // The form collects an extra name for every ticket beyond the first,
+        // so add_people must hold exactly ($ticketCount - 1) entries.
+        if (count($addPeople) !== max(0, $ticketCount - 1)) {
+            throw new Exception('Invalid additional names! Please do not play around with the code of this page, otherwise your access to this page will be denied.');
+        }
+
         $ticketData = [
             'first_name' => trim($_POST['first_name']),
             'last_name'  => trim($_POST['last_name']),
-            'email'      => trim($_POST['email']),
-            'tickets'    => (int)$_POST['tickets'],
+            'email'      => $email,
+            'tickets'    => $ticketCount,
             'valid_date' => $_POST['valid_date'],
             'price'      => (float)$_POST['price'],
             'paid'       => false,
             'method'     => $_POST['payment_method'],
-            'add_people' => isset($_POST['add_people']) ? $_POST['add_people'] : []
+            'add_people' => $addPeople
         ];
 
-        if ($ticketData['tickets'] < 1 || $ticketData['tickets'] > 11) {
+        // Enforce the same maximum as the UI (1–10 tickets).
+        if ($ticketData['tickets'] < 1 || $ticketData['tickets'] > 10) {
             throw new Exception('Invalid number of people! Please do not play around with the code of this page, otherwise your access to this page will be denied.');
         }
 
@@ -51,7 +90,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Invalid payment method selected! Please do not play around with the code of this page, otherwise your access to this page will be denied.');
         }
 
+        // Authoritative price/date check: never trust the client-supplied price.
+        // Look up the real price for the chosen date from the show config and
+        // override it, rejecting any date that doesn't exist.
+        $show = makeApiCall('/api/show/get');
+        if (isset($show['error']) || empty($show['dates']) || !is_array($show['dates'])) {
+            throw new Exception('Could not verify event data. Please try again later.');
+        }
+
+        $matchedPrice = null;
+        foreach ($show['dates'] as $dateData) {
+            if (($dateData['date'] ?? null) === $ticketData['valid_date']) {
+                $matchedPrice = (float)$dateData['price'];
+                break;
+            }
+        }
+
+        if ($matchedPrice === null) {
+            throw new Exception('Invalid event date selected! Please do not play around with the code of this page, otherwise your access to this page will be denied.');
+        }
+
+        // Override the (untrusted) submitted price with the authoritative one.
+        $ticketData['price'] = $matchedPrice;
+
         if ($ticketData['method'] === 'bar') {
+            // Rate-limit unpaid cash bookings: they create real tickets and send
+            // emails with no payment, so bots could drain availability and spam.
+            // Allow at most RL_MAX bookings per RL_WINDOW seconds, tracked per
+            // session AND per client IP.
+            $rlMax    = 3;
+            $rlWindow = 600; // 10 minutes
+            $now      = time();
+            $ip       = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+
+            if (!isset($_SESSION['bar_booking_log']) || !is_array($_SESSION['bar_booking_log'])) {
+                $_SESSION['bar_booking_log'] = [];
+            }
+
+            // Drop timestamps outside the current window and prune other IPs' history.
+            $log = [];
+            foreach ($_SESSION['bar_booking_log'] as $entry) {
+                if (isset($entry['ts'], $entry['ip']) && ($now - $entry['ts']) < $rlWindow) {
+                    $log[] = $entry;
+                }
+            }
+
+            $recentForSession = count($log);
+            $recentForIp = 0;
+            foreach ($log as $entry) {
+                if ($entry['ip'] === $ip) {
+                    $recentForIp++;
+                }
+            }
+
+            if ($recentForSession >= $rlMax || $recentForIp >= $rlMax) {
+                error_log('buy.php: cash booking rate limit hit (ip ' . $ip . ')');
+                throw new Exception('Too many bookings in a short time. Please wait a few minutes and try again.');
+            }
+
+            $log[] = ['ts' => $now, 'ip' => $ip];
+            $_SESSION['bar_booking_log'] = $log;
+
             $result = makeApiCall('/api/ticket/create', 'POST', $ticketData);
 
             if (isset($result['error'])) {
@@ -89,6 +188,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_USERPWD        => $secretKey . ':',
+                CURLOPT_CONNECTTIMEOUT => 5,
+                CURLOPT_TIMEOUT        => 15,
             ]);
             $stripeResponse = curl_exec($ch);
             $stripeHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -111,17 +212,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $ticketData['paid'] = true;
+            // Idempotency: hand the verified PaymentIntent id to the backend so it
+            // can reject a reused intent (HTTP 409 payment_already_used) instead of
+            // creating duplicate tickets if the customer retries/refreshes.
+            $ticketData['payment_intent_id'] = $intent['id'] ?? $intentId;
 
-            $result = makeApiCall('/api/ticket/create', 'POST', $ticketData);
+            // Direct call so we can read the 409 response body (makeApiCall would
+            // collapse it into a generic error string).
+            $createCh = curl_init(API_BASE_URL . '/api/ticket/create');
+            curl_setopt_array($createCh, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST           => true,
+                CURLOPT_POSTFIELDS     => json_encode($ticketData),
+                CURLOPT_HTTPHEADER     => [
+                    'Authorization: ' . API_KEY,
+                    'Content-Type: application/json',
+                ],
+                CURLOPT_CONNECTTIMEOUT => 5,
+                CURLOPT_TIMEOUT        => 10,
+            ]);
+            $createResponse = curl_exec($createCh);
+            $createHttpCode = curl_getinfo($createCh, CURLINFO_HTTP_CODE);
+            $createError    = curl_error($createCh);
+            curl_close($createCh);
 
-            if (isset($result['error'])) {
-                throw new Exception($result['error']);
+            if ($createResponse === false) {
+                error_log('buy.php: ticket create call failed: ' . $createError);
+                throw new Exception('Could not reach the ticketing system. Please contact the organizer with your payment reference ' . $intentId . '.');
             }
 
-            if ($result['status'] === 'success') {
+            $result = json_decode($createResponse, true);
+
+            // Backend rejects a reused PaymentIntent: do NOT create duplicate
+            // tickets — the tickets already exist from the first attempt.
+            if ($createHttpCode === 409 || (isset($result['message']) && $result['message'] === 'payment_already_used')) {
+                $alreadyUsedMessages = [
+                    'de' => 'Diese Zahlung wurde bereits zur Erstellung Ihrer Tickets verwendet — bitte prüfen Sie Ihre E-Mails oder kontaktieren Sie uns mit der Referenz ' . $intentId . '.',
+                    'en' => 'This payment was already used to create your tickets — check your email, or contact us with reference ' . $intentId . '.',
+                ];
+                $lang = $_SESSION['language'] ?? 'en';
+                $_SESSION['error'] = $alreadyUsedMessages[$lang] ?? $alreadyUsedMessages['en'];
+                header('Location: index.php');
+                exit;
+            }
+
+            if ($createHttpCode !== 200 || !is_array($result)) {
+                error_log('buy.php: ticket create returned HTTP ' . $createHttpCode . ': ' . $createResponse);
+                throw new Exception('Ticket could not be created. Please contact the organizer with your payment reference ' . $intentId . '.');
+            }
+
+            if (($result['status'] ?? '') === 'success') {
                 $_SESSION['success'] = "Your tickets have been successfully entered and paid for. You will receive your tickets by email shortly.";
             } else {
-                throw new Exception('Ticket could not be created');
+                throw new Exception('Ticket could not be created. Please contact the organizer with your payment reference ' . $intentId . '.');
             }
 
             header('Location: index.php');

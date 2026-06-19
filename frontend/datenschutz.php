@@ -2,8 +2,8 @@
 require_once 'config.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['language'])) {
-    $_SESSION['language'] = $_POST['language'];
-    header("Location: " . $_SERVER['PHP_SELF']);
+    $_SESSION['language'] = in_array($_POST['language'], ['de', 'en'], true) ? $_POST['language'] : 'en';
+    header("Location: datenschutz.php");
     exit();
 }
 
@@ -11,6 +11,9 @@ $shows = getShows();
 $orga_name = htmlspecialchars($shows['orga_name'] ?? 'QrGate');
 
 $current_language = $_SESSION['language'] ?? 'en';
+if (!in_array($current_language, ['de', 'en'], true)) {
+    $current_language = 'en';
+}
 $is_de = $current_language === 'de';
 
 $pageTitle = $orga_name . ' – ' . ($is_de ? 'Datenschutzerklärung' : 'Privacy Policy');

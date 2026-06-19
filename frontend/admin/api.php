@@ -20,6 +20,20 @@ if (!isset($_SESSION['admin']) || $_SESSION['admin'] !== true) {
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
+// CSRF protection for every state-changing action. Pure read endpoints
+// (get_stats, get_current_images) are intentionally excluded so dashboards
+// keep loading. Token is accepted from the X-CSRF-Token header (fetch/JSON)
+// or a csrf_token POST field (multipart uploads).
+$readOnlyActions = ['get_stats', 'get_current_images'];
+if (!in_array($action, $readOnlyActions, true)) {
+    $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? $_POST['csrf_token'] ?? '';
+    if (!validateCsrfToken($token)) {
+        http_response_code(403);
+        echo json_encode(['status' => 'error', 'message' => 'Invalid or missing CSRF token']);
+        exit;
+    }
+}
+
 switch ($action) {
     case 'get_stats':
         getStats();

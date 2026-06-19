@@ -2,7 +2,7 @@
 
 require_once '../config.php';
 $shows = getShows();
-$stars = htmlspecialchars($shows['votes']['average']);
+$stars = htmlspecialchars($shows['votes']['average'] ?? '');
 $wallpaper_url = API_BASE_URL . "api/show/get/wallpaper";
 $message = '';
 $error = '';
@@ -12,6 +12,12 @@ $logo_url = API_BASE_URL . "api/show/get/logo";
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ratingValue = $_POST['rating'] ?? 0;
     $comment = $_POST['comment'] ?? '';
+
+    // only accept integer ratings 1-5
+    $ratingValue = (int) $ratingValue;
+    if ($ratingValue < 0 || $ratingValue > 5) {
+        $ratingValue = 0;
+    }
 
 
     if (isset($_SESSION['has_voted']) && $_SESSION['has_voted'] === true) {
@@ -132,7 +138,7 @@ HTML;
         <div class="avo-kicker mb-2">// feedback</div>
         <h1 class="text-3xl font-bold mb-4">
             <i class="fas fa-pencil-alt icon"></i>
-            Submit your <span class="avo-hl">feedback</span> to "<?php echo $shows['title']; ?>" from <?php echo $shows['orga_name']; ?>
+            Submit your <span class="avo-hl">feedback</span> to "<?php echo htmlspecialchars($shows['title'] ?? ''); ?>" from <?php echo htmlspecialchars($shows['orga_name'] ?? ''); ?>
         </h1>
         <p class="text-lg mb-4 avo-muted">Average rating: <?php echo $stars; ?> stars</p>
         <form method="POST" action="">
@@ -163,9 +169,9 @@ HTML;
         <div id="responseMessage" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center z-10">
             <p class="text-lg mb-4 avo-muted">Average rating: <?php echo $stars; ?> stars</p>
             <?php if ($error): ?>
-                <div style="padding: 2px 8px; background-color: color-mix(in oklab, var(--avo-error) 20%, transparent); border-radius: 4px; color: var(--avo-error); font-size: 1.5rem; "><?php echo $error; ?></div>
+                <div style="padding: 2px 8px; background-color: color-mix(in oklab, var(--avo-error) 20%, transparent); border-radius: 4px; color: var(--avo-error); font-size: 1.5rem; "><?php echo htmlspecialchars($error); ?></div>
             <?php elseif ($message): ?>
-                <div style="padding: 2px 8px; background-color: color-mix(in oklab, var(--avo-success) 24%, transparent); border-radius: 4px; color: var(--avo-success); font-size: 1.5rem;"><?php echo $message; ?></div>
+                <div style="padding: 2px 8px; background-color: color-mix(in oklab, var(--avo-success) 24%, transparent); border-radius: 4px; color: var(--avo-success); font-size: 1.5rem;"><?php echo htmlspecialchars($message); ?></div>
             <?php endif; ?>
         </div>
     <?php endif; ?>

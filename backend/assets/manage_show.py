@@ -3,16 +3,43 @@ import config.conf as config
 from assets.data import load_show, save_show
 from reds_simple_logger import Logger
 import os
+import hmac
 import uuid
+from werkzeug.security import safe_join
 
 logger = Logger()
 logger.success("Manage_show.py loaded")
+
+# Hard cap per uploaded image (also enforced globally via MAX_CONTENT_LENGTH).
+MAX_IMAGE_BYTES = 8 * 1024 * 1024
+
+
+def _sniff_image_type(data: bytes):
+    """Return a safe MIME type if `data` starts with a known image magic-byte
+    signature, else None. Never trust the client-supplied extension alone."""
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png"
+    if data[:3] == b"\xff\xd8\xff":
+        return "image/jpeg"
+    if data[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
+def _authorized() -> bool:
+    """Timing-safe comparison of the Authorization header against the configured key."""
+    key = quart.request.headers.get("Authorization")
+    if not key:
+        return False
+    return hmac.compare_digest(str(key), str(config.Auth.auth_key))
 
 
 def edit_show(app=quart.Quart):
     @app.route("/api/show/edit", methods=["POST"])
     async def edit_show():
-        if config.Auth.auth_key != (key := quart.request.headers.get("Authorization")):
+        if not _authorized():
             return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401
         try:
             data: dict = await quart.request.get_json()
@@ -55,7 +82,7 @@ def edit_show(app=quart.Quart):
 def get_show(app=quart.Quart):
     @app.route("/api/show/get", methods=["POST", "GET"])
     async def get_show():
-        if config.Auth.auth_key != (key := quart.request.headers.get("Authorization")):
+        if not _authorized():
             return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401
         try:
             show: dict = load_show()
@@ -99,7 +126,7 @@ def get_show(app=quart.Quart):
 
     @app.route("/api/show/get/price", methods=["POST", "GET"])
     async def get_show_price():
-        if config.Auth.auth_key != (key := quart.request.headers.get("Authorization")):
+        if not _authorized():
             return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401
         try:
             data: dict = await quart.request.get_json()
@@ -137,7 +164,7 @@ def get_show(app=quart.Quart):
 
     @app.route("/api/show/get/stripe", methods=["POST", "GET"])
     async def get_stripe_config():
-        if config.Auth.auth_key != (key := quart.request.headers.get("Authorization")):
+        if not _authorized():
             return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401
         try:
             show: dict = load_show()
@@ -148,7 +175,7 @@ def get_show(app=quart.Quart):
 
     @app.route("/api/show/get/payment_methods", methods=["POST", "GET"])
     async def get_payment_methods():
-        if config.Auth.auth_key != (key := quart.request.headers.get("Authorization")):
+        if not _authorized():
             return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401
         try:
             show: dict = load_show()
@@ -164,15 +191,19 @@ def get_show(app=quart.Quart):
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                 "data", "assets", "cast",
             )
-            file_path = os.path.join(cast_dir, filename)
-            if not os.path.isfile(file_path):
+            # Prevent path traversal via the <filename> route segment
+            file_path = safe_join(cast_dir, filename)
+            if file_path is None or not os.path.isfile(file_path):
                 return quart.jsonify({"status": "error", "message": "File not found"}), 404
             with open(file_path, "rb") as f:
                 image_data = f.read()
-            ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "png"
-            mime_map = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg", "gif": "image/gif", "webp": "image/webp"}
-            mimetype = mime_map.get(ext, "image/png")
-            return quart.Response(image_data, mimetype=mimetype)
+            # Derive the Content-Type from the actual file content, not the
+            # (attacker-controllable) name, and forbid MIME-sniffing so a file
+            # that somehow slipped through can't be re-interpreted as HTML/JS.
+            mimetype = _sniff_image_type(image_data) or "application/octet-stream"
+            response = quart.Response(image_data, mimetype=mimetype)
+            response.headers["X-Content-Type-Options"] = "nosniff"
+            return response
         except Exception as e:
             return quart.jsonify({"status": "error", "message": str(e)}), 500
 
@@ -180,7 +211,7 @@ def get_show(app=quart.Quart):
 def cast_image_upload(app=quart.Quart):
     @app.route("/api/show/cast/upload", methods=["POST"])
     async def upload_cast_image():
-        if config.Auth.auth_key != (key := quart.request.headers.get("Authorization")):
+        if not _authorized():
             return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401
         try:
             files = await quart.request.files
@@ -202,9 +233,17 @@ def cast_image_upload(app=quart.Quart):
             if ext not in allowed_ext:
                 return quart.jsonify({"status": "error", "message": "Invalid file type"}), 400
 
+            file_data = file.read()
+            # Enforce a per-file cap and verify the bytes are actually an image
+            # (don't trust the extension): rejects HTML/SVG/script disguised as
+            # an image that could later be served and executed in the browser.
+            if len(file_data) > MAX_IMAGE_BYTES:
+                return quart.jsonify({"status": "error", "message": "File too large"}), 413
+            if _sniff_image_type(file_data) is None:
+                return quart.jsonify({"status": "error", "message": "Invalid image data"}), 400
+
             filename = f"cast_{uuid.uuid4().hex[:8]}.{ext}"
             file_path = os.path.join(cast_dir, filename)
-            file_data = file.read()
             with open(file_path, "wb") as f:
                 f.write(file_data)
 

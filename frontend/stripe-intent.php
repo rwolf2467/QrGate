@@ -41,6 +41,8 @@ curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_POST           => true,
     CURLOPT_USERPWD        => $secretKey . ':',
+    CURLOPT_CONNECTTIMEOUT => 5,
+    CURLOPT_TIMEOUT        => 15,
     CURLOPT_POSTFIELDS     => http_build_query([
         'amount'                         => $amountCents,
         'currency'                       => 'eur',

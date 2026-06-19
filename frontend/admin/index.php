@@ -37,7 +37,10 @@ if ($shows) {
 
 $pageTitle = 'QrGate Admin Panel';
 $assetBase = '../';
+$csrfToken = generateCsrfToken();
+$csrfMeta = '<meta name="csrf-token" content="' . htmlspecialchars($csrfToken, ENT_QUOTES) . '">';
 $extraHead = <<<HTML
+    {$csrfMeta}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 HTML;
@@ -333,7 +336,7 @@ HTML;
                 </div>
                 <div role="group" aria-labelledby="group-label-content-3">
                     <ul>
-                        <li><a href="/logout.php" data-section="logout"><span><svg xmlns="http://www.w3.org/2000/svg"
+                        <li><a href="logout.php" data-section="logout"><span><svg xmlns="http://www.w3.org/2000/svg"
                                         width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                                         class="lucide lucide-log-out-icon lucide-log-out">
@@ -1062,6 +1065,7 @@ HTML;
 
     <script>
         const API_BASE_URL = '<?php echo API_BASE_URL; ?>';
+        const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
         function showToast(message, type = 'success', duration = 3000) {
             const category = type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'success';
@@ -1374,7 +1378,7 @@ HTML;
 
             fetch('admin-api-proxy.php?endpoint=show_edit', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
                 body: JSON.stringify(data)
             })
                 .then(r => r.json())
@@ -1402,7 +1406,7 @@ HTML;
                 tickets: document.getElementById('newTickets').value,
                 price: document.getElementById('newPrice').value
             };
-            fetch('api.php?action=add_day', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+            fetch('api.php?action=add_day', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN }, body: JSON.stringify(data) })
                 .then(r => r.json())
                 .then(res => {
                     if (res.status === 'success') {
@@ -1442,7 +1446,7 @@ HTML;
 
                 fetch('api.php?action=delete_day', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
                     body: JSON.stringify({ dateId })
                 })
                     .then(r => r.json())
@@ -1497,7 +1501,7 @@ HTML;
 
                 fetch('api.php?action=update_day', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
                     body: JSON.stringify(updateData)
                 })
                     .then(r => r.json())
@@ -1550,6 +1554,7 @@ HTML;
             try {
                 const response = await fetch('api.php?action=upload_image', {
                     method: 'POST',
+                    headers: { 'X-CSRF-Token': CSRF_TOKEN },
                     body: formData,
                 });
 
@@ -1889,6 +1894,7 @@ HTML;
             try {
                 const response = await fetch('api.php?action=upload_cast_image', {
                     method: 'POST',
+                    headers: { 'X-CSRF-Token': CSRF_TOKEN },
                     body: formData
                 });
                 const data = await response.json();
@@ -1910,7 +1916,7 @@ HTML;
             try {
                 const response = await fetch('api.php?action=save_screens', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
                     body: JSON.stringify({ screens: screensData })
                 });
                 const data = await response.json();
@@ -1944,7 +1950,7 @@ HTML;
             try {
                 const response = await fetch('api.php?action=save_payment_settings', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
                     body: JSON.stringify(payload)
                 });
                 const data = await response.json();
