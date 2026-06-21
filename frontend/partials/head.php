@@ -19,8 +19,10 @@ $pageTitle  = $pageTitle  ?? 'QrGate';
 $forceDark  = $forceDark  ?? false;
 $extraHead  = $extraHead  ?? '';
 if (!isset($faviconUrl)) {
-    $faviconUrl = defined('API_BASE_URL')
-        ? rtrim(API_BASE_URL, '/') . '/api/image/get/logo.png?t=' . time()
+    // Same-origin image path (nginx proxies /api/image/ to the backend); falls
+    // back to the bundled icon if config isn't loaded.
+    $faviconUrl = defined('PUBLIC_API_BASE')
+        ? PUBLIC_API_BASE . '/api/image/get/logo.png?t=' . time()
         : $assetBase . 'assets/img/avocloud-appicon-dark.svg';
 }
 ?>

@@ -51,9 +51,14 @@ RUN chmod +x /usr/local/bin/entrypoint.sh \
     && chown -R www-data:www-data /app
 
 # Backend runs without the dev reloader; frontend reaches it on localhost.
+# QRGATE_KEY_FILE is a shared file both the backend and PHP frontend read, so the
+# API secret can be generated/changed online in the setup wizard. QRGATE_SUPERVISED
+# lets the backend self-restart (via supervisor) when the key changes.
 ENV QRGATE_RELOAD=0 \
     QRGATE_PORT=1654 \
-    QRGATE_API_BASE_URL=http://127.0.0.1:1654/
+    QRGATE_API_BASE_URL=http://127.0.0.1:1654/ \
+    QRGATE_KEY_FILE=/app/backend/data/secret.key \
+    QRGATE_SUPERVISED=1
 
 EXPOSE 80
 

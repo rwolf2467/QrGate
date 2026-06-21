@@ -26,9 +26,9 @@ from assets.timeutil import local_now
 app = quart.Quart(__name__)
 
 # Reject oversized request bodies before they are buffered into memory, so a
-# huge upload can't be used to exhaust RAM (8 MiB is plenty for ticket JSON and
+# huge upload can't be used to exhaust RAM (40 MiB covers ticket JSON and large
 # banner/logo/cast image uploads).
-app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = 40 * 1024 * 1024
 
 # Lock CORS down to the known frontend origin when configured. conf.py does not
 # yet expose `frontend_origin`; until it does we fall back to "*" so nothing

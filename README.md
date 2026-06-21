@@ -132,29 +132,40 @@ If you'd rather ship the **whole project as one image / one stack**, the root [`
 
 > Trade-off: simpler to publish and run, but you can't restart/scale backend and frontend independently. For that, use the two-container [`docker-compose.yml`](docker-compose.yml) above.
 
-### Run with Compose (recommended)
+### Zero-config quick start
+
+**No environment variables required.** The container boots with a temporary bootstrap secret; you generate the real one (and everything else) in the web installer:
+
+```bash
+docker pull redwolf2467/qrgate
+docker run -d --name qrgate -p 8080:80 \
+  -e QRGATE_WEB_PORT=8080 \
+  -v qrgate_data:/app/backend/data \
+  -v qrgate_codes:/app/backend/codes \
+  redwolf2467/qrgate
+```
+
+> `QRGATE_WEB_PORT` is only used to print the correct setup link in the console on first start (the container can't see the host's `-p` mapping). Set it to whatever host port you published. The console prints the server's public IP automatically.
+
+Open <http://localhost:8080> → it redirects to the **`/install` wizard**. There you configure SMTP, the first event, the admin password and — in the **Security** step — your API secret:
+
+- a strong random key is **pre-generated** in your browser, with a **↻ Regenerate** button;
+- on **Finish & restart** the key is saved to a shared key file, the backend **restarts automatically**, and the page shows a loader that **reconnects on its own** and sends you to the admin login.
+
+The volumes keep your data, tickets and the generated key across restarts/upgrades. That's it — no `-e` flags, no editing files.
+
+### Optional: pre-seed config via env / Compose
+
+You can still set everything up front (skips parts of the wizard) — e.g. with Compose:
 
 ```bash
 cp .env.example .env          # set QRGATE_AUTH_KEY + passwords
 docker compose -f docker-compose.single.yml up -d --build
-# → http://localhost:8080  (redirects to /install on first run)
 ```
 
-### Or with plain `docker run`
+…or with plain `docker run -e QRGATE_AUTH_KEY=… -e QRGATE_ADMIN_PASSWORD=… …`. Any `QRGATE_*` from [`.env.example`](.env.example) works; a value set this way is used as the default until you change it in the wizard. The container derives the frontend's API key from `QRGATE_AUTH_KEY`, so the secret is only set once. Then follow the [setup wizard](#first-run-setup-wizard).
 
-```bash
-docker build -t qrgate .
-docker run -d --name qrgate \
-  -p 8080:80 \
-  -e QRGATE_AUTH_KEY="$(openssl rand -hex 32)" \
-  -e QRGATE_ADMIN_PASSWORD="change-me-admin" \
-  -e QRGATE_SETUP_URL="http://localhost:8080/install" \
-  -v qrgate_data:/app/backend/data \
-  -v qrgate_codes:/app/backend/codes \
-  qrgate
-```
-
-The container's entrypoint automatically derives the frontend's API key from `QRGATE_AUTH_KEY`, so you only set the secret once. All other `QRGATE_*` variables from [`.env.example`](.env.example) work here too. Then follow the [setup wizard](#first-run-setup-wizard).
+> Note: online key rotation in the wizard relies on a key file shared between backend and frontend, so it applies to the **single-container** setups. In the two-container [`docker-compose.yml`](docker-compose.yml), set the secret via `QRGATE_AUTH_KEY` instead.
 
 ## Pterodactyl Panel (Egg)
 

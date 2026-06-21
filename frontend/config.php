@@ -81,9 +81,33 @@ if (!function_exists('qrgate_env')) {
     }
 }
 
-define('API_KEY', qrgate_env('QRGATE_API_KEY', 'YourGeneratedKeyHere'));
+// API secret resolution mirrors the backend (config/conf.py):
+//   1. shared key file (QRGATE_KEY_FILE) — written by the setup wizard
+//   2. QRGATE_API_KEY env var
+//   3. the insecure bootstrap default (must match the backend default)
+if (!function_exists('qrgate_api_key')) {
+    function qrgate_api_key() {
+        $keyFile = getenv('QRGATE_KEY_FILE');
+        if ($keyFile && is_readable($keyFile)) {
+            $k = trim((string)@file_get_contents($keyFile));
+            if ($k !== '') {
+                return $k;
+            }
+        }
+        return qrgate_env('QRGATE_API_KEY', 'qrgate-bootstrap-key-change-me');
+    }
+}
+define('API_KEY', qrgate_api_key());
 define('API_BASE_URL', qrgate_env('QRGATE_API_BASE_URL', 'https://qrgate-backend.example.com/'));
 define('ORIGIN_URL', qrgate_env('QRGATE_ORIGIN_URL', 'https://qrgate.avocloud.net/'));
+
+// Browser-facing base for images served by the backend (banner/logo/cast).
+// API_BASE_URL points at the backend for SERVER-side calls — in the single
+// container that's 127.0.0.1:1654, which a browser can't reach. So images are
+// loaded SAME-ORIGIN (empty base -> "/api/image/...") and nginx proxies
+// /api/image/ to the backend. Split deployments without that proxy can set
+// QRGATE_PUBLIC_API_BASE to the public backend URL instead.
+define('PUBLIC_API_BASE', rtrim(qrgate_env('QRGATE_PUBLIC_API_BASE', ''), '/'));
 
 // Admin passwords - CHANGE THESE IN PRODUCTION!
 define('ADMIN_PASSWORD', qrgate_env('QRGATE_ADMIN_PASSWORD', 'admin123'));

@@ -19,8 +19,13 @@ trust model as the rest of the admin API). This prevents a stranger from
 re-running setup against a live system.
 """
 
+import asyncio
 import hmac
 import json
+import os
+import secrets
+import smtplib
+import threading
 
 import quart
 from werkzeug.security import generate_password_hash
@@ -119,6 +124,37 @@ def _authorized() -> bool:
     return hmac.compare_digest(str(key), str(config.Auth.auth_key))
 
 
+def write_auth_key(new_key: str) -> None:
+    """Persist a new API secret to the shared key file (read by both backend and
+    the PHP frontend) and update the live in-process value immediately."""
+    path = config.key_file
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    with open(path, "w") as fh:
+        fh.write(new_key.strip() + "\n")
+    try:
+        os.chmod(path, 0o600)
+    except OSError:
+        pass
+    config.Auth.auth_key = new_key.strip()
+
+
+def _schedule_restart() -> None:
+    """Hard-exit the backend shortly after responding so the supervisor restarts
+    it cleanly with the new secret. Only meaningful when running under a process
+    supervisor (the Docker images set QRGATE_SUPERVISED=1); a bare dev run would
+    just stop, so we skip it there (the key is already applied live anyway)."""
+    if os.environ.get("QRGATE_SUPERVISED") not in ("1", "true", "True"):
+        return
+
+    def _bye():
+        logger.warn("Restarting backend to apply new configuration...")
+        os._exit(0)
+
+    threading.Timer(1.5, _bye).start()
+
+
 def _set_admin_password(new_password: str) -> None:
     """Set the password of the seeded admin account (first admin username) and
     clear its forced-change flag. Falls back to creating the account if missing."""
@@ -181,6 +217,7 @@ def setup_routes(app=quart.Quart):
         smtp = data.get("smtp") or {}
         event = data.get("event") or {}
         admin = data.get("admin") or {}
+        security = data.get("security") or {}
 
         # --- SMTP ---------------------------------------------------------- #
         if smtp.get("server"):
@@ -231,11 +268,84 @@ def setup_routes(app=quart.Quart):
         if new_pw and len(str(new_pw)) >= 8:
             _set_admin_password(str(new_pw))
 
+        # --- Security key -------------------------------------------------- #
+        # If the operator generated a new API secret in the wizard, persist it
+        # to the shared key file. This requires a backend restart so callers
+        # consistently pick up the new value; the frontend reads the same file
+        # and reconnects automatically.
+        # Only rotate the key when running supervised in a single container,
+        # where backend and frontend share the key file. In a split deployment
+        # the frontend can't read this file, so changing it here would break
+        # auth; there the secret must come from QRGATE_AUTH_KEY instead.
+        restart = False
+        supervised = os.environ.get("QRGATE_SUPERVISED") in ("1", "true", "True")
+        new_key = (security.get("key") or "").strip()
+        if supervised and new_key and len(new_key) >= 16 and new_key != config.Auth.auth_key:
+            write_auth_key(new_key)
+            restart = True
+
         set_setting("installed", "1")
         set_setting("installed_at", str(local_now()))
         logger.success("Setup wizard completed — system marked as installed.")
 
+        resp = quart.jsonify(
+            {"status": "success", "message": "Setup complete", "restart": restart}
+        )
+        if restart:
+            _schedule_restart()
+        return resp, 200
+
+    @app.route("/api/setup/genkey", methods=["GET"])
+    async def setup_genkey():
+        # Helper for the wizard's "regenerate" button when client-side crypto
+        # is unavailable. Public while not installed.
+        if is_installed() and not _authorized():
+            return quart.jsonify({"status": "error", "message": "Locked"}), 403
+        return quart.jsonify({"status": "success", "key": secrets.token_hex(32)}), 200
+
+    @app.route("/api/setup/test-mail", methods=["POST"])
+    async def setup_test_mail():
+        # Verify the SMTP credentials actually connect + authenticate, so the
+        # operator finds out in the wizard rather than when the first ticket
+        # silently fails to send. Open while not installed; locked afterwards.
+        if is_installed() and not _authorized():
+            return quart.jsonify({"status": "error", "message": "Locked"}), 403
+        try:
+            data = await quart.request.get_json(force=True) or {}
+        except Exception:
+            data = {}
+        smtp = data.get("smtp") or {}
+        server = (smtp.get("server") or "").strip()
+        if not server:
+            return (
+                quart.jsonify({"status": "error", "ok": False, "message": "No SMTP server given"}),
+                400,
+            )
+        try:
+            port = int(smtp.get("port") or 587)
+        except (TypeError, ValueError):
+            port = 587
+        ok, message = await asyncio.to_thread(
+            _smtp_test, server, port, smtp.get("user") or "", smtp.get("password") or ""
+        )
         return (
-            quart.jsonify({"status": "success", "message": "Setup complete"}),
+            quart.jsonify({"status": "success", "ok": ok, "message": message}),
             200,
         )
+
+
+def _smtp_test(server: str, port: int, user: str, password: str):
+    """Blocking SMTP connect + (optional) STARTTLS + login. Returns (ok, msg)."""
+    try:
+        with smtplib.SMTP(server, port, timeout=10) as s:
+            s.ehlo()
+            if s.has_extn("starttls"):
+                s.starttls()
+                s.ehlo()
+            if user:
+                s.login(user, password)
+        return True, "Connection and login successful."
+    except smtplib.SMTPAuthenticationError:
+        return False, "Authentication failed — check username and password."
+    except Exception as e:  # noqa: BLE001 - surface any connect/TLS error to the user
+        return False, "Connection failed: " + str(e)

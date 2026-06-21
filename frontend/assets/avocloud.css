@@ -228,6 +228,16 @@ h1, h2, h3, h4 { font-family: var(--avo-font-display); font-weight: 800; }
   padding: var(--avo-space-4);
 }
 
+/* Basecoat's .card only pads vertically; its horizontal padding lives on the
+   semantic <header>/[data-slot] slots. Our pages use .card-header/.card-content/
+   .card-footer div classes, which Basecoat doesn't style — give them the
+   expected horizontal padding so card contents aren't flush to the edges. */
+.card-header,
+.card-content,
+.card-footer {
+  padding-inline: 1.5rem;
+}
+
 /* dashed divider */
 .avo-divider {
   border: none;
@@ -291,12 +301,11 @@ html.dark .avo-theme-toggle .icon-moon { display: none; }
 /* ==========================================================================
    Leftover overrides — kill retired purple/pink/gold from legacy pages
    ========================================================================== */
-/* event/show name badge (was rgba(147,51,234,.2)/light-purple text) → coral tint */
+/* event/show name → plain coral text (no background highlight) */
 .show-name span,
 .show-name {
-  background-color: color-mix(in oklab, var(--avo-primary) 16%, transparent);
+  background-color: transparent;
   color: var(--avo-primary);
-  border-radius: var(--avo-radius-sm);
 }
 /* ticket-availability progress bar */
 .bar      { background: var(--avo-primary) !important; }

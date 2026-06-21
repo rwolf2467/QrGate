@@ -498,13 +498,13 @@ HTML;
                 <section>
                     <?php if ($shows): ?>
                         <p><strong>Organization:</strong> <?php echo htmlspecialchars(
-                            $shows["orga_name"]
+                            $shows["orga_name"] ?? ''
                         ); ?></p>
                         <p><strong>Event Title:</strong> <?php echo htmlspecialchars(
-                            $shows["title"]
+                            $shows["title"] ?? ''
                         ); ?></p>
                         <p><strong>Subtitle:</strong> <?php echo htmlspecialchars(
-                            $shows["subtitle"]
+                            $shows["subtitle"] ?? ''
                         ); ?></p>
                         <p><strong>Active Dates:</strong> <?php echo count(
                             $shows["dates"]
@@ -673,23 +673,23 @@ HTML;
                         <div class="grid gap-2">
                             <label class="label" for="orgaName">Organization Name</label>
                             <input type="text" id="orgaName"
-                                value="<?php echo $shows ? htmlspecialchars($shows['orga_name']) : ''; ?>">
+                                value="<?php echo $shows ? htmlspecialchars($shows['orga_name'] ?? '') : ''; ?>">
                             <p class="text-muted-foreground text-sm">This is your public display name.</p>
                         </div>
                         <div class="grid gap-2">
                             <label class="label" for="eventTitle">Event Title</label>
                             <input type="text" id="eventTitle"
-                                value="<?php echo $shows ? htmlspecialchars($shows['title']) : ''; ?>">
+                                value="<?php echo $shows ? htmlspecialchars($shows['title'] ?? '') : ''; ?>">
                         </div>
                         <div class="grid gap-2">
                             <label class="label" for="eventSubtitle">Subtitle</label>
                             <input type="text" id="eventSubtitle"
-                                value="<?php echo $shows ? htmlspecialchars($shows['subtitle']) : ''; ?>">
+                                value="<?php echo $shows ? htmlspecialchars($shows['subtitle'] ?? '') : ''; ?>">
                         </div>
                         <div class="grid gap-2">
                             <label class="label" for="bannerUrl">Banner URL</label>
                             <input type="text" id="bannerUrl"
-                                value="<?php echo $shows ? htmlspecialchars($shows['banner']) : ''; ?>">
+                                value="<?php echo $shows ? htmlspecialchars($shows['banner'] ?? '') : ''; ?>">
                         </div>
                         <div class="flex items-start gap-3">
                             <input type="checkbox" id="storeLock" <?php echo $shows && $shows['store_lock'] ? 'checked' : ''; ?>>
@@ -1148,7 +1148,8 @@ HTML;
     <div id="notificationContainer" class="notification-container"></div>
 
     <script>
-        const API_BASE_URL = '<?php echo API_BASE_URL; ?>';
+        // Browser-facing base for backend images (same-origin; nginx proxies /api/image/).
+        const API_BASE_URL = '<?php echo PUBLIC_API_BASE; ?>';
         const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
         function showToast(message, type = 'success', duration = 3000) {

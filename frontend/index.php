@@ -411,23 +411,23 @@ HTML;
                         document.addEventListener('DOMContentLoaded', function () {
 
                             const timestamp = new Date().getTime();
-                            document.getElementById('bannerBackground').style.backgroundImage = `url('<?php echo API_BASE_URL; ?>/api/image/get/banner.png?t=${timestamp}')`;
+                            document.getElementById('bannerBackground').style.backgroundImage = `url('<?php echo PUBLIC_API_BASE; ?>/api/image/get/banner.png?t=${timestamp}')`;
                         });
                     </script>
                     <div class="absolute inset-0 bg-black/60"></div>
                     <div class="relative z-10 text-center max-w-2xl w-full py-6 md:py-10 px-3 rounded-xl">
                         <div class="avo-kicker mb-2 animate-fade-in-up">// tickets</div>
                         <h1 class="orga-name text-3xl md:text-5xl font-bold mb-2 animate-fade-in-up">
-                            <?php echo htmlspecialchars($shows['orga_name']); ?>
+                            <?php echo htmlspecialchars($shows['orga_name'] ?? ''); ?>
                         </h1>
                         <h2 class="show-name text-xl md:text-3xl font-semibold mb-1 animate-fade-in-up">
                             <span class="px-2 py-1 rounded-md">
-                                <?php echo htmlspecialchars($shows['title']); ?>
+                                <?php echo htmlspecialchars($shows['title'] ?? ''); ?>
                             </span>
                         </h2>
-                        <?php if (!empty(trim($shows['subtitle']))): ?>
+                        <?php if (!empty(trim($shows['subtitle'] ?? ''))): ?>
                             <h3 class="text-lg md:text-xl mt-2 animate-fade-in-up opacity-90">
-                                <?php echo htmlspecialchars($shows['subtitle']); ?>
+                                <?php echo htmlspecialchars($shows['subtitle'] ?? ''); ?>
                             </h3>
                         <?php endif; ?>
                     </div>

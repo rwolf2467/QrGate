@@ -1,0 +1,52 @@
+{
+    "_comment": "QrGate Pterodactyl egg. Import via Admin > Nests > Import Egg. Requires the Pterodactyl-compatible image (Dockerfile.pterodactyl): redwolf2467/qrgate:pterodactyl. No variables are required to start — configure everything in the /install wizard, including the security key.",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-06-22T00:00:00+00:00",
+    "name": "QrGate",
+    "author": "support@avocloud.net",
+    "description": "QrGate — web-based ticketing and access control. All-in-one container (Python backend + PHP frontend + nginx). Start it, then open the /install setup wizard to configure everything online.",
+    "features": null,
+    "docker_images": {
+        "QrGate (all-in-one)": "redwolf2467/qrgate:pterodactyl"
+    },
+    "file_denylist": [],
+    "startup": "/usr/local/bin/qrgate-ptero.sh",
+    "config": {
+        "files": "{}",
+        "startup": "{\r\n    \"done\": \"QrGate backend server started\"\r\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/ash\r\n# QrGate ships fully baked into the Docker image; the install step only needs\r\n# to make sure the persistent data directories exist in the server volume.\r\nmkdir -p /mnt/server/data /mnt/server/codes\r\necho 'QrGate install complete. Start the server, then open the /install wizard.'\r\n",
+            "container": "alpine:3.19",
+            "entrypoint": "ash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Auth / API key (optional)",
+            "description": "Optional. Leave blank to start with a bootstrap key and set a real one in the /install wizard (recommended). If set, it is the shared secret for backend + frontend.",
+            "env_variable": "QRGATE_AUTH_KEY",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:16",
+            "field_type": "text"
+        },
+        {
+            "name": "Timezone",
+            "description": "IANA timezone name, e.g. Europe/Berlin.",
+            "env_variable": "QRGATE_TIMEZONE",
+            "default_value": "Europe/Berlin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        }
+    ]
+}

@@ -21,6 +21,42 @@ def _env_list(name, default):
     return [item.strip() for item in val.split(",") if item.strip()]
 
 
+# --------------------------------------------------------------------------- #
+# Shared secret (auth_key) resolution.
+#
+# To make the "just `docker run`, configure everything online" flow possible,
+# the API secret can live in a small KEY FILE that BOTH the backend and the PHP
+# frontend (same container) read. The setup wizard writes a freshly generated
+# key there and restarts the backend. Resolution order:
+#   1. key file (QRGATE_KEY_FILE) if it exists and is non-empty
+#   2. QRGATE_AUTH_KEY env var
+#   3. the insecure bootstrap default below (so first boot works with no config)
+#
+# The default MUST match frontend/config.php's default so the pre-install
+# frontend<->backend calls authorize before a real key is set.
+# --------------------------------------------------------------------------- #
+DEFAULT_AUTH_KEY = "qrgate-bootstrap-key-change-me"
+
+# Default relative to the data dir (cwd-relative, like assets/data.py). In the
+# Docker images this is overridden with an absolute path so the PHP frontend
+# resolves the exact same file.
+key_file = _env("QRGATE_KEY_FILE", os.path.join("data", "secret.key"))
+
+
+def read_key_file():
+    """Return the trimmed key file contents, or None if missing/empty."""
+    try:
+        with open(key_file, "r") as fh:
+            val = fh.read().strip()
+            return val or None
+    except OSError:
+        return None
+
+
+def _resolve_auth_key():
+    return read_key_file() or _env("QRGATE_AUTH_KEY", DEFAULT_AUTH_KEY)
+
+
 version = 1.0
 
 # Local timezone (IANA name). DST-aware — preferred. Used by assets/timeutil.
@@ -38,7 +74,7 @@ class API:
 
 
 class Auth:
-    auth_key = _env("QRGATE_AUTH_KEY", "YourGeneratedKeyHere")
+    auth_key = _resolve_auth_key()
 
     # ------------------------------------------------------------------ #
     # Per-deployment login accounts for /api/user/check/.

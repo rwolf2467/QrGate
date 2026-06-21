@@ -16,7 +16,7 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 # Only these logical image slots may be (over)written via the upload endpoint.
 ALLOWED_IMAGE_TYPES = {'banner', 'logo', 'wallpaper'}
 # Hard cap per uploaded image (also enforced globally via MAX_CONTENT_LENGTH).
-MAX_IMAGE_BYTES = 8 * 1024 * 1024
+MAX_IMAGE_BYTES = 32 * 1024 * 1024
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS

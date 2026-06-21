@@ -20,7 +20,10 @@ services:
       QRGATE_BACKEND_URL: "${QRGATE_BACKEND_URL}"
       QRGATE_FRONTEND_ORIGIN: "${QRGATE_FRONTEND_ORIGIN}"
       QRGATE_ORIGIN_URL: "${QRGATE_ORIGIN_URL}"
-      QRGATE_SETUP_URL: "${QRGATE_SETUP_URL:-http://localhost:8080/install}"
+      # Published web port — used to print the correct setup link on first start
+      # (the container can't detect the host's port mapping itself).
+      QRGATE_WEB_PORT: "8080"
+      QRGATE_SETUP_URL: "${QRGATE_SETUP_URL:-}"
       QRGATE_TIMEZONE: "${QRGATE_TIMEZONE:-Europe/Berlin}"
       # Role accounts.
       QRGATE_ADMIN_USERNAMES: "${QRGATE_ADMIN_USERNAMES:-admin}"

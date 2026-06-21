@@ -159,15 +159,15 @@ function uploadImage() {
     }
 
     
-    $maxFileSize = 5 * 1024 * 1024; 
+    $maxFileSize = 32 * 1024 * 1024; 
     if ($file['size'] > $maxFileSize) {
         http_response_code(400);
-        echo json_encode(['status' => 'error', 'message' => 'File size exceeds 5MB limit']);
+        echo json_encode(['status' => 'error', 'message' => 'File size exceeds 32MB limit']);
         return;
     }
 
     
-    $result = uploadImageToBackend($file, $type);
+    $result = uploadImageToBackend($file, $type, $detectedType);
     
     if (isset($result['status']) && $result['status'] === 'success') {
         echo json_encode(['status' => 'success', 'message' => 'Image uploaded successfully']);
@@ -178,7 +178,7 @@ function uploadImage() {
     }
 }
 
-function uploadImageToBackend($file, $type) {
+function uploadImageToBackend($file, $type, $detectedType = null) {
     try {
         $ch = curl_init(API_BASE_URL . '/api/image/upload');
         if ($ch === false) {
@@ -316,7 +316,8 @@ function getCurrentImages() {
         $images = $result['images'];
         foreach ($images as $key => $image) {
             if (!empty($image) && !str_starts_with($image, 'http')) {
-                $images[$key] = API_BASE_URL . $image;
+                // Same-origin so the browser can load it (nginx proxies /api/image/).
+                $images[$key] = PUBLIC_API_BASE . '/' . ltrim($image, '/');
             }
         }
         echo json_encode(['status' => 'success', 'images' => $images]);
@@ -534,10 +535,10 @@ function uploadCastImage() {
         return;
     }
 
-    $maxFileSize = 5 * 1024 * 1024;
+    $maxFileSize = 32 * 1024 * 1024;
     if ($file['size'] > $maxFileSize) {
         http_response_code(400);
-        echo json_encode(['status' => 'error', 'message' => 'File size exceeds 5MB limit']);
+        echo json_encode(['status' => 'error', 'message' => 'File size exceeds 32MB limit']);
         return;
     }
 

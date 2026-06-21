@@ -227,7 +227,7 @@ HTML;
             <script>
                 document.addEventListener('DOMContentLoaded', function() {
                     const timestamp = new Date().getTime();
-                    document.getElementById('bannerBackground').style.backgroundImage = `url('<?php echo API_BASE_URL; ?>/api/image/get/banner.png?t=${timestamp}')`;
+                    document.getElementById('bannerBackground').style.backgroundImage = `url('<?php echo PUBLIC_API_BASE; ?>/api/image/get/banner.png?t=${timestamp}')`;
                 });
             </script>
             <div class="absolute inset-0 bg-black/60"></div>

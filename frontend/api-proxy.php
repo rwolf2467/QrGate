@@ -12,6 +12,10 @@ $allowedEndpoints = [
     'payment_methods'  => '/api/show/get/payment_methods',
     'show'             => '/api/show/get',
     'stripe_pub_key'   => '/api/show/get/stripe_pub_key',
+    // Used by the setup wizard: poll install state (e.g. while the backend
+    // restarts) and generate a random secret key server-side.
+    'setup_status'     => '/api/setup/status',
+    'setup_genkey'     => '/api/setup/genkey',
 ];
 
 $endpoint = $_GET['endpoint'] ?? '';

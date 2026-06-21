@@ -11,7 +11,7 @@ logger = Logger()
 logger.success("Manage_show.py loaded")
 
 # Hard cap per uploaded image (also enforced globally via MAX_CONTENT_LENGTH).
-MAX_IMAGE_BYTES = 8 * 1024 * 1024
+MAX_IMAGE_BYTES = 32 * 1024 * 1024
 
 
 def _sniff_image_type(data: bytes):

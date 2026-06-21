@@ -62,7 +62,7 @@ function renderSlideText($text, $orgaName, $showTitle, $showSubtitle) {
     return $html;
 }
 
-$castImageBase = API_BASE_URL . 'api/show/cast/image/';
+$castImageBase = PUBLIC_API_BASE . '/api/show/cast/image/';
 
 $CAST_PER_SLIDE = 6;
 $finalSlides = [];
