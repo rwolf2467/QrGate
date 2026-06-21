@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+.git
+.gitignore
+infosheet.odt
+infosheet.pdf
+# Don't bake runtime state into the image — mounted as volumes instead.
+data/*.json
+data/qrgate.db
+codes/*.png

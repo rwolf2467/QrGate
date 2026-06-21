@@ -1,0 +1,5 @@
+quart
+quart-cors
+reportlab
+qrcode[pil]
+reds_simple_logger

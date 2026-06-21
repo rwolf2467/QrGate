@@ -72,14 +72,23 @@ if ($_sessionIsAuthenticated) {
     }
 }
 
-define('API_KEY', 'YourGeneratedKeyHere');
-define('API_BASE_URL', 'https://qrgate-backend.example.com/');
-define('ORIGIN_URL', 'https://qrgate.avocloud.net/');
+// env() lets Docker inject config without editing this file. Falls back to the
+// hardcoded default when the env var is unset/empty (bare PHP server setups).
+if (!function_exists('qrgate_env')) {
+    function qrgate_env($name, $default) {
+        $val = getenv($name);
+        return ($val === false || $val === '') ? $default : $val;
+    }
+}
+
+define('API_KEY', qrgate_env('QRGATE_API_KEY', 'YourGeneratedKeyHere'));
+define('API_BASE_URL', qrgate_env('QRGATE_API_BASE_URL', 'https://qrgate-backend.example.com/'));
+define('ORIGIN_URL', qrgate_env('QRGATE_ORIGIN_URL', 'https://qrgate.avocloud.net/'));
 
 // Admin passwords - CHANGE THESE IN PRODUCTION!
-define('ADMIN_PASSWORD', 'admin123');
-define('TICKETFLOW_PASSWORD', 'ticketflow123');
-define('HANDHELD_PASSWORD', 'handheld123');
+define('ADMIN_PASSWORD', qrgate_env('QRGATE_ADMIN_PASSWORD', 'admin123'));
+define('TICKETFLOW_PASSWORD', qrgate_env('QRGATE_TICKETFLOW_PASSWORD', 'ticketflow123'));
+define('HANDHELD_PASSWORD', qrgate_env('QRGATE_HANDHELD_PASSWORD', 'handheld123'));
 
 // CSRF Protection
 function generateCsrfToken() {
@@ -157,10 +166,57 @@ function getShows()
 
 function updateShow($data)
 {
-    
+
     if (isset($data['store_lock'])) {
         $data['store_lock'] = filter_var($data['store_lock'], FILTER_VALIDATE_BOOLEAN);
     }
-    
+
     return makeApiCall('/api/show/edit', 'POST', $data);
 }
+
+/**
+ * First-run setup guard.
+ *
+ * Returns true once the backend reports the wizard as completed. The "installed"
+ * state only ever flips false -> true, so we cache a positive result in the
+ * session and stop polling the backend afterwards. A negative or unreachable
+ * backend is NOT cached (so the guard re-checks on the next request, and a
+ * temporary backend outage can never permanently lock visitors into /install).
+ */
+function isSetupComplete()
+{
+    if (!empty($_SESSION['qrgate_installed'])) {
+        return true;
+    }
+    $resp = makeApiCall('/api/setup/status');
+    if (is_array($resp) && !isset($resp['error']) && array_key_exists('installed', $resp)) {
+        if ($resp['installed'] === true) {
+            $_SESSION['qrgate_installed'] = true;
+            return true;
+        }
+        return false; // backend reachable and explicitly NOT installed
+    }
+    // Backend unreachable / malformed answer: fail open, don't redirect.
+    return true;
+}
+
+/**
+ * Redirect to the setup wizard if the system is not yet installed. Called once
+ * here for every page that includes config.php; the wizard page itself is
+ * exempted to avoid a redirect loop.
+ */
+function enforceSetup()
+{
+    $script = basename($_SERVER['SCRIPT_NAME'] ?? '');
+    // install.php drives the wizard; the proxies are used BY it. Let them pass.
+    $exempt = ['install.php', 'api-proxy.php', 'stripe-intent.php'];
+    if (in_array($script, $exempt, true)) {
+        return;
+    }
+    if (!isSetupComplete()) {
+        header('Location: /install');
+        exit;
+    }
+}
+
+enforceSetup();

@@ -3,6 +3,7 @@ from reds_simple_logger import Logger
 logger = Logger()
 logger.working("Starting up QrGate backend server...")
 
+import os
 import time as _time
 from collections import deque
 
@@ -18,6 +19,7 @@ from assets.user import user_check
 from assets.stats import get_stats_api
 from assets.image_manager import upload_image, get_image, get_current_images
 from assets.accounts import init_accounts, auth_routes, user_routes
+from assets.setup import init_setup, setup_routes, apply_settings_to_config, is_installed
 from config import conf as config
 from assets.timeutil import local_now
 
@@ -110,6 +112,8 @@ time = local_now()
 logger.working("Initializing database...")
 init_db()  # idempotent; also runs one-time JSON -> SQLite migration if needed
 init_accounts()  # create users table + seed default admin (admin/admin) on first run
+init_setup()  # create settings table for the first-run setup wizard
+apply_settings_to_config()  # push any stored SMTP overrides onto config.Mail
 
 logger.working("Enabling systems...")
 validate_ticket(app)
@@ -129,6 +133,7 @@ get_image(app)
 get_current_images(app)
 auth_routes(app)
 user_routes(app)
+setup_routes(app)
 logger.success("Systems enabled.")
 
 qr_gate = """
@@ -144,8 +149,21 @@ qr_gate = """
 print(qr_gate)
 logger.info("QrGate backend server started. - Developed by avocloud.net")
 
+# First-run hint: if the setup wizard has not been completed, print a big,
+# hard-to-miss banner with the install link so the operator knows where to go.
+if not is_installed():
+    _setup_url = os.environ.get("QRGATE_SETUP_URL", "http://localhost:8080/install")
+    logger.warn("=" * 64)
+    logger.warn(" QrGate is NOT yet set up.")
+    logger.warn(" Open the setup wizard to finish installation:")
+    logger.warn("   -> " + _setup_url)
+    logger.warn("=" * 64)
+
 print(str(time.date()) + " - " + str(time.time()))
 if __name__ == "__main__":
     # debug must stay False in production: the debug server leaks full
     # tracebacks (and can expose an interactive debugger) to any client.
-    app.run(debug=False, port=config.API.port, host="0.0.0.0", use_reloader=True)
+    # Reloader is handy in local dev but pointless (and double-forks) inside a
+    # container. Disable it by setting QRGATE_RELOAD=0 (set in the Docker image).
+    _reload = os.environ.get("QRGATE_RELOAD", "1") not in ("0", "false", "False", "")
+    app.run(debug=False, port=config.API.port, host="0.0.0.0", use_reloader=_reload)

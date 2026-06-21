@@ -1,0 +1,55 @@
+# QrGate — Pterodactyl-compatible all-in-one image.
+#
+# Like the root Dockerfile but built to run ROOTLESS under Pterodactyl wings:
+#   - nginx listens on ${SERVER_PORT}, all temp/pid state under /tmp
+#   - data + generated tickets are written under /home/container (the volume)
+#   - started via /usr/local/bin/qrgate-ptero.sh (set as the egg Startup Command)
+#
+# Build & push, e.g.:
+#   docker build -f Dockerfile.pterodactyl -t redwolf2467/qrgate:pterodactyl .
+#   docker push redwolf2467/qrgate:pterodactyl
+
+# --- Stage 1: PHP (Composer) dependencies --------------------------------- #
+FROM composer:2 AS vendor
+WORKDIR /app
+COPY frontend/composer.json ./
+RUN composer install --no-dev --no-interaction --no-progress --ignore-platform-reqs
+
+# --- Stage 2: runtime ----------------------------------------------------- #
+FROM php:8.2-fpm
+
+# nginx + supervisor + python venv. gettext-base provides envsubst.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        nginx supervisor python3 python3-venv python3-pip gettext-base \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV VENV=/opt/venv
+RUN python3 -m venv $VENV
+ENV PATH="$VENV/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+COPY backend/requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
+# App code.
+WORKDIR /app
+COPY backend/  /app/backend/
+COPY frontend/ /app/frontend/
+COPY --from=vendor /app/vendor /app/frontend/vendor
+
+# Pterodactyl service config + entrypoint.
+COPY pterodactyl/nginx.conf.template /etc/qrgate/nginx.conf.template
+COPY pterodactyl/supervisord.conf    /etc/qrgate/supervisord.conf
+COPY pterodactyl/php-fpm.conf        /usr/local/etc/php-fpm.d/zz-qrgate.conf
+COPY docker/uploads.ini              /usr/local/etc/php/conf.d/qrgate-uploads.ini
+COPY pterodactyl/qrgate-ptero.sh     /usr/local/bin/qrgate-ptero.sh
+RUN chmod +x /usr/local/bin/qrgate-ptero.sh \
+    # World-writable so any Pterodactyl uid can write logs/sockets here.
+    && chmod -R 0777 /app/frontend/vendor 2>/dev/null || true
+
+# Pterodactyl creates and chowns /home/container at runtime; the egg Startup
+# Command is /usr/local/bin/qrgate-ptero.sh.
+WORKDIR /home/container
+CMD ["/usr/local/bin/qrgate-ptero.sh"]

@@ -1,0 +1,43 @@
+# QrGate as a single all-in-one container (backend + PHP + nginx in one image).
+# Build the root Dockerfile. Copy .env.example to .env and fill in secrets.
+#
+#   docker compose -f docker-compose.single.yml up -d --build
+#
+# For the two-container split instead, use the default docker-compose.yml.
+
+services:
+  qrgate:
+    build: .
+    image: qrgate
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      # Shared secret — used by backend (auth_key) AND frontend (API key,
+      # auto-derived from it in the entrypoint).
+      QRGATE_AUTH_KEY: "${QRGATE_AUTH_KEY}"
+      # Public-facing URLs.
+      QRGATE_BACKEND_URL: "${QRGATE_BACKEND_URL}"
+      QRGATE_FRONTEND_ORIGIN: "${QRGATE_FRONTEND_ORIGIN}"
+      QRGATE_ORIGIN_URL: "${QRGATE_ORIGIN_URL}"
+      QRGATE_SETUP_URL: "${QRGATE_SETUP_URL:-http://localhost:8080/install}"
+      QRGATE_TIMEZONE: "${QRGATE_TIMEZONE:-Europe/Berlin}"
+      # Role accounts.
+      QRGATE_ADMIN_USERNAMES: "${QRGATE_ADMIN_USERNAMES:-admin}"
+      QRGATE_ADMIN_PASSWORD: "${QRGATE_ADMIN_PASSWORD}"
+      QRGATE_TICKETFLOW_USERNAMES: "${QRGATE_TICKETFLOW_USERNAMES:-ticketflow}"
+      QRGATE_TICKETFLOW_PASSWORD: "${QRGATE_TICKETFLOW_PASSWORD}"
+      QRGATE_HANDHELD_USERNAMES: "${QRGATE_HANDHELD_USERNAMES:-handheld}"
+      QRGATE_HANDHELD_PASSWORD: "${QRGATE_HANDHELD_PASSWORD}"
+      # SMTP (also configurable later via the setup wizard).
+      QRGATE_SMTP_SERVER: "${QRGATE_SMTP_SERVER}"
+      QRGATE_SMTP_PORT: "${QRGATE_SMTP_PORT:-587}"
+      QRGATE_SMTP_USER: "${QRGATE_SMTP_USER}"
+      QRGATE_SMTP_PASSWORD: "${QRGATE_SMTP_PASSWORD}"
+    volumes:
+      - qrgate_data:/app/backend/data
+      - qrgate_codes:/app/backend/codes
+
+volumes:
+  qrgate_data:
+  qrgate_codes:

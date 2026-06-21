@@ -1,0 +1,66 @@
+# QrGate full stack: Python backend + nginx/PHP frontend on a shared network.
+# Copy .env.example to .env and fill in real secrets before `docker compose up`.
+
+services:
+  backend:
+    build: ./backend
+    image: qrgate-backend
+    restart: unless-stopped
+    environment:
+      QRGATE_RELOAD: "0"
+      QRGATE_PORT: "1654"
+      # Printed in the backend logs on first start so the operator knows where
+      # to open the setup wizard. Match this to the frontend's public URL.
+      QRGATE_SETUP_URL: "${QRGATE_SETUP_URL:-http://localhost:8080/install}"
+      QRGATE_AUTH_KEY: "${QRGATE_AUTH_KEY}"
+      QRGATE_BACKEND_URL: "${QRGATE_BACKEND_URL}"
+      QRGATE_FRONTEND_ORIGIN: "${QRGATE_FRONTEND_ORIGIN}"
+      QRGATE_TIMEZONE: "${QRGATE_TIMEZONE:-Europe/Berlin}"
+      QRGATE_ADMIN_USERNAMES: "${QRGATE_ADMIN_USERNAMES:-admin}"
+      QRGATE_ADMIN_PASSWORD: "${QRGATE_ADMIN_PASSWORD}"
+      QRGATE_TICKETFLOW_USERNAMES: "${QRGATE_TICKETFLOW_USERNAMES:-ticketflow}"
+      QRGATE_TICKETFLOW_PASSWORD: "${QRGATE_TICKETFLOW_PASSWORD}"
+      QRGATE_HANDHELD_USERNAMES: "${QRGATE_HANDHELD_USERNAMES:-handheld}"
+      QRGATE_HANDHELD_PASSWORD: "${QRGATE_HANDHELD_PASSWORD}"
+      QRGATE_SMTP_SERVER: "${QRGATE_SMTP_SERVER}"
+      QRGATE_SMTP_PORT: "${QRGATE_SMTP_PORT:-587}"
+      QRGATE_SMTP_USER: "${QRGATE_SMTP_USER}"
+      QRGATE_SMTP_PASSWORD: "${QRGATE_SMTP_PASSWORD}"
+    volumes:
+      # Persist tickets/shows/stats DB and generated PDFs/QR codes.
+      - qrgate_data:/app/data
+      - qrgate_codes:/app/codes
+    networks:
+      - qrgate
+    # Not published to the host: the frontend reaches it internally at
+    # http://backend:1654. Uncomment to expose for debugging.
+    # ports:
+    #   - "1654:1654"
+
+  frontend:
+    build: ./frontend
+    image: qrgate-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      # Internal service name + port — frontend talks to backend over the
+      # shared docker network, no host exposure needed.
+      QRGATE_API_BASE_URL: "http://backend:1654/"
+      QRGATE_API_KEY: "${QRGATE_AUTH_KEY}"
+      QRGATE_ORIGIN_URL: "${QRGATE_ORIGIN_URL}"
+      QRGATE_ADMIN_PASSWORD: "${QRGATE_ADMIN_PASSWORD}"
+      QRGATE_TICKETFLOW_PASSWORD: "${QRGATE_TICKETFLOW_PASSWORD}"
+      QRGATE_HANDHELD_PASSWORD: "${QRGATE_HANDHELD_PASSWORD}"
+    ports:
+      - "8080:80"
+    networks:
+      - qrgate
+
+networks:
+  qrgate:
+    driver: bridge
+
+volumes:
+  qrgate_data:
+  qrgate_codes:

@@ -11,3 +11,7 @@ backend/data/*.db-shm
 
 # Generated tickets / QR codes / PDFs
 backend/codes/
+
+# Docker / secrets
+.env
+frontend/vendor/
