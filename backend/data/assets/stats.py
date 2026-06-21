@@ -1,9 +1,9 @@
 import hmac
 import quart
 from typing import Dict, Any
+from datetime import datetime
 from reds_simple_logger import Logger
-from assets.data import load_show, _load_stats_dict, _save_stats_dict, log_sale
-from assets.timeutil import today_iso
+from assets.data import load_show, _load_stats_dict, _save_stats_dict
 import config.conf as config # type: ignore
 
 logger = Logger()
@@ -25,29 +25,26 @@ def save_stats(stats: Dict[str, Any]):
 
 
 def log_ticket_sale(date: str, tickets_sold: int, price_per_ticket: float):
-    """Log a ticket sale to statistics.
-
-    Keyed by today_iso() (the event-timezone calendar date), preserving the
-    original "sales today" intent — the `date` param is intentionally ignored,
-    same as before, but now we use the timezone-aware date instead of the
-    server's naive UTC clock. Accumulation is done by the atomic data.log_sale
-    upsert so concurrent buys can't lose updates (no load -> mutate -> save
-    read-modify-write race)."""
-    current_date = today_iso()
+    """Log a ticket sale to statistics"""
+    stats = load_stats()
+    
+    
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    
+    if current_date in stats["sales_by_date"]:
+        stats["sales_by_date"][current_date] += tickets_sold
+    else:
+        stats["sales_by_date"][current_date] = tickets_sold
+    
+    
     income = tickets_sold * price_per_ticket
-    log_sale(current_date, tickets_sold, income)
+    if current_date in stats["income_by_date"]:
+        stats["income_by_date"][current_date] += income
+    else:
+        stats["income_by_date"][current_date] = income
+    
+    save_stats(stats)
     logger.info(f"Logged sale: {tickets_sold} tickets on {current_date}, income: €{income:.2f}")
-
-
-def log_ticket_refund(tickets_refunded: int, price_per_ticket: float):
-    """Reverse a sale in the statistics (inverse of log_ticket_sale): subtract
-    the refunded seats and income from today's bucket. Keyed by today_iso() to
-    mirror how sales are logged. Relies on log_sale's atomic accumulating upsert
-    accepting negative deltas."""
-    current_date = today_iso()
-    income = tickets_refunded * price_per_ticket
-    log_sale(current_date, -int(tickets_refunded), -float(income))
-    logger.info(f"Logged refund: {tickets_refunded} tickets on {current_date}, income: -€{income:.2f}")
 
 
 def get_statistics():

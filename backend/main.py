@@ -10,13 +10,14 @@ import quart
 import quart_cors
 from quart import Response, request
 from assets.vaildate import validate_ticket
-from assets.ticket_manager import create_ticket, edit_ticket, view_ticket
+from assets.ticket_manager import create_ticket, edit_ticket, view_ticket, cancel_ticket
 from assets.manage_show import get_show, edit_show, cast_image_upload
 from assets.data import img_show, init_db
 from assets.vote import vote
 from assets.user import user_check
 from assets.stats import get_stats_api
 from assets.image_manager import upload_image, get_image, get_current_images
+from assets.accounts import init_accounts, auth_routes, user_routes
 from config import conf as config
 from assets.timeutil import local_now
 
@@ -49,6 +50,8 @@ app = quart_cors.cors(app, allow_origin=_frontend_origin)
 _RATE_LIMITS = {
     "/api/ticket/validate": (120, 10),   # ~12 scans/s/IP across all door staff
     "/api/ticket/create": (20, 60),      # buying is slow & human-paced
+    "/api/ticket/cancel": (30, 60),      # admin-driven refunds, human-paced
+    "/api/auth/login": (10, 300),        # login brute-force guard
     "/api/user/check": (30, 60),
     "/api/vote": (10, 60),
     "/codes/": (60, 60),                 # PDF/QR fetches
@@ -106,12 +109,14 @@ time = local_now()
 
 logger.working("Initializing database...")
 init_db()  # idempotent; also runs one-time JSON -> SQLite migration if needed
+init_accounts()  # create users table + seed default admin (admin/admin) on first run
 
 logger.working("Enabling systems...")
 validate_ticket(app)
 create_ticket(app)
 edit_ticket(app)
 view_ticket(app)
+cancel_ticket(app)
 get_show(app)
 edit_show(app)
 cast_image_upload(app)
@@ -122,6 +127,8 @@ get_stats_api(app)
 upload_image(app)
 get_image(app)
 get_current_images(app)
+auth_routes(app)
+user_routes(app)
 logger.success("Systems enabled.")
 
 qr_gate = """

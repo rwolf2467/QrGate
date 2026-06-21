@@ -5,6 +5,10 @@ if (!isset($_SESSION["admin"]) || $_SESSION["admin"] !== true) {
     header("Location: login.php");
     exit();
 }
+if (!empty($_SESSION["must_change_pw"])) {
+    header("Location: change_password.php");
+    exit();
+}
 
 $shows = getShows();
 $stats = [];
@@ -331,11 +335,30 @@ HTML;
                                         <line x1="2" x2="22" y1="10" y2="10" />
                                     </svg> Zahlungseinstellungen</span></a>
                         </li>
+                        <li><a href="#" data-section="accounts"><span><svg xmlns="http://www.w3.org/2000/svg"
+                                        width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        class="lucide lucide-users-icon lucide-users">
+                                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                        <circle cx="9" cy="7" r="4" />
+                                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                    </svg> Benutzerkonten</span></a>
+                        </li>
 
                     </ul>
                 </div>
                 <div role="group" aria-labelledby="group-label-content-3">
                     <ul>
+                        <li><a href="apps.php" data-section="switch-app"><span><svg xmlns="http://www.w3.org/2000/svg"
+                                        width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        class="lucide lucide-grid">
+                                        <rect width="7" height="7" x="3" y="3" rx="1" />
+                                        <rect width="7" height="7" x="14" y="3" rx="1" />
+                                        <rect width="7" height="7" x="14" y="14" rx="1" />
+                                        <rect width="7" height="7" x="3" y="14" rx="1" />
+                                    </svg> App wechseln</span></a></li>
                         <li><a href="logout.php" data-section="logout"><span><svg xmlns="http://www.w3.org/2000/svg"
                                         width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -1054,6 +1077,67 @@ HTML;
             </div>
         </div>
 
+        <!-- Accounts -->
+        <div id="accounts" style="display: none">
+            <h1><svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="lucide lucide-users-icon" style="margin-right: 10px;">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg> Benutzerkonten</h1>
+
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <header>
+                    <h2>Neues Konto anlegen</h2>
+                    <p>Lege ein Konto an und vergib Zugänge. Das Passwort kann der Nutzer später selbst ändern.</p>
+                </header>
+                <section>
+                    <form id="createAccountForm" class="form grid gap-4" style="max-width: 460px;"
+                          onsubmit="createAccount(); return false;">
+                        <div class="grid gap-2">
+                            <label class="label" for="acc-username">Benutzername</label>
+                            <input class="input" type="text" id="acc-username" autocomplete="off" required>
+                        </div>
+                        <div class="grid gap-2">
+                            <label class="label" for="acc-password">Passwort <span class="text-muted-foreground text-sm">(min. 6 Zeichen)</span></label>
+                            <input class="input" type="text" id="acc-password" autocomplete="off" required>
+                        </div>
+                        <fieldset class="grid gap-2">
+                            <legend class="label">Zugänge</legend>
+                            <label class="flex items-center gap-2"><input type="checkbox" id="acc-admin"> Admin (Verwaltung & Konten)</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" id="acc-ticketflow"> TicketFlow (Abendkasse)</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" id="acc-handheld"> Handheld (Scanner)</label>
+                        </fieldset>
+                        <div><button type="submit" class="btn-outline">Konto anlegen</button></div>
+                    </form>
+                </section>
+            </div>
+
+            <div class="card">
+                <header>
+                    <h2>Bestehende Konten</h2>
+                </header>
+                <section>
+                    <div class="days-table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Benutzername</th>
+                                    <th>Admin</th>
+                                    <th>TicketFlow</th>
+                                    <th>Handheld</th>
+                                    <th>Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody id="accountsTableBody">
+                                <tr><td colspan="5" class="text-muted-foreground">Lade…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+
         <?php
         $orgName = $shows['orga_name'] ?? '';
         $current_language = 'en';
@@ -1088,6 +1172,10 @@ HTML;
         function switchSection(targetId) {
             if (targetId === 'logout') {
                 window.location.href = 'logout.php';
+                return;
+            }
+            if (targetId === 'switch-app') {
+                window.location.href = 'apps.php';
                 return;
             }
 
@@ -1966,6 +2054,126 @@ HTML;
             } catch (err) {
                 showToast('Network error saving payment settings', 'error');
             }
+        }
+
+        // ---- Account management ----
+        function accProxy(endpoint, payload) {
+            return fetch('admin-api-proxy.php?endpoint=' + endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                body: JSON.stringify(payload || {})
+            }).then(r => r.json());
+        }
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        async function loadAccounts() {
+            const body = document.getElementById('accountsTableBody');
+            if (!body) return;
+            try {
+                const data = await fetch('admin-api-proxy.php?endpoint=users_list').then(r => r.json());
+                const users = (data && data.users) || [];
+                if (!users.length) {
+                    body.innerHTML = '<tr><td colspan="5" class="text-muted-foreground">Keine Konten.</td></tr>';
+                    return;
+                }
+                body.innerHTML = '';
+                users.forEach(u => {
+                    const tr = document.createElement('tr');
+
+                    const tdName = document.createElement('td');
+                    tdName.textContent = u.username;
+                    tr.appendChild(tdName);
+
+                    // Permission checkboxes — listeners bound directly (no inline
+                    // onclick strings, which broke on usernames/quotes).
+                    [['can_admin', u.can_admin], ['can_ticketflow', u.can_ticketflow], ['can_handheld', u.can_handheld]]
+                        .forEach(([perm, on]) => {
+                            const td = document.createElement('td');
+                            const cb = document.createElement('input');
+                            cb.type = 'checkbox';
+                            cb.checked = !!on;
+                            cb.dataset.perm = perm;
+                            cb.addEventListener('change', () => updateAccountPerm(u.username, tr));
+                            td.appendChild(cb);
+                            tr.appendChild(td);
+                        });
+
+                    const tdAct = document.createElement('td');
+                    const btn = document.createElement('button');
+                    btn.className = 'btn-icon-destructive';
+                    btn.title = 'Löschen';
+                    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+                    btn.addEventListener('click', () => deleteAccount(u.username));
+                    tdAct.appendChild(btn);
+                    tr.appendChild(tdAct);
+
+                    body.appendChild(tr);
+                });
+            } catch (e) {
+                body.innerHTML = '<tr><td colspan="5" style="color:var(--avo-error)">Fehler beim Laden.</td></tr>';
+            }
+        }
+
+        async function createAccount() {
+            const username = document.getElementById('acc-username').value.trim();
+            const password = document.getElementById('acc-password').value;
+            if (!username || password.length < 6) {
+                showToast('Benutzername und Passwort (min. 6 Zeichen) erforderlich', 'error');
+                return;
+            }
+            const data = await accProxy('users_create', {
+                username, password,
+                can_admin: document.getElementById('acc-admin').checked,
+                can_ticketflow: document.getElementById('acc-ticketflow').checked,
+                can_handheld: document.getElementById('acc-handheld').checked,
+            });
+            if (data && data.status === 'success') {
+                showToast('Konto angelegt');
+                document.getElementById('createAccountForm').reset();
+                loadAccounts();
+            } else {
+                showToast('Fehler: ' + ((data && (data.message || data.error)) || 'unbekannt'), 'error');
+            }
+        }
+
+        async function updateAccountPerm(username, row) {
+            const get = perm => {
+                const cb = row.querySelector('input[data-perm="' + perm + '"]');
+                return cb ? cb.checked : false;
+            };
+            const data = await accProxy('users_update', {
+                username,
+                can_admin: get('can_admin'),
+                can_ticketflow: get('can_ticketflow'),
+                can_handheld: get('can_handheld'),
+            });
+            if (data && data.status === 'success') {
+                showToast('Zugänge aktualisiert');
+            } else {
+                showToast('Fehler: ' + ((data && (data.message || data.error)) || 'unbekannt'), 'error');
+                loadAccounts();
+            }
+        }
+
+        async function deleteAccount(username) {
+            if (!confirm('Konto "' + username + '" wirklich löschen?')) return;
+            const data = await accProxy('users_delete', { username });
+            if (data && data.status === 'success') {
+                showToast('Konto gelöscht');
+                loadAccounts();
+            } else {
+                showToast('Fehler: ' + ((data && (data.message || data.error)) || 'unbekannt'), 'error');
+            }
+        }
+
+        document.querySelector('aside a[data-section="accounts"]').addEventListener('click', () => {
+            setTimeout(loadAccounts, 200);
+        });
+        if (localStorage.getItem('currentAdminSection') === 'accounts') {
+            setTimeout(loadAccounts, 200);
         }
     </script>
 </body>

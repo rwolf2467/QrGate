@@ -5,6 +5,10 @@ if (!isset($_SESSION["admin"]) && !isset($_SESSION["ticketflow_access"])) {
     header("Location: ../login.php?redirect=ticketflow");
     exit();
 }
+if (!empty($_SESSION["must_change_pw"])) {
+    header("Location: ../change_password.php");
+    exit();
+}
 
 // CSRF guard for state-changing POST handlers. Token is accepted from the
 // X-CSRF-Token header (AJAX/fetch) or a csrf_token POST field (HTML forms).
@@ -164,6 +168,11 @@ $languages = [
         "valid_date" => "Valid date", "save" => "Save", "cancel" => "Cancel",
         "saved" => "Ticket saved.", "save_err" => "Error saving ticket",
         "true" => "True", "false" => "False",
+        "cancel_ticket" => "Cancel / Refund",
+        "cancel_reason" => "Reason (optional)",
+        "cancel_confirm" => "Cancel this ticket? If it was paid by card it will be refunded. This cannot be undone.",
+        "cancel_ok" => "Ticket cancelled.", "cancel_err" => "Could not cancel ticket",
+        "switch_app" => "Switch app",
     ],
     "de" => [
         "flag" => "🇩🇪", "name" => "Deutsch",
@@ -192,6 +201,11 @@ $languages = [
         "valid_date" => "Gültigkeitsdatum", "save" => "Speichern", "cancel" => "Abbrechen",
         "saved" => "Ticket gespeichert.", "save_err" => "Fehler beim Speichern",
         "true" => "Wahr", "false" => "Falsch",
+        "cancel_ticket" => "Stornieren / Erstatten",
+        "cancel_reason" => "Grund (optional)",
+        "cancel_confirm" => "Dieses Ticket stornieren? Bei Kartenzahlung wird der Betrag erstattet. Das kann nicht rückgängig gemacht werden.",
+        "cancel_ok" => "Ticket storniert.", "cancel_err" => "Ticket konnte nicht storniert werden",
+        "switch_app" => "App wechseln",
     ],
 ];
 $lang_code = $_SESSION["language"] ?? "de";
@@ -217,6 +231,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["ticket_id"]) && !isset
         $valid      = !empty($td["data"]["valid"]) ? "true" : "false";
     } else {
         $flash = ["err", $L["err_generic"]];
+    }
+}
+
+if ($_SERVER["REQUEST_METHOD"] == "POST" && ($_POST["action"] ?? "") === "cancel_ticket") {
+    tf_require_csrf(false);
+    $cancel_tid = $_POST["ticket_id"] ?? "";
+    [$code, $resp] = call_api("api/ticket/cancel", [
+        "tid"     => $cancel_tid,
+        "reason"  => trim($_POST["cancel_reason"] ?? ""),
+        "scanner" => "ticketflow:" . ($_SESSION["username"] ?? "staff"),
+    ]);
+    if ($code === 200 && ($resp["status"] ?? "") === "success") {
+        $flash = ["ok", $resp["message"] ?? $L["cancel_ok"]];
+        $firstname = $lastname = $type = $valid_date = $ticket_id = "";
+        $paid = $valid = "false";
+    } else {
+        $flash = ["err", ($resp["message"] ?? $L["cancel_err"])];
+        // keep the looked-up ticket on screen so the operator can retry
+        $ticket_id = $cancel_tid;
+        [$code2, $td2] = call_api("api/ticket/get", ["tid" => $cancel_tid], "POST");
+        if ($code2 === 200 && isset($td2["data"])) {
+            $firstname  = $td2["data"]["first_name"] ?? "";
+            $lastname   = $td2["data"]["last_name"] ?? "";
+            $type       = $td2["data"]["type"] ?? "";
+            $paid       = !empty($td2["data"]["paid"]) ? "true" : "false";
+            $valid_date = $td2["data"]["valid_date"] ?? "";
+            $valid      = !empty($td2["data"]["valid"]) ? "true" : "false";
+        }
     }
 }
 
@@ -376,6 +418,13 @@ $extraHead = '<meta name="csrf-token" content="' . htmlspecialchars($csrfToken, 
                 <?php endforeach; ?>
             </select>
         </form>
+        <a href="../apps.php" class="btn-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/>
+                <rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>
+            </svg> <?php echo $L["switch_app"]; ?>
+        </a>
         <a href="../logout.php" class="btn-destructive">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -595,6 +644,22 @@ $extraHead = '<meta name="csrf-token" content="' . htmlspecialchars($csrfToken, 
                         <button type="submit" class="btn-primary"><?php echo $L["save"]; ?></button>
                         <a href="index.php" class="btn-secondary"><?php echo $L["cancel"]; ?></a>
                         <button type="button" class="btn-secondary" onclick="printTickets([<?php echo json_encode($ticket_id); ?>])"><?php echo $L["print"]; ?></button>
+                    </div>
+                </form>
+
+                <!-- cancel / refund (separate form so it never carries the edit fields) -->
+                <form action="" method="POST" class="grid gap-3 mt-8 pt-6"
+                      style="border-top:1px solid var(--avo-border)"
+                      onsubmit="return confirm(<?php echo htmlspecialchars(json_encode($L["cancel_confirm"]), ENT_QUOTES); ?>);">
+                    <input type="hidden" name="action" value="cancel_ticket">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                    <input type="hidden" name="ticket_id" value="<?php echo htmlspecialchars($ticket_id); ?>">
+                    <div>
+                        <label class="block mb-2 text-sm"><?php echo $L["cancel_reason"]; ?></label>
+                        <input type="text" name="cancel_reason" class="input w-full" maxlength="200">
+                    </div>
+                    <div>
+                        <button type="submit" class="btn-destructive"><?php echo $L["cancel_ticket"]; ?></button>
                     </div>
                 </form>
             <?php endif; ?>

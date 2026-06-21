@@ -20,7 +20,11 @@ $allowedEndpoints = [
     'show' => '/api/show/get',
     'show_edit' => '/api/show/edit',
     'images' => '/api/image/current',
-    'cast_image' => '/api/show/cast/image/'
+    'cast_image' => '/api/show/cast/image/',
+    'users_list' => '/api/users/list',
+    'users_create' => '/api/users/create',
+    'users_update' => '/api/users/update',
+    'users_delete' => '/api/users/delete',
 ];
 
 $endpoint = $_GET['endpoint'] ?? '';

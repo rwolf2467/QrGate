@@ -1,48 +1,118 @@
 <?php
 require_once '../config.php';
 
+// --- Login brute-force throttle (per client IP, file-backed) -----------------
+// Simple cross-session counter so an attacker can't bypass it by dropping the
+// session cookie. After LOGIN_MAX_ATTEMPTS failures within LOGIN_WINDOW seconds
+// the IP is locked out for LOGIN_LOCKOUT seconds.
+const LOGIN_MAX_ATTEMPTS = 5;
+const LOGIN_WINDOW = 900;   // 15 min sliding window for counting failures
+const LOGIN_LOCKOUT = 300;  // 5 min lockout once tripped
+
+function loginThrottleFile($ip) {
+    return sys_get_temp_dir() . '/qrgate_login_' . hash('sha256', $ip) . '.json';
+}
+function loginThrottleGet($ip) {
+    $f = loginThrottleFile($ip);
+    if (is_file($f)) {
+        $d = json_decode((string)@file_get_contents($f), true);
+        if (is_array($d)) return $d + ['count' => 0, 'first' => time(), 'locked_until' => 0];
+    }
+    return ['count' => 0, 'first' => time(), 'locked_until' => 0];
+}
+function loginThrottleSave($ip, $d) {
+    @file_put_contents(loginThrottleFile($ip), json_encode($d), LOCK_EX);
+}
+function loginThrottleReset($ip) {
+    @unlink(loginThrottleFile($ip));
+}
+
+$clientIp = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // CSRF validation
-    if (!isset($_POST['csrf_token']) || !validateCsrfToken($_POST['csrf_token'])) {
+    $now = time();
+    $throttle = loginThrottleGet($clientIp);
+    // Expire the counting window.
+    if ($now - $throttle['first'] > LOGIN_WINDOW) {
+        $throttle = ['count' => 0, 'first' => $now, 'locked_until' => 0];
+    }
+
+    if ($throttle['locked_until'] > $now) {
+        $error = 'Too many failed attempts. Please try again later.';
+    } elseif (!isset($_POST['csrf_token']) || !validateCsrfToken($_POST['csrf_token'])) {
+        // CSRF validation
         $error = 'Invalid request. Please try again.';
     } else {
+        $username = trim($_POST['username'] ?? '');
         $password = $_POST['password'] ?? '';
-        $redirect = $_GET['redirect'] ?? 'admin';
+        $redirect = $_GET['redirect'] ?? '';
 
-        if (hash_equals(ADMIN_PASSWORD, $password)) {
+        // Authenticate against the managed-accounts backend.
+        $resp = makeApiCall('/api/auth/login', 'POST', [
+            'username' => $username,
+            'password' => $password,
+        ]);
+
+        if (is_array($resp) && ($resp['status'] ?? '') === 'success') {
+            loginThrottleReset($clientIp);
             // prevent session fixation: issue a fresh session id on login
             session_regenerate_id(true);
-            $_SESSION['admin'] = true;
 
-            if ($redirect === 'ticketflow') {
-                $_SESSION['ticketflow_access'] = true;
-                header('Location: ticketflow/index.php');
-            } elseif ($redirect === 'handheld') {
-                $_SESSION['handheld_access'] = true;
-                header('Location: handheld/index.php');
-            } else {
-                header('Location: index.php');
+            $perms = $resp['permissions'] ?? [];
+            $_SESSION['username'] = $resp['username'] ?? $username;
+            $_SESSION['perms'] = [
+                'admin'      => !empty($perms['admin']),
+                'ticketflow' => !empty($perms['ticketflow']),
+                'handheld'   => !empty($perms['handheld']),
+            ];
+            // Legacy access flags kept so existing pages don't need rewiring.
+            if ($_SESSION['perms']['admin'])      $_SESSION['admin'] = true;
+            if ($_SESSION['perms']['ticketflow']) $_SESSION['ticketflow_access'] = true;
+            if ($_SESSION['perms']['handheld'])   $_SESSION['handheld_access'] = true;
+
+            // Force a password change before anything else.
+            if (!empty($resp['must_change_pw'])) {
+                $_SESSION['must_change_pw'] = true;
+                header('Location: change_password.php');
+                exit;
             }
-            exit;
-        } elseif (hash_equals(TICKETFLOW_PASSWORD, $password)) {
-            session_regenerate_id(true);
-            $_SESSION['ticketflow_access'] = true;
-            header('Location: ticketflow/index.php');
-            exit;
-        } elseif (hash_equals(HANDHELD_PASSWORD, $password)) {
-            session_regenerate_id(true);
-            $_SESSION['handheld_access'] = true;
-            header('Location: handheld/index.php');
+
+            // Honor an explicit ?redirect= target if the user may access it.
+            if ($redirect === 'ticketflow' && $_SESSION['perms']['ticketflow']) {
+                header('Location: ticketflow/index.php');
+                exit;
+            }
+            if ($redirect === 'handheld' && $_SESSION['perms']['handheld']) {
+                header('Location: handheld/index.php');
+                exit;
+            }
+            if ($redirect === 'admin' && $_SESSION['perms']['admin']) {
+                header('Location: index.php');
+                exit;
+            }
+            // Otherwise let the user pick from the apps they can access.
+            header('Location: apps.php');
             exit;
         } else {
-            $error = 'Invalid password';
+            // Failed attempt: count it and lock out if over the limit.
+            $throttle['count']++;
+            if ($throttle['count'] >= LOGIN_MAX_ATTEMPTS) {
+                $throttle['locked_until'] = $now + LOGIN_LOCKOUT;
+            }
+            loginThrottleSave($clientIp, $throttle);
+            $error = 'Invalid username or password';
         }
     }
 }
 
 
-if (isset($_SESSION['admin']) && $_SESSION['admin'] === true) {
-    header('Location: index.php');
+// Already authenticated: force a pending password change, else go to the chooser.
+if (!empty($_SESSION['username'])) {
+    if (!empty($_SESSION['must_change_pw'])) {
+        header('Location: change_password.php');
+    } else {
+        header('Location: apps.php');
+    }
     exit;
 }
 
@@ -84,6 +154,19 @@ $assetBase = '../';
                 <form method="POST" class="form grid gap-5">
                     <?php echo csrfField(); ?>
                     <div class="grid gap-2">
+                        <label for="username">Username</label>
+                        <input
+                            type="text"
+                            name="username"
+                            id="username"
+                            class="input"
+                            placeholder="Enter username"
+                            autocomplete="username"
+                            required
+                            autofocus
+                        />
+                    </div>
+                    <div class="grid gap-2">
                         <label for="password">Password</label>
                         <input
                             type="password"
@@ -91,10 +174,11 @@ $assetBase = '../';
                             id="password"
                             class="input"
                             placeholder="Enter password"
+                            autocomplete="current-password"
                             required
                         />
                         <p class="avo-muted text-xs">
-                            Enter the password for your application. After login, you will be redirected to the correct application.
+                            Sign in with your account. You'll be taken to the apps you can access.
                         </p>
                     </div>
 

@@ -2,23 +2,10 @@ import quart
 import config.conf as config # type: ignore
 from assets.data import load_tickets, save_tickets, load_ticket_id
 from assets.data import load_date, save_date, load_show, decrement_availability
-from assets.data import release_availability, is_intent_used, mark_intent_used
-from assets.data import (
-    increment_availability,
-    mark_ticket_cancelled,
-    set_ticket_refund,
-    get_intent_for_ticket,
-    append_access_attempt,
-)
-from assets.stats import log_ticket_sale, log_ticket_refund
+from assets.stats import log_ticket_sale
 from assets.timeutil import local_now
-import asyncio
 import os
-import hashlib
 import hmac
-import urllib.parse
-import urllib.request
-import urllib.error
 from html import escape
 from werkzeug.security import safe_join
 
@@ -55,25 +42,6 @@ def _authorized() -> bool:
     if not key:
         return False
     return hmac.compare_digest(str(key), str(config.Auth.auth_key))
-
-
-def ticket_token(tid: str) -> str:
-    """Derive a short, unguessable per-ticket access token from the secret
-    auth_key. Used to gate the otherwise-unauthenticated /codes/show and
-    /codes/pdf endpoints so tids (low-entropy, sequential-ish) can't be
-    enumerated to harvest other people's QR/PDF and present them at the gate."""
-    return hmac.new(
-        str(config.Auth.auth_key).encode(),
-        str(tid).encode(),
-        hashlib.sha256,
-    ).hexdigest()[:16]
-
-
-def _token_valid(tid: str, token: Optional[str]) -> bool:
-    """Timing-safe check that `token` matches the expected token for `tid`."""
-    if not token:
-        return False
-    return hmac.compare_digest(str(token), ticket_token(tid))
 
 
 # ---- avocloud brand palette for PDFs (mirrors frontend/assets/avocloud.css) ----
@@ -384,12 +352,6 @@ def create_ticket(app=quart.Quart):
             print(data)
 
             paid: bool = data.get("paid", False)
-            # Stripe PaymentIntent id the frontend confirmed the payment with.
-            # We use it purely for replay/idempotency protection here.
-            # NOTE: full webhook-based verification (verifying the Stripe
-            # webhook signature + intent status server-side) is the
-            # recommended next step and is out of scope for this pass.
-            payment_intent_id: Optional[str] = data.get("payment_intent_id")
             valid_date: str = str(data.get("valid_date"))
             first_name: str = str(data.get("first_name"))
             last_name: str = str(data.get("last_name"))
@@ -423,25 +385,9 @@ def create_ticket(app=quart.Quart):
                     400,
                 )
 
-            # --- payment idempotency (paid public flow) -----------------
-            # If this is a paid order tied to a Stripe PaymentIntent, make
-            # sure that intent has not already been consumed by a previous
-            # (possibly replayed) request. The cheap pre-check below is a
-            # fast-path; the real, race-safe guard is the atomic
-            # mark_intent_used() *after* the order is created.
-            enforce_intent = bool(paid) and bool(payment_intent_id)
-            if enforce_intent:
-                if await asyncio.to_thread(is_intent_used, payment_intent_id):
-                    return (
-                        quart.jsonify(
-                            {"status": "error", "message": "payment_already_used"}
-                        ),
-                        409,
-                    )
-
             # Atomically reserve the seats so two concurrent buyers can't
             # oversell the same date (single-statement guarded UPDATE).
-            if not await asyncio.to_thread(decrement_availability, valid_date, tickets):
+            if not decrement_availability(valid_date, tickets):
                 return (
                     quart.jsonify(
                         {"status": "error", "message": "Not enough tickets available"}
@@ -449,49 +395,41 @@ def create_ticket(app=quart.Quart):
                     409,
                 )
 
-            # Everything after the (committed) seat reservation must give the
-            # seats back if it throws, otherwise capacity leaks with no ticket.
-            try:
-                price_per_ticket = float(date["price"])
-                amount = price_per_ticket * tickets
 
-                # Atomically consume the PaymentIntent BEFORE issuing tickets.
-                # If another concurrent/replayed request already consumed it,
-                # mark_intent_used returns False -> treat as a duplicate and
-                # bail out (rolling back the seats we just reserved) so a paid
-                # intent yields exactly one ticket-order.
-                if enforce_intent:
-                    main_tid = generate_ticket_id(valid_date)
-                    newly = await asyncio.to_thread(
-                        mark_intent_used, payment_intent_id, main_tid, amount
-                    )
-                    if not newly:
-                        await asyncio.to_thread(
-                            release_availability, valid_date, tickets
-                        )
-                        return (
-                            quart.jsonify(
-                                {"status": "error", "message": "payment_already_used"}
-                            ),
-                            409,
-                        )
-                else:
-                    main_tid = generate_ticket_id(valid_date)
+            price_per_ticket = float(date["price"])
+            log_ticket_sale(valid_date, tickets, price_per_ticket)
 
-                log_ticket_sale(valid_date, tickets, price_per_ticket)
+            tid = generate_ticket_id(valid_date)
+            ticket = {
+                "tid": tid,
+                "first_name": first_name,
+                "last_name": last_name,
+                "email": email,
+                "paid": paid,
+                "valid_date": valid_date,
+                "type": t_type,
+                "valid": paid,
+                "used_at": None,
+                "access_attempts": [],
+            }
+            save_tickets(tid, ticket)
 
-                created_tids: List[str] = []
+            await send_email(
+                first_name,
+                last_name,
+                email,
+                tid,
+                paid,
+                date=valid_date,
+                event_time=date["time"],
+            )
 
-                # Payment method + Stripe reference for later refunds. Only the
-                # main ticket of a paid order carries the payment_intent (it is
-                # the one the charge is tied to); add-people tickets ride along.
-                method = str(data.get("method") or ("stripe" if payment_intent_id else ("paid" if paid else "free")))
-
-                tid = main_tid
+            for person in add_people:
+                tid = generate_ticket_id(valid_date)
                 ticket = {
                     "tid": tid,
-                    "first_name": first_name,
-                    "last_name": last_name,
+                    "first_name": person,
+                    "last_name": "",
                     "email": email,
                     "paid": paid,
                     "valid_date": valid_date,
@@ -499,65 +437,17 @@ def create_ticket(app=quart.Quart):
                     "valid": paid,
                     "used_at": None,
                     "access_attempts": [],
-                    "status": "active",
-                    "method": method,
-                    "payment_intent": payment_intent_id if (paid and payment_intent_id) else None,
                 }
-                await asyncio.to_thread(save_tickets, tid, ticket)
-                created_tids.append(tid)
+                save_tickets(tid, ticket)
 
-                for person in add_people:
-                    tid = generate_ticket_id(valid_date)
-                    ticket = {
-                        "tid": tid,
-                        "first_name": person,
-                        "last_name": "",
-                        "email": email,
-                        "paid": paid,
-                        "valid_date": valid_date,
-                        "type": t_type,
-                        "valid": paid,
-                        "used_at": None,
-                        "access_attempts": [],
-                        "status": "active",
-                        "method": method,
-                        "payment_intent": None,
-                    }
-                    await asyncio.to_thread(save_tickets, tid, ticket)
-                    created_tids.append(tid)
-            except Exception:
-                # Roll back the reserved seats so a mid-flight failure does not
-                # silently burn capacity with no ticket issued, then re-raise.
-                await asyncio.to_thread(release_availability, valid_date, tickets)
-                raise
-
-            # Tickets are persisted; emailing must NOT be able to lose a paid
-            # ticket. A slow/broken mail server only costs the email, never
-            # the (already committed) order.
-            try:
                 await send_email(
-                    first_name,
-                    last_name,
+                    person,
+                    "",
                     email,
-                    main_tid,
+                    tid,
                     paid,
                     date=valid_date,
                     event_time=date["time"],
-                )
-                for tid, person in zip(created_tids[1:], add_people):
-                    await send_email(
-                        person,
-                        "",
-                        email,
-                        tid,
-                        paid,
-                        date=valid_date,
-                        event_time=date["time"],
-                    )
-            except Exception as mail_err:
-                logger.error(
-                    f"Ticket created but email delivery failed for "
-                    f"{main_tid}: {mail_err}"
                 )
 
             return (
@@ -608,9 +498,6 @@ def create_ticket(app=quart.Quart):
             )
 
 
-        # Whether we committed a seat reservation that must be rolled back if
-        # the rest of the flow fails (kept False for admin/vip/Unlimited).
-        reserved = False
         if not valid_date or valid_date.strip() == "":
             if t_type not in ("admin", "vip"):
                 return (
@@ -634,7 +521,7 @@ def create_ticket(app=quart.Quart):
                         400,
                     )
                 # Atomically reserve the seats to prevent concurrent oversell.
-                if not await asyncio.to_thread(decrement_availability, valid_date, tickets):
+                if not decrement_availability(valid_date, tickets):
                     return (
                         quart.jsonify(
                             {
@@ -644,85 +531,65 @@ def create_ticket(app=quart.Quart):
                         ),
                         409,
                     )
-                reserved = True
+
 
                 price_per_ticket = float(date_info["price"])
                 log_ticket_sale(valid_date, tickets, price_per_ticket)
 
-        # Everything after the (committed) seat reservation must give the seats
-        # back if it throws, otherwise capacity leaks with no ticket issued.
-        try:
-            raw_tid = data.get("tid")
-            if raw_tid is None or str(raw_tid).strip() == "":
-                tid = generate_ticket_id(valid_date)
-            else:
-                tid = str(raw_tid).strip()
-                # Refuse to overwrite an existing ticket via a client-supplied id
-                # (would otherwise allow forging/clobbering tickets, incl. admin/vip).
-                if await asyncio.to_thread(load_ticket_id, tid) is not None:
-                    if reserved:
-                        await asyncio.to_thread(release_availability, valid_date, tickets)
-                    return (
-                        quart.jsonify(
-                            {"status": "error", "message": "Ticket ID already exists"}
-                        ),
-                        409,
-                    )
+        
+        raw_tid = data.get("tid")
+        if raw_tid is None or str(raw_tid).strip() == "":
+            tid = generate_ticket_id(valid_date)
+        else:
+            tid = str(raw_tid).strip()
+            # Refuse to overwrite an existing ticket via a client-supplied id
+            # (would otherwise allow forging/clobbering tickets, incl. admin/vip).
+            if load_ticket_id(tid) is not None:
+                return (
+                    quart.jsonify(
+                        {"status": "error", "message": "Ticket ID already exists"}
+                    ),
+                    409,
+                )
 
-            ticket = {
-                "tid": tid,
-                "first_name": first_name,
-                "last_name": last_name,
-                "email": email,
-                "paid": paid,
-                "valid_date": valid_date,
-                "type": t_type,
-                "valid": paid,
-                "used_at": None,
-                "access_attempts": [],
-                "status": "active",
-                # Box-office sales are cash ("bar"); no Stripe intent to refund.
-                "method": str(data.get("method") or ("bar" if paid else "free")),
-                "payment_intent": None,
-            }
-            print(ticket)
-            await asyncio.to_thread(save_tickets, tid, ticket)
 
-            if valid_date != "Unlimited":
-                date_info_loaded = await asyncio.to_thread(load_date, valid_date)
-                date_info: dict = date_info_loaded if date_info_loaded is not None else {"time": ""}
-            else:
-                date_info = {"time": ""}
+        ticket = {
+            "tid": tid,
+            "first_name": first_name,
+            "last_name": last_name,
+            "email": email,
+            "paid": paid,
+            "valid_date": valid_date,
+            "type": t_type,
+            "valid": paid,
+            "used_at": None,
+            "access_attempts": [],
+        }
+        print(ticket)
+        save_tickets(tid, ticket)
 
-            event_time = date_info.get("time", "") if valid_date != "Unlimited" else ""
-            await asyncio.to_thread(
-                generate_ticket_pdf, tid, first_name, last_name, valid_date,
-                event_time, "simple",
-            )
-        except Exception:
-            # Roll back the reserved seats so a mid-flight failure does not
-            # silently burn capacity with no ticket issued, then re-raise.
-            if reserved:
-                await asyncio.to_thread(release_availability, valid_date, tickets)
-            raise
+        
+        
+        if valid_date != "Unlimited":
+            date_info_loaded = load_date(valid_date)
+            date_info: dict = date_info_loaded if date_info_loaded is not None else {"time": ""}
+        else:
+            date_info = {"time": ""}
 
-        # Ticket is persisted; emailing must NOT be able to lose it. A slow or
-        # broken mail server only costs the email, never the committed ticket.
+        event_time = date_info.get("time", "") if valid_date != "Unlimited" else ""
+        generate_ticket_pdf(tid, first_name, last_name, valid_date, event_time, variant="simple")
+
+        
         if email:
-            try:
-                await send_email(
-                    first_name,
-                    last_name,
-                    email,
-                    tid,
-                    paid,
-                    date=valid_date,
-                    event_time=event_time,
-                )
-            except Exception as mail_err:
-                logger.error(
-                    f"Ticket {tid} created but email delivery failed: {mail_err}"
-                )
+            await send_email(
+                first_name,
+                last_name,
+                email,
+                tid,
+                paid,
+                date=valid_date,
+                event_time=event_time,
+            )
 
         return (
             quart.jsonify(
@@ -1021,12 +888,7 @@ async def send_email(
     )
     event_time_e = escape(str(event_time)) if event_time else ""
     safe_tid = escape(str(tid))
-    # Include the per-ticket HMAC token so the (otherwise public) /codes/show
-    # endpoint accepts this legitimate request while rejecting tid enumeration.
-    qr_url = (
-        f"{config.API.backend_url}/codes/show?tid={tid}"
-        f"&token={ticket_token(tid)}"
-    )
+    qr_url = f"{config.API.backend_url}/codes/show?tid={tid}"
 
     if type != "normal":
         message["Subject"] = (config.Mail.mail_title_paid).format(id=str(first_name))
@@ -1061,7 +923,7 @@ async def send_email(
 
     message.attach(MIMEText(html_content, "html"))
 
-
+    
     with open(pdf_path, "rb") as pdf_file:
         part = MIMEApplication(pdf_file.read(), Name=os.path.basename(pdf_path))
         part["Content-Disposition"] = (
@@ -1069,22 +931,11 @@ async def send_email(
         )
         message.attach(part)
 
-    # The whole SMTP handshake (connect/STARTTLS/login/sendmail) is blocking
-    # and can take seconds against a slow server; running it directly in this
-    # async function would freeze the entire event loop. Offload it to a worker
-    # thread so other requests keep being served. A connection timeout keeps a
-    # dead mail server from hanging the worker indefinitely.
-    raw_message = message.as_string()
-
-    def _send_blocking() -> None:
-        with smtplib.SMTP(
-            config.Mail.smtp_server, config.Mail.smtp_port, timeout=15
-        ) as server:
-            server.starttls()
-            server.login(config.Mail.smtp_user, config.Mail.smtp_password)
-            server.sendmail(config.Mail.smtp_user, email, raw_message)
-
-    await asyncio.to_thread(_send_blocking)
+    
+    with smtplib.SMTP(config.Mail.smtp_server, config.Mail.smtp_port) as server:
+        server.starttls()
+        server.login(config.Mail.smtp_user, config.Mail.smtp_password)
+        server.sendmail(config.Mail.smtp_user, email, message.as_string())
 
 
 def edit_ticket(app=quart.Quart):
@@ -1202,10 +1053,6 @@ def view_ticket(app=quart.Quart):
         tid = quart.request.args.get("tid")
         if not tid:
             return quart.jsonify({"error": "Missing tid"}), 400
-        # Require a valid per-ticket HMAC token so the bare (low-entropy) tid
-        # can't be enumerated to harvest other people's QR codes.
-        if not _token_valid(tid, quart.request.args.get("token")):
-            return quart.jsonify({"error": "Forbidden"}), 403
         # Prevent path traversal: only serve files inside ./codes
         safe_path = safe_join("./codes", f"{tid}.png")
         if safe_path is None or not os.path.isfile(safe_path):
@@ -1214,18 +1061,10 @@ def view_ticket(app=quart.Quart):
 
     @app.route("/codes/pdf", methods=["GET"])    # type: ignore
     async def show_pdf():
-        # Batch: one combined multi-page PDF for ?tids=a,b,c (box-office print job).
-        # Each tid must carry its token in a parallel ?tokens=t1,t2,t3 list so the
-        # batch endpoint can't be used to enumerate arbitrary tickets either.
+        # Batch: one combined multi-page PDF for ?tids=a,b,c (box-office print job)
         tids_param = quart.request.args.get("tids")
         if tids_param:
             tids = [t.strip() for t in tids_param.split(",") if t.strip()]
-            tokens_param = quart.request.args.get("tokens", "")
-            tokens = [t.strip() for t in tokens_param.split(",")]
-            if len(tokens) != len(tids) or not all(
-                _token_valid(t, tok) for t, tok in zip(tids, tokens)
-            ):
-                return quart.jsonify({"error": "Forbidden"}), 403
             buf = build_combined_simple_pdf(tids)
             if buf is None:
                 return quart.jsonify({"error": "PDF not found"}), 404
@@ -1234,155 +1073,12 @@ def view_ticket(app=quart.Quart):
         tid = quart.request.args.get("tid")
         if not tid:
             return quart.jsonify({"error": "Missing tid"}), 400
-        # Require a valid per-ticket HMAC token (see /codes/show).
-        if not _token_valid(tid, quart.request.args.get("token")):
-            return quart.jsonify({"error": "Forbidden"}), 403
         # Prevent path traversal: only serve files inside ./codes
         pdf_path = safe_join("./codes", f"{tid}.pdf")
         if pdf_path is not None and os.path.isfile(pdf_path):
             return await quart.send_file(pdf_path, mimetype="application/pdf")
         else:
             return quart.jsonify({"error": "PDF not found"}), 404
-
-
-def _stripe_refund(payment_intent: str) -> Dict[str, Any]:
-    """Issue a full Stripe refund for a PaymentIntent. Returns
-    {"ok": True, "refund_id": ...} on success, or {"ok": False, "error": ...}.
-    Blocking (urllib) — call via asyncio.to_thread. The secret key lives in the
-    show config (same place get_stripe_config reads it)."""
-    show = load_show()
-    secret_key = str((show.get("stripe") or {}).get("secret_key") or "").strip()
-    if not secret_key:
-        return {"ok": False, "error": "Stripe secret key not configured"}
-
-    body = urllib.parse.urlencode({"payment_intent": payment_intent}).encode()
-    req = urllib.request.Request(
-        "https://api.stripe.com/v1/refunds",
-        data=body,
-        headers={
-            "Authorization": f"Bearer {secret_key}",
-            "Content-Type": "application/x-www-form-urlencoded",
-        },
-        method="POST",
-    )
-    import json as _json
-    try:
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            payload = _json.loads(resp.read().decode())
-        return {"ok": True, "refund_id": payload.get("id", "")}
-    except urllib.error.HTTPError as e:
-        try:
-            err = _json.loads(e.read().decode()).get("error", {}).get("message", str(e))
-        except Exception:
-            err = f"HTTP {e.code}"
-        return {"ok": False, "error": err}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-
-
-def cancel_ticket(app=quart.Quart):
-    @app.route("/api/ticket/cancel", methods=["POST"])   # type: ignore
-    async def cancel_ticket_route():
-        if not _authorized():
-            return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401
-        try:
-            data: dict = await quart.request.get_json(silent=True) or {}
-            tid = str(data.get("tid") or "").strip().upper()
-            reason = str(data.get("reason") or "").strip()
-            actor = str(data.get("scanner") or data.get("actor") or "admin").strip()
-            if not tid:
-                return quart.jsonify({"status": "error", "message": "Missing tid"}), 200
-
-            ticket = await asyncio.to_thread(load_ticket_id, tid)
-            if ticket is None:
-                return quart.jsonify({"status": "error", "message": "Ticket not found"}), 200
-
-            # Idempotency guard: the active -> cancelled flip is the single source
-            # of truth. If we don't win it, the ticket was already cancelled, so
-            # do NOT release a seat / refund again.
-            won = await asyncio.to_thread(mark_ticket_cancelled, tid)
-            if not won:
-                return (
-                    quart.jsonify(
-                        {"status": "error", "message": "Ticket already cancelled"}
-                    ),
-                    200,
-                )
-
-            valid_date = ticket.get("valid_date")
-            t_type = str(ticket.get("type") or "")
-            seat_released = False
-            # Only dated visitor seats consume capacity; admin/vip/Unlimited don't.
-            if valid_date and valid_date != "Unlimited" and t_type not in ("admin", "vip"):
-                date_info = await asyncio.to_thread(load_date, valid_date)
-                if date_info:
-                    await asyncio.to_thread(increment_availability, valid_date, 1)
-                    seat_released = True
-                    # A sale is logged at creation for every dated seat (paid or
-                    # not), so reverse the stats whenever we release that seat.
-                    try:
-                        price = float(date_info.get("price") or 0)
-                        await asyncio.to_thread(log_ticket_refund, 1, price)
-                    except Exception as se:
-                        logger.error(f"Stat reversal failed for {tid}: {se}")
-
-            # Stripe refund (only for Stripe-paid tickets). Stripe itself rejects a
-            # second full refund of the same intent, so even a racing call is safe.
-            refund_id = None
-            refund_error = None
-            method = str(ticket.get("method") or "")
-            payment_intent = ticket.get("payment_intent") or await asyncio.to_thread(
-                get_intent_for_ticket, tid
-            )
-            if method == "stripe" or payment_intent:
-                if payment_intent:
-                    res = await asyncio.to_thread(_stripe_refund, payment_intent)
-                    if res.get("ok"):
-                        refund_id = res.get("refund_id")
-                        await asyncio.to_thread(set_ticket_refund, tid, refund_id or "")
-                    else:
-                        refund_error = res.get("error")
-                        logger.error(f"Stripe refund failed for {tid}: {refund_error}")
-                else:
-                    refund_error = "No payment_intent on record"
-
-            # Audit trail entry (free-form access_attempts list).
-            await asyncio.to_thread(
-                append_access_attempt,
-                tid,
-                {
-                    "type": "cancelled",
-                    "status": "cancelled",
-                    "time": local_now().isoformat(),
-                    "scanner": actor,
-                    "reason": reason,
-                    "refund_id": refund_id,
-                },
-            )
-
-            msg = "Ticket cancelled."
-            if seat_released:
-                msg += " Seat released."
-            if refund_id:
-                msg += f" Refunded ({refund_id})."
-            elif refund_error:
-                msg += f" Refund FAILED: {refund_error} — refund manually in Stripe."
-
-            return (
-                quart.jsonify(
-                    {
-                        "status": "success",
-                        "message": msg,
-                        "seat_released": seat_released,
-                        "refund_id": refund_id,
-                        "refund_error": refund_error,
-                    }
-                ),
-                200,
-            )
-        except Exception as e:
-            logger.error(f"cancel_ticket error: {e}")
-            return quart.jsonify({"status": "error", "message": str(e)}), 500
 
 
 def get_available_tickets(app=quart.Quart):

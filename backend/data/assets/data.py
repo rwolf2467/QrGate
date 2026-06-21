@@ -1,9 +1,7 @@
 import os
 import json
-import hmac
 import sqlite3
 import quart
-import config.conf as config
 from werkzeug.security import safe_join
 from typing import Dict, Optional, Any
 from reds_simple_logger import Logger
@@ -115,42 +113,13 @@ def init_db() -> None:
                 sales  INTEGER DEFAULT 0,
                 income REAL DEFAULT 0
             );
-
-            CREATE TABLE IF NOT EXISTS payment_intents (
-                payment_intent_id TEXT PRIMARY KEY,  -- Stripe intent id (consumed once)
-                tid               TEXT,              -- ticket this intent was used for
-                amount            REAL,              -- amount consumed
-                used_at           TEXT               -- when it was recorded
-            );
             """
         )
         conn.commit()
     finally:
         conn.close()
 
-    _migrate_ticket_columns()
     _maybe_migrate_from_json()
-
-
-def _migrate_ticket_columns() -> None:
-    """Idempotently add the refund/cancellation columns to an existing tickets
-    table. CREATE TABLE IF NOT EXISTS never adds columns to a pre-existing table,
-    so we ALTER only the ones missing (guarded by PRAGMA table_info)."""
-    wanted = {
-        "status": "TEXT DEFAULT 'active'",   # active | cancelled
-        "payment_intent": "TEXT",            # Stripe intent backing this ticket
-        "refund_id": "TEXT",                 # Stripe refund id once refunded
-        "method": "TEXT",                    # stripe | bar | ... (payment method)
-    }
-    conn = get_db()
-    try:
-        existing = {r["name"] for r in conn.execute("PRAGMA table_info(tickets)").fetchall()}
-        for col, decl in wanted.items():
-            if col not in existing:
-                conn.execute(f"ALTER TABLE tickets ADD COLUMN {col} {decl}")
-        conn.commit()
-    finally:
-        conn.close()
 
 
 def _tables_empty() -> bool:
@@ -475,104 +444,6 @@ def decrement_availability(date: str, n: int) -> bool:
         conn.close()
 
 
-def increment_availability(date: str, n: int) -> None:
-    """Give `n` seats back to `date` on cancellation/refund, capped so the
-    available count never exceeds the configured total `tickets` (a refund must
-    not magically inflate capacity). Single-statement UPDATE so it is race-safe.
-    Differs from release_availability (uncapped rollback of a fresh reservation):
-    this is the inverse of a *settled* sale and is bounded by the cap."""
-    if n < 1:
-        return
-    conn = get_db()
-    try:
-        conn.execute(
-            """
-            UPDATE dates
-               SET tickets_available = MIN(tickets, tickets_available + ?)
-             WHERE date = ?
-            """,
-            (n, date),
-        )
-        conn.commit()
-    finally:
-        conn.close()
-
-
-def mark_ticket_cancelled(tid: str) -> bool:
-    """Atomically flip a ticket from active -> cancelled. Returns True only if
-    THIS call won (the ticket was still active), False if it was already
-    cancelled. This single transition is the idempotency guard that prevents a
-    double seat-release / double refund from concurrent or repeated cancels."""
-    conn = get_db()
-    try:
-        cur = conn.execute(
-            """
-            UPDATE tickets
-               SET status = 'cancelled', valid = 0
-             WHERE tid = ?
-               AND (status IS NULL OR status <> 'cancelled')
-            """,
-            (tid,),
-        )
-        conn.commit()
-        return cur.rowcount > 0
-    finally:
-        conn.close()
-
-
-def set_ticket_refund(tid: str, refund_id: str) -> None:
-    """Record the Stripe refund id on a (already cancelled) ticket."""
-    conn = get_db()
-    try:
-        conn.execute(
-            "UPDATE tickets SET refund_id = ? WHERE tid = ?",
-            (refund_id, tid),
-        )
-        conn.commit()
-    finally:
-        conn.close()
-
-
-def get_intent_for_ticket(tid: str) -> Optional[str]:
-    """Best-effort lookup of the Stripe payment_intent tied to a ticket: prefer
-    the column on the ticket, fall back to the payment_intents consumption log."""
-    conn = get_db()
-    try:
-        row = conn.execute(
-            "SELECT payment_intent FROM tickets WHERE tid = ?", (tid,)
-        ).fetchone()
-        if row is not None and row["payment_intent"]:
-            return row["payment_intent"]
-        pi = conn.execute(
-            "SELECT payment_intent_id FROM payment_intents WHERE tid = ?", (tid,)
-        ).fetchone()
-        return pi["payment_intent_id"] if pi is not None else None
-    finally:
-        conn.close()
-
-
-def release_availability(date: str, n: int) -> None:
-    """Atomically give `n` reserved tickets back to `date` (compensating action,
-    the inverse of decrement_availability). Used to roll back a reservation when
-    a ticket-creation flow fails after seats were decremented. Single-statement
-    UPDATE so it is race-safe against concurrent reservations."""
-    if n < 1:
-        return
-    conn = get_db()
-    try:
-        conn.execute(
-            """
-            UPDATE dates
-               SET tickets_available = tickets_available + ?
-             WHERE date = ?
-            """,
-            (n, date),
-        )
-        conn.commit()
-    finally:
-        conn.close()
-
-
 # --------------------------------------------------------------------------- #
 # TICKETS
 # --------------------------------------------------------------------------- #
@@ -581,7 +452,6 @@ def _row_to_ticket(row: sqlite3.Row) -> Dict[str, Any]:
         attempts = json.loads(row["access_attempts"]) if row["access_attempts"] else []
     except (ValueError, TypeError):
         attempts = []
-    keys = row.keys()
     return {
         "tid": row["tid"],
         "first_name": row["first_name"],
@@ -593,12 +463,6 @@ def _row_to_ticket(row: sqlite3.Row) -> Dict[str, Any]:
         "valid": bool(row["valid"]),
         "used_at": row["used_at"],
         "access_attempts": attempts,
-        # Refund/cancellation columns (added by _migrate_ticket_columns); guard
-        # with key checks so a row read before the migration can't KeyError.
-        "status": (row["status"] if "status" in keys else None) or "active",
-        "payment_intent": row["payment_intent"] if "payment_intent" in keys else None,
-        "refund_id": row["refund_id"] if "refund_id" in keys else None,
-        "method": row["method"] if "method" in keys else None,
     }
 
 
@@ -613,22 +477,19 @@ def load_tickets() -> Dict[str, Dict]:
 
 
 def load_ticket_id(tid: str) -> Optional[Dict]:
-    """Return the ticket dict for `tid`, or None ONLY if the row genuinely does
-    not exist. Real sqlite/DB errors (locks, transient failures) are allowed to
-    PROPAGATE so the caller can distinguish "not found" from "could not look up"
-    and respond with a 500 instead of falsely denying a valid customer. The only
-    swallowed error is a corrupt access_attempts JSON blob, narrowly handled
-    inside _row_to_ticket so one bad row doesn't crash the lookup."""
-    conn = get_db()
     try:
-        row = conn.execute(
-            "SELECT * FROM tickets WHERE tid = ?", (tid,)
-        ).fetchone()
-    finally:
-        conn.close()
-    if row is None:
+        conn = get_db()
+        try:
+            row = conn.execute(
+                "SELECT * FROM tickets WHERE tid = ?", (tid,)
+            ).fetchone()
+        finally:
+            conn.close()
+        if row is None:
+            return None
+        return _row_to_ticket(row)
+    except Exception:
         return None
-    return _row_to_ticket(row)
 
 
 def save_tickets(tid: str, new_ticket: dict) -> None:
@@ -644,9 +505,8 @@ def save_tickets(tid: str, new_ticket: dict) -> None:
             """
             INSERT INTO tickets (
                 tid, first_name, last_name, email, paid, valid_date,
-                type, valid, used_at, access_attempts,
-                status, payment_intent, refund_id, method
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                type, valid, used_at, access_attempts
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(tid) DO UPDATE SET
                 first_name=excluded.first_name,
                 last_name=excluded.last_name,
@@ -656,11 +516,7 @@ def save_tickets(tid: str, new_ticket: dict) -> None:
                 type=excluded.type,
                 valid=excluded.valid,
                 used_at=excluded.used_at,
-                access_attempts=excluded.access_attempts,
-                status=excluded.status,
-                payment_intent=excluded.payment_intent,
-                refund_id=excluded.refund_id,
-                method=excluded.method
+                access_attempts=excluded.access_attempts
             """,
             (
                 tid,
@@ -673,10 +529,6 @@ def save_tickets(tid: str, new_ticket: dict) -> None:
                 1 if new_ticket.get("valid") else 0,
                 new_ticket.get("used_at"),
                 attempts_json,
-                new_ticket.get("status") or "active",
-                new_ticket.get("payment_intent"),
-                new_ticket.get("refund_id"),
-                new_ticket.get("method"),
             ),
         )
         conn.commit()
@@ -698,68 +550,6 @@ def mark_ticket_used(tid: str, used_at: str) -> bool:
                AND used_at IS NULL
             """,
             (used_at, tid),
-        )
-        conn.commit()
-        return cur.rowcount > 0
-    finally:
-        conn.close()
-
-
-def append_access_attempt(tid: str, entry: dict) -> None:
-    """Atomically append a single audit entry to a ticket's access_attempts JSON
-    list, without rewriting the whole row. Uses SQLite JSON1 json_insert with the
-    '$[#]' append path so concurrent audit appends and other column writes cannot
-    clobber each other (no read-modify-write in Python)."""
-    entry_json = json.dumps(entry, ensure_ascii=False)
-    conn = get_db()
-    try:
-        conn.execute(
-            """
-            UPDATE tickets
-               SET access_attempts = json_insert(
-                   COALESCE(access_attempts, '[]'), '$[#]', json(?)
-               )
-             WHERE tid = ?
-            """,
-            (entry_json, tid),
-        )
-        conn.commit()
-    finally:
-        conn.close()
-
-
-# --------------------------------------------------------------------------- #
-# PAYMENT INTENTS (Stripe idempotency — consume each intent at most once)
-# --------------------------------------------------------------------------- #
-def is_intent_used(payment_intent_id: str) -> bool:
-    """True if this Stripe payment_intent id has already been consumed."""
-    conn = get_db()
-    try:
-        row = conn.execute(
-            "SELECT 1 FROM payment_intents WHERE payment_intent_id = ?",
-            (payment_intent_id,),
-        ).fetchone()
-    finally:
-        conn.close()
-    return row is not None
-
-
-def mark_intent_used(payment_intent_id: str, tid: str, amount) -> bool:
-    """Atomically record consumption of a Stripe payment_intent. Returns True if
-    this call newly recorded it, False if it was already recorded. Race-safe:
-    INSERT OR IGNORE + changes() means only one concurrent caller can win."""
-    from assets.timeutil import local_now
-
-    used_at = local_now().strftime("%Y.%m.%d - %H:%M:%S")
-    conn = get_db()
-    try:
-        cur = conn.execute(
-            """
-            INSERT OR IGNORE INTO payment_intents
-                (payment_intent_id, tid, amount, used_at)
-            VALUES (?, ?, ?, ?)
-            """,
-            (payment_intent_id, tid, amount, used_at),
         )
         conn.commit()
         return cur.rowcount > 0
@@ -806,27 +596,6 @@ def _save_stats_dict(stats: Dict[str, Any]) -> None:
         conn.close()
 
 
-def log_sale(date: str, count: int, income: float) -> None:
-    """Atomically upsert a sale into daily_stats for `date`, accumulating sales
-    and income. Single INSERT ... ON CONFLICT statement so concurrent buys can't
-    lose updates (no read-modify-write in Python)."""
-    conn = get_db()
-    try:
-        conn.execute(
-            """
-            INSERT INTO daily_stats (date, sales, income)
-            VALUES (?, ?, ?)
-            ON CONFLICT(date) DO UPDATE SET
-                sales=sales+excluded.sales,
-                income=income+excluded.income
-            """,
-            (date, int(count or 0), float(income or 0)),
-        )
-        conn.commit()
-    finally:
-        conn.close()
-
-
 # Initialize the database (and run the one-time JSON migration) on import.
 init_db()
 
@@ -834,14 +603,6 @@ init_db()
 def img_show(app=quart.Quart):
     @app.route("/image/show")  # pyright: ignore[reportCallIssue]
     async def show_img():
-        # These images are keyed by an opaque per-image token (not the public
-        # branding slots, which are served unauthenticated via /api/image/get).
-        # Treat them as protected like every other non-branding endpoint.
-        auth_key = quart.request.headers.get("Authorization")
-        if not auth_key or not hmac.compare_digest(
-            str(auth_key), str(config.Auth.auth_key)
-        ):
-            return quart.jsonify({"status": "error", "message": "Unauthorized"}), 401
         tid = quart.request.args.get("img")
         if not tid:
             return quart.jsonify({"status": "error", "message": "Missing img"}), 400

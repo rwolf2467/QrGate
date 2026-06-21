@@ -5,6 +5,10 @@ if (!isset($_SESSION['admin']) && !isset($_SESSION['handheld_access'])) {
     header('Location: ../login.php?redirect=handheld');
     exit;
 }
+if (!empty($_SESSION['must_change_pw'])) {
+    header('Location: ../change_password.php');
+    exit;
+}
 
 $API_KEY = API_KEY;
 $API_ENDPOINT = API_BASE_URL . 'api/ticket/get';
@@ -97,6 +101,13 @@ HTML;
                         <path d="M12 12v3" />
                     </svg>
                 </button>
+                <a href="../apps.php" class="hh-iconbtn" aria-label="App wechseln">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/>
+                        <rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>
+                    </svg>
+                </a>
                 <a href="../logout.php" class="hh-iconbtn hh-iconbtn--danger" aria-label="Logout">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
