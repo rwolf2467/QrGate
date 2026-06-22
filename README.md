@@ -50,6 +50,8 @@ QrGate is a comprehensive system for managing events, tickets, and access contro
 <img width="2560" height="1492" alt="image" src="https://github.com/user-attachments/assets/9dc34513-e245-4569-acdc-d3ec11d130da" />
 <img width="1840" height="1263" alt="image" src="https://github.com/user-attachments/assets/e013fbab-2cf3-4f2a-aeb7-dfbfa23a63f7" />
 
+<img width="585" height="1266" alt="IMG_8895" src="https://github.com/user-attachments/assets/45bad24d-b2eb-45c1-b5b6-9da6a7c2360b" />
+<img width="585" height="1266" alt="IMG_8894" src="https://github.com/user-attachments/assets/c383987e-23ac-4e6b-b2a1-f196bca5a937" />
 
 
 
