@@ -17,6 +17,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
+        // The booking is binding; the customer must tick the consent checkbox.
+        // Enforced server-side too so it can't be bypassed by editing the form.
+        if (empty($_POST['consent'])) {
+            $lang = $_SESSION['language'] ?? 'en';
+            throw new Exception($lang === 'de'
+                ? 'Bitte bestätigen Sie den verbindlichen Buchungshinweis.'
+                : 'Please confirm the binding booking notice.');
+        }
+
         $requiredFields = ['first_name', 'last_name', 'email', 'tickets', 'valid_date', 'payment_method', 'price'];
         foreach ($requiredFields as $field) {
             if (!isset($_POST[$field]) || empty($_POST[$field])) {

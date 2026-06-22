@@ -74,6 +74,15 @@ switch ($action) {
     case 'save_payment_settings':
         savePaymentSettings();
         break;
+    case 'wipe_data':
+        dangerProxy('/api/admin/wipe-data');
+        break;
+    case 'reinstall':
+        dangerProxy('/api/admin/reinstall');
+        break;
+    case 'factory_reset':
+        dangerProxy('/api/admin/factory-reset');
+        break;
     default:
         http_response_code(400);
         echo json_encode(['status' => 'error', 'message' => 'Invalid action']);
@@ -706,6 +715,28 @@ function uploadCastImage() {
         error_log('Cast image upload error: ' . $e->getMessage());
         http_response_code(500);
         echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+}
+
+// Proxy a destructive "danger zone" maintenance action to the backend. The
+// backend requires {"confirm": true}; the JS always sends it after the operator
+// passes the type-to-confirm prompt. Admin session + CSRF are already enforced
+// above for these (non read-only) actions.
+function dangerProxy($endpoint) {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        http_response_code(405);
+        echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
+        return;
+    }
+    $result = makeApiCall($endpoint, 'POST', ['confirm' => true]);
+    if (isset($result['status']) && $result['status'] === 'success') {
+        echo json_encode($result);
+    } else {
+        http_response_code(500);
+        echo json_encode([
+            'status' => 'error',
+            'message' => $result['message'] ?? 'Operation failed',
+        ]);
     }
 }
 

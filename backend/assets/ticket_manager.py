@@ -333,12 +333,12 @@ def standard_ticket_flowables(
         ("BACKGROUND", (0, 0), (-1, -1), PDF_CORAL),
         ("LEFTPADDING", (0, 0), (-1, -1), 30),
         ("RIGHTPADDING", (0, 0), (-1, -1), 30),
-        ("TOPPADDING", (0, 0), (-1, -1), 30),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 30),
+        ("TOPPADDING", (0, 0), (-1, -1), 22),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 22),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
     ]))
     els.append(hero)
-    els.append(Spacer(1, 30))
+    els.append(Spacer(1, 18))
 
     # --- info card (label / value rows) ---
     fn = str(first_name).strip() if _meaningful(first_name) else ""
@@ -366,30 +366,30 @@ def standard_ticket_flowables(
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F2EFE6")),
             ("BOX", (0, 0), (-1, -1), 1, PDF_LINE),
-            ("TOPPADDING", (0, 0), (-1, -1), 13),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 13),
+            ("TOPPADDING", (0, 0), (-1, -1), 9),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
             ("LEFTPADDING", (0, 0), (-1, -1), 22),
             ("RIGHTPADDING", (0, 0), (-1, -1), 22),
             ("LINEBELOW", (0, 0), (-1, -2), 0.5, PDF_LINE),
         ]))
         els.append(info)
-        els.append(Spacer(1, 32))
+        els.append(Spacer(1, 20))
 
     # --- large framed QR, centered, with mono ID ---
-    qr_box = Table([[_qr_image_flowable(tid, 200, 200)]], colWidths=[244])
+    qr_box = Table([[_qr_image_flowable(tid, 165, 165)]], colWidths=[209])
     qr_box.hAlign = "CENTER"
     qr_box.setStyle(TableStyle([
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("BOX", (0, 0), (-1, -1), 1, PDF_LINE),
         ("BACKGROUND", (0, 0), (-1, -1), colors.white),
-        ("TOPPADDING", (0, 0), (-1, -1), 20),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 20),
+        ("TOPPADDING", (0, 0), (-1, -1), 14),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 14),
     ]))
     els.append(qr_box)
-    els.append(Spacer(1, 14))
+    els.append(Spacer(1, 10))
     els.append(Paragraph(tid, id_style))
-    els.append(Spacer(1, 30))
+    els.append(Spacer(1, 18))
 
     # --- usage notes ---
     notes = [
@@ -399,13 +399,13 @@ def standard_ticket_flowables(
     ]
     for n in notes:
         els.append(Paragraph(n, note_style))
-        els.append(Spacer(1, 7))
+        els.append(Spacer(1, 5))
 
-    els.append(Spacer(1, 10))
+    els.append(Spacer(1, 8))
     div = Table([[""]], colWidths=[STD_CONTENT_W])
     div.setStyle(TableStyle([("LINEABOVE", (0, 0), (-1, -1), 0.5, PDF_LINE)]))
     els.append(div)
-    els.append(Spacer(1, 10))
+    els.append(Spacer(1, 8))
     els.append(Paragraph("Managed by QrGate · avocloud.net", foot_style))
     return els
 

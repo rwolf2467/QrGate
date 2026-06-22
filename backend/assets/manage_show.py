@@ -73,6 +73,10 @@ def edit_show(app=quart.Quart):
             if "stripe" in data:
                 show["stripe"] = data["stripe"]
 
+            # Public contact address shown to customers (storno / questions).
+            if "contact_email" in data:
+                show["contact_email"] = str(data["contact_email"]).strip()
+
             save_show(show)
             return (
                 quart.jsonify({"status": "success", "message": "Show config saved"}),

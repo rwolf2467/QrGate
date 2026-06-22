@@ -20,6 +20,7 @@ from assets.stats import get_stats_api
 from assets.image_manager import upload_image, get_image, get_current_images
 from assets.accounts import init_accounts, auth_routes, user_routes
 from assets.setup import init_setup, setup_routes, apply_settings_to_config, is_installed
+from assets.admin_ops import admin_ops
 from config import conf as config
 from assets.timeutil import local_now
 
@@ -57,6 +58,7 @@ _RATE_LIMITS = {
     "/api/user/check": (30, 60),
     "/api/vote": (10, 60),
     "/codes/": (60, 60),                 # PDF/QR fetches
+    "/api/admin/": (20, 60),             # backup + danger-zone maintenance ops
 }
 # Calls older than the largest window can be discarded entirely.
 _RATE_MAX_WINDOW = max((w for _, w in _RATE_LIMITS.values()), default=60)
@@ -134,6 +136,7 @@ get_current_images(app)
 auth_routes(app)
 user_routes(app)
 setup_routes(app)
+admin_ops(app)
 logger.success("Systems enabled.")
 
 qr_gate = """

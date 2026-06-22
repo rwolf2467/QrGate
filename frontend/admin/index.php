@@ -345,6 +345,15 @@ HTML;
                                         <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                                     </svg> Benutzerkonten</span></a>
                         </li>
+                        <li><a href="#" data-section="danger"><span><svg xmlns="http://www.w3.org/2000/svg"
+                                        width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        class="lucide lucide-shield-alert">
+                                        <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+                                        <path d="M12 8v4" />
+                                        <path d="M12 16h.01" />
+                                    </svg> Wartung &amp; Daten</span></a>
+                        </li>
 
                     </ul>
                 </div>
@@ -690,6 +699,12 @@ HTML;
                             <label class="label" for="bannerUrl">Banner URL</label>
                             <input type="text" id="bannerUrl"
                                 value="<?php echo $shows ? htmlspecialchars($shows['banner'] ?? '') : ''; ?>">
+                        </div>
+                        <div class="grid gap-2">
+                            <label class="label" for="contactEmail">Kontakt-E-Mail</label>
+                            <input type="email" id="contactEmail" placeholder="kontakt@veranstalter.de"
+                                value="<?php echo $shows ? htmlspecialchars($shows['contact_email'] ?? '') : ''; ?>">
+                            <p class="text-muted-foreground text-sm">Öffentliche Kontaktadresse für Kunden (Storno &amp; Rückfragen). Wird im Ticketshop angezeigt.</p>
                         </div>
                         <div class="flex items-start gap-3">
                             <input type="checkbox" id="storeLock" <?php echo $shows && $shows['store_lock'] ? 'checked' : ''; ?>>
@@ -1242,6 +1257,62 @@ HTML;
             </div>
         </div>
 
+        <div id="danger" style="display: none">
+            <style>
+                #danger .btn-destructive {
+                    display: inline-flex; align-items: center; justify-content: center;
+                    white-space: nowrap; border-radius: 11px; border: 1px solid transparent;
+                    padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 600;
+                    background-color: #C73D20; color: #fff; cursor: pointer;
+                    transition: background-color .15s ease;
+                }
+                #danger .btn-destructive:hover { background-color: #9C2E16; }
+            </style>
+            <div class="card">
+                <header>
+                    <h2>Backup</h2>
+                    <p class="text-muted-foreground">Lade eine vollständige Kopie der Datenbank (Events, Tickets, Statistiken, Konten &amp; Einstellungen) als <code>.db</code>-Datei herunter. Konsistenter Snapshot — auch im laufenden Betrieb sicher.</p>
+                </header>
+                <section>
+                    <button type="button" class="btn-outline" onclick="downloadBackup(this)">
+                        Datenbank-Backup herunterladen
+                    </button>
+                </section>
+            </div>
+
+            <div class="card" style="border-color:#C73D20;">
+                <header>
+                    <h2 style="color:#C73D20;">Gefahrenzone</h2>
+                    <p class="text-muted-foreground">Diese Aktionen sind <strong>unwiderruflich</strong>. Erstelle vorher ein Backup. Zur Bestätigung musst du jeweils ein Wort eintippen.</p>
+                </header>
+                <section class="grid gap-4">
+                    <div class="flex items-center justify-between gap-4" style="flex-wrap:wrap;">
+                        <div>
+                            <strong>Alle Daten löschen</strong>
+                            <div class="text-muted-foreground text-sm">Löscht alle Tickets, Verkäufe und Statistiken. Plätze werden auf die volle Kapazität zurückgesetzt. Event-Konfiguration und Konten bleiben erhalten.</div>
+                        </div>
+                        <button type="button" class="btn-destructive" onclick="dangerAction('wipe_data','LÖSCHEN','Alle Daten löschen')">Daten löschen</button>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-4" style="flex-wrap:wrap;border-top:1px solid var(--avo-border);padding-top:1rem;">
+                        <div>
+                            <strong>System neu installieren</strong>
+                            <div class="text-muted-foreground text-sm">Startet den Einrichtungsassistenten erneut. Alle Daten bleiben erhalten — nur die Installation wird zurückgesetzt.</div>
+                        </div>
+                        <button type="button" class="btn-destructive" onclick="dangerAction('reinstall','INSTALL','System neu installieren')">Neu installieren</button>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-4" style="flex-wrap:wrap;border-top:1px solid var(--avo-border);padding-top:1rem;">
+                        <div>
+                            <strong>Auf Werkseinstellungen zurücksetzen</strong>
+                            <div class="text-muted-foreground text-sm">Löscht <strong>alles</strong>: Events, Tickets, Statistiken, Einstellungen, hochgeladene Bilder. Das Admin-Konto wird auf <code>admin/admin</code> zurückgesetzt und das System ist danach uninstalliert.</div>
+                        </div>
+                        <button type="button" class="btn-destructive" onclick="dangerAction('factory_reset','WERKSRESET','Auf Werkseinstellungen zurücksetzen')">Werksreset</button>
+                    </div>
+                </section>
+            </div>
+        </div>
+
         <?php
         $orgName = $shows['orga_name'] ?? '';
         $current_language = 'en';
@@ -1274,6 +1345,67 @@ HTML;
                 }
             }));
         }
+        // --- Danger zone + backup -------------------------------------------
+        async function downloadBackup(btn) {
+            const original = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Erstelle Backup…';
+            try {
+                const res = await fetch('backup.php');
+                if (!res.ok) {
+                    let msg = 'Backup fehlgeschlagen (' + res.status + ')';
+                    try { msg = (await res.json()).message || msg; } catch (e) {}
+                    throw new Error(msg);
+                }
+                const blob = await res.blob();
+                const dispo = res.headers.get('Content-Disposition') || '';
+                const m = dispo.match(/filename="([^"]+)"/);
+                const name = m ? m[1] : 'qrgate-backup.db';
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = name;
+                document.body.appendChild(a); a.click(); a.remove();
+                URL.revokeObjectURL(url);
+                showToast('Backup heruntergeladen.');
+            } catch (e) {
+                showToast(e.message || 'Backup fehlgeschlagen', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = original;
+            }
+        }
+
+        async function dangerAction(action, word, label) {
+            const typed = window.prompt(
+                '⚠ ' + label + '\n\nDiese Aktion kann NICHT rückgängig gemacht werden.\n' +
+                'Tippe "' + word + '" um fortzufahren:'
+            );
+            if (typed === null) return;            // cancelled
+            if (typed.trim() !== word) {
+                showToast('Bestätigung stimmt nicht — abgebrochen.', 'warning');
+                return;
+            }
+            try {
+                const res = await fetch('api.php?action=' + action, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN }
+                }).then(r => r.json());
+                if (res.status === 'success') {
+                    showToast(res.message || 'Erledigt.', 'success', 6000);
+                    // After reinstall / factory reset the system needs the setup
+                    // wizard again — send the operator there.
+                    if (action === 'reinstall' || action === 'factory_reset') {
+                        localStorage.removeItem('currentAdminSection');
+                        setTimeout(() => { window.location.href = '/install'; }, 2500);
+                    }
+                } else {
+                    showToast('Fehler: ' + (res.message || 'unbekannt'), 'error', 6000);
+                }
+            } catch (e) {
+                showToast('Anfrage fehlgeschlagen: ' + e.message, 'error');
+            }
+        }
+
         function switchSection(targetId) {
             if (targetId === 'logout') {
                 window.location.href = 'logout.php';
@@ -1550,6 +1682,7 @@ HTML;
                 title: document.getElementById('eventTitle').value,
                 subtitle: document.getElementById('eventSubtitle').value,
                 banner: document.getElementById('bannerUrl').value,
+                contact_email: document.getElementById('contactEmail').value,
                 store_lock: document.getElementById('storeLock').checked,
                 payment_methods: document.getElementById('paymentMethods').value,
                 dates: {}
