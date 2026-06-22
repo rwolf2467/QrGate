@@ -46,14 +46,10 @@ QrGate is a comprehensive system for managing events, tickets, and access contro
 - **Role-based Access Control**: Three user levels (Admin, Ticketflow, Handheld)
 
 ## Screenshots
-<img width="2559" height="1481" alt="image" src="https://github.com/user-attachments/assets/f9306b5c-6986-4feb-995f-c33abb9ef94c" />
-<img width="2559" height="1481" alt="image" src="https://github.com/user-attachments/assets/99df98d8-4dda-488e-87b5-ff37d477349a" />
----
-<img width="2559" height="1481" alt="image" src="https://github.com/user-attachments/assets/10506a2e-93d3-497c-89bf-20705cd20036" />
-<img width="2559" height="1481" alt="image" src="https://github.com/user-attachments/assets/f5bf87e0-1dcc-487c-a0fc-2e607ad01406" />
-<img width="2559" height="1481" alt="image" src="https://github.com/user-attachments/assets/c1bfce15-6743-4c7f-a2c4-0206fa70d5ce" />
----
-<img width="642" height="1396" alt="image" src="https://github.com/user-attachments/assets/0c72301c-c936-4522-8c47-92aafd9191ea" />
+<img width="2560" height="1492" alt="image" src="https://github.com/user-attachments/assets/d7e8562a-fd46-45d8-a389-45bc17bfee2e" />
+<img width="2560" height="1492" alt="image" src="https://github.com/user-attachments/assets/9dc34513-e245-4569-acdc-d3ec11d130da" />
+<img width="1840" height="1263" alt="image" src="https://github.com/user-attachments/assets/e013fbab-2cf3-4f2a-aeb7-dfbfa23a63f7" />
+
 
 
 
