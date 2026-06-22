@@ -8,17 +8,34 @@
 
 Part of the [avocloud](https://avocloud.net) toolset.
 
+## Run it (fastest)
+
+One image, no config files — pull, start detached, finish in the browser:
+
+```bash
+docker run -d --name qrgate -p 8080:80 \
+  -e QRGATE_WEB_PORT=8080 \
+  -v qrgate_data:/app/backend/data \
+  -v qrgate_codes:/app/backend/codes \
+  redwolf2467/qrgate
+```
+
+Open <http://localhost:8080> → you're redirected to the **`/install` wizard**, which generates your API secret and walks you through SMTP, the first event and the admin password. Details: [Single All-in-One Container](#single-all-in-one-container). Want two independently restartable containers instead? See [Quick Start with Docker](#quick-start-with-docker).
+
 ## Overview
 
 QrGate is a comprehensive system for managing events, tickets, and access control. It consists of a **Backend** (Python/Quart) and a **Frontend** (PHP) with a modern, responsive user interface.
 
 ### Key Features
 
-- **Ticket Sales**: Simple ticket purchase via web interface with support for various payment methods (cash, Stripe)
-- **Access Control**: QR code-based ticket validation for entry
-- **Admin Panel**: Comprehensive dashboard for managing events, tickets, and statistics
+- **Guided Ticket Checkout**: Multi-step booking wizard (details → tickets & names → payment → confirm) with **Stripe** (card) and **cash** (pay-at-door) support
+- **Binding Booking Consent**: Mandatory consent checkbox plus cancellation/storno info, enforced server-side; configurable contact email shown to customers
+- **Ticket Delivery**: PDF tickets by email with the QR code embedded inline (generated in-memory — single-page layout)
+- **Access Control**: QR code-based ticket validation for entry, with a mobile handheld scanner
+- **Admin Panel**: Dashboard for events, dates, locations, images, tickets and statistics
+- **Maintenance & Data Tools**: One-click **database backup** download plus a guarded danger zone (wipe data, reinstall, factory reset)
 - **Multi-language Support**: German and English
-- **Responsive Design**: Optimized for desktop and mobile devices
+- **Responsive Design**: Optimized for desktop and mobile, light **and** dark
 
 ### Security Features
 
