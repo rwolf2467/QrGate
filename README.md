@@ -184,45 +184,6 @@ docker compose -f docker-compose.single.yml up -d --build
 
 > Note: online key rotation in the wizard relies on a key file shared between backend and frontend, so it applies to the **single-container** setups. In the two-container [`docker-compose.yml`](docker-compose.yml), set the secret via `QRGATE_AUTH_KEY` instead.
 
-## Pterodactyl Panel (Egg)
-
-QrGate can run on a [Pterodactyl](https://pterodactyl.io/) game-panel as a single server. Because Pterodactyl runs containers **rootless** (user `container`, working dir `/home/container`) and assigns the web port via `${SERVER_PORT}`, it needs a Pterodactyl-tailored image — [`Dockerfile.pterodactyl`](Dockerfile.pterodactyl) — not the plain all-in-one image.
-
-### 1. Build & push the Pterodactyl image
-
-```bash
-docker build -f Dockerfile.pterodactyl -t redwolf2467/qrgate:pterodactyl .
-docker push redwolf2467/qrgate:pterodactyl
-```
-
-This image listens on `${SERVER_PORT}`, writes data/tickets under `/home/container` (the persistent volume), and starts the backend, PHP-FPM and nginx via supervisor.
-
-### 2. Import the egg
-
-In the panel: **Admin → Nests → Import Egg**, upload [`pterodactyl/egg-qrgate.json`](pterodactyl/egg-qrgate.json). It pre-fills everything below.
-
-### What the egg fields mean (if you fill them by hand)
-
-| Panel field | Value |
-|-------------|-------|
-| **Name** | `QrGate` |
-| **Startup Command** | `/usr/local/bin/qrgate-ptero.sh` |
-| **Docker Images** | `redwolf2467/qrgate:pterodactyl` (format `Display Name|image:tag`) |
-| **Stop Command** | `^C` |
-| **Startup Configuration** (done-regex) | `{ "done": "QrGate backend server started" }` |
-| **Configuration Files** | `{}` |
-| **Install script** | container `alpine:3.19`, entrypoint `ash`, `mkdir -p /mnt/server/data /mnt/server/codes` |
-
-### 3. Variables to set on the server
-
-| Variable | Required | Purpose |
-|----------|----------|---------|
-| `QRGATE_AUTH_KEY` | ✅ | shared secret (backend auth_key + frontend API key). `openssl rand -hex 32` |
-| `QRGATE_ADMIN_PASSWORD` | optional | admin password (also settable in the wizard) |
-| `QRGATE_ORIGIN_URL`, `QRGATE_FRONTEND_ORIGIN` | optional | public URL / CORS origin |
-| `QRGATE_SMTP_*` | optional | mail settings (also settable in the wizard) |
-
-Pterodactyl injects `SERVER_PORT` and `SERVER_IP` automatically; the entrypoint renders nginx for that port and prints the wizard link in the console. Assign **one port allocation** (the web port) — the backend stays internal on `127.0.0.1:1654`. After the server starts, open the printed `/install` link and run the [setup wizard](#first-run-setup-wizard).
 
 ## Manual Installation
 
