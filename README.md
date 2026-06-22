@@ -1,8 +1,12 @@
-# QrGate - Modern Ticketing and Access Control System
+<img src="backend/data/assets/logo.png" width="96" alt="QrGate">
 
-![QrGate Logo](backend/data/assets/logo.png)
+# QrGate
 
-**QrGate** is a modern, web-based ticketing and access control system for events. It enables ticket sales, management, and QR code-based validation, providing a user-friendly interface for administrators and visitors.
+`// open-source · since 2024`
+
+**Ticketing & access control that just runs.** Sell tickets, validate QR codes at the door, and manage events from one admin panel — Python/Quart backend, PHP frontend. Bilingual (English + German), light **and** dark.
+
+Part of the [avocloud](https://avocloud.net) toolset.
 
 ## Overview
 
