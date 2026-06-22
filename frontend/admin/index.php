@@ -735,6 +735,89 @@ HTML;
         <!-- Manage Days -->
         <div id="days" style="display: none;">
             <h1>Manage Days</h1>
+
+            <!-- Locations -->
+            <div class="card">
+                <header>
+                    <h2><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-map-pin-icon lucide-map-pin">
+                            <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" />
+                            <circle cx="12" cy="10" r="3" />
+                        </svg> Locations</h2>
+                </header>
+                <section>
+                    <p class="text-muted-foreground text-sm" style="margin-bottom: 1rem;">
+                        Define the venues where your events take place. Each day can be assigned to a
+                        location, which is then printed on the ticket (email &amp; PDF).</p>
+                    <form id="addLocationForm" class="form grid gap-6" style="margin-bottom: 1.5rem;">
+                        <div class="grid gap-3"><label class="label" for="newLocationName">Name</label><input
+                                type="text" id="newLocationName" class="input" placeholder="Main Hall"></div>
+                        <div class="grid gap-3"><label class="label" for="newLocationAddress">Address</label><input
+                                type="text" id="newLocationAddress" class="input"
+                                placeholder="Example Street 1, 12345 City"></div>
+                        <div>
+                            <button type="submit" class="btn-outline"><svg xmlns="http://www.w3.org/2000/svg" width="24"
+                                    height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round"
+                                    class="lucide lucide-circle-plus-icon lucide-circle-plus">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="M8 12h8" />
+                                    <path d="M12 8v8" />
+                                </svg> Add Location</button>
+                        </div>
+                    </form>
+                    <div class="days-table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Address</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="locationsTableBody">
+                                <?php if ($shows && !empty($shows["locations"]) && is_array($shows["locations"])):
+                                    foreach ($shows["locations"] as $locId => $loc): ?>
+                                        <tr data-location-id="<?php echo htmlspecialchars($locId); ?>">
+                                            <td><input type="text" class="input location-name"
+                                                    value="<?php echo htmlspecialchars($loc["name"] ?? ""); ?>"></td>
+                                            <td><input type="text" class="input location-address"
+                                                    value="<?php echo htmlspecialchars($loc["address"] ?? ""); ?>"></td>
+                                            <td>
+                                                <button class="btn-icon-outline" type="button" action-type="update-location"
+                                                    data-location-id="<?php echo htmlspecialchars($locId); ?>"><svg
+                                                        xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                        stroke-linecap="round" stroke-linejoin="round"
+                                                        class="lucide lucide-save-icon lucide-save">
+                                                        <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+                                                        <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" />
+                                                        <path d="M7 3v4a1 1 0 0 0 1 1h7" />
+                                                    </svg></button>
+                                                <button class="btn-icon-destructive" type="button" action-type="delete-location"
+                                                    data-location-id="<?php echo htmlspecialchars($locId); ?>"><svg
+                                                        xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                        stroke-linecap="round" stroke-linejoin="round"
+                                                        class="lucide lucide-trash2-icon lucide-trash-2">
+                                                        <path d="M10 11v6" />
+                                                        <path d="M14 11v6" />
+                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                                                        <path d="M3 6h18" />
+                                                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                                    </svg></button>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach;
+                                endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+            <br>
+
             <div class="card">
                 <header>
                     <h2><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -758,6 +841,16 @@ HTML;
                                 type="number" id="newTickets" class="input" value="100"></div>
                         <div class="grid gap-3"><label class="label" for="newPrice">Price (€)</label><input
                                 type="number" step="0.01" id="newPrice" class="input" value="15.00"></div>
+                        <div class="grid gap-3"><label class="label" for="newLocation">Location</label>
+                            <select id="newLocation" class="select">
+                                <option value="">— No location —</option>
+                                <?php if ($shows && !empty($shows["locations"]) && is_array($shows["locations"])):
+                                    foreach ($shows["locations"] as $locId => $loc): ?>
+                                        <option value="<?php echo htmlspecialchars($locId); ?>"><?php echo htmlspecialchars($loc["name"] ?? ""); ?></option>
+                                    <?php endforeach;
+                                endif; ?>
+                            </select>
+                        </div>
 
                         <div style="margin-top: 1rem;">
                             <button type="submit" class="btn-outline"><svg xmlns="http://www.w3.org/2000/svg" width="24"
@@ -801,6 +894,7 @@ HTML;
                                     <th>Total</th>
                                     <th>Available</th>
                                     <th>Price</th>
+                                    <th>Location</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -827,6 +921,16 @@ HTML;
                                             <td><input type="number" step="0.01" class="input" value="<?php echo $dateData[
                                                 "price"
                                             ]; ?>"></td>
+                                            <td>
+                                                <select class="select day-location">
+                                                    <option value="">— No location —</option>
+                                                    <?php if ($shows && !empty($shows["locations"]) && is_array($shows["locations"])):
+                                                        foreach ($shows["locations"] as $locId => $loc): ?>
+                                                            <option value="<?php echo htmlspecialchars($locId); ?>" <?php echo (($dateData["location"] ?? "") === $locId) ? "selected" : ""; ?>><?php echo htmlspecialchars($loc["name"] ?? ""); ?></option>
+                                                        <?php endforeach;
+                                                    endif; ?>
+                                                </select>
+                                            </td>
                                             <td>
                                                 <button class="btn-icon-outline" type="submit" action-type="update-day"
                                                     data-date-id="<?php echo $dateId; ?>"><svg
@@ -1459,7 +1563,7 @@ HTML;
                                 "tickets"
                             ]; ?>, tickets_available: <?php echo $d[
                                  "tickets_available"
-                             ]; ?>, price: "<?php echo $d["price"]; ?>"
+                             ]; ?>, price: "<?php echo $d["price"]; ?>", location: "<?php echo htmlspecialchars($d["location"] ?? "", ENT_QUOTES); ?>"
                     };
                 <?php endforeach;
                 ;
@@ -1493,7 +1597,8 @@ HTML;
                 date: document.getElementById('newDate').value,
                 time: document.getElementById('newTime').value,
                 tickets: document.getElementById('newTickets').value,
-                price: document.getElementById('newPrice').value
+                price: document.getElementById('newPrice').value,
+                location: document.getElementById('newLocation') ? document.getElementById('newLocation').value : ''
             };
             fetch('api.php?action=add_day', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN }, body: JSON.stringify(data) })
                 .then(r => r.json())
@@ -1504,6 +1609,67 @@ HTML;
                         setTimeout(() => location.reload(), 1000);
                     } else showToast('Error: ' + res.message, 'error');
                 });
+        });
+
+        document.getElementById('addLocationForm')?.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const name = document.getElementById('newLocationName').value.trim();
+            const address = document.getElementById('newLocationAddress').value.trim();
+            if (!name) { showToast('Location name is required', 'error'); return; }
+            fetch('api.php?action=add_location', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                body: JSON.stringify({ name, address })
+            })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.status === 'success') {
+                        showToast('Location added!');
+                        localStorage.setItem('currentAdminSection', 'days');
+                        setTimeout(() => location.reload(), 800);
+                    } else showToast('Error: ' + (res.message || 'Unknown'), 'error');
+                })
+                .catch(() => showToast('Network error', 'error'));
+        });
+
+        document.getElementById('locationsTableBody')?.addEventListener('click', async function (e) {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            const locationId = btn.getAttribute('data-location-id');
+            const row = btn.closest('tr');
+
+            if (btn.getAttribute('action-type') === 'delete-location') {
+                const confirmed = await showConfirmationDialog('Delete this location? Days using it will lose their location.');
+                if (!confirmed) return;
+                fetch('api.php?action=delete_location', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify({ locationId })
+                })
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.status === 'success') {
+                            showToast('Location deleted!');
+                            setTimeout(() => location.reload(), 600);
+                        } else showToast('Error: ' + (res.message || 'Unknown'), 'error');
+                    })
+                    .catch(() => showToast('Network error', 'error'));
+            } else if (btn.getAttribute('action-type') === 'update-location') {
+                const name = row.querySelector('.location-name').value.trim();
+                const address = row.querySelector('.location-address').value.trim();
+                if (!name) { showToast('Location name is required', 'error'); return; }
+                fetch('api.php?action=update_location', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify({ locationId, name, address })
+                })
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.status === 'success') showToast('Location updated!');
+                        else showToast('Error: ' + (res.message || 'Unknown'), 'error');
+                    })
+                    .catch(() => showToast('Network error', 'error'));
+            }
         });
 
         function showConfirmationDialog(message) {
@@ -1579,13 +1745,15 @@ HTML;
                     return;
                 }
 
+                const locationSelect = row.querySelector('select.day-location');
                 const updateData = {
                     dateId: dateId,
                     date: dateInput,
                     time: timeInput,
                     tickets: ticketsInput,
                     available: availableInput,
-                    price: priceInput.toFixed(2)
+                    price: priceInput.toFixed(2),
+                    location: locationSelect ? locationSelect.value : ''
                 };
 
                 fetch('api.php?action=update_day', {

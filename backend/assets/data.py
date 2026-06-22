@@ -94,6 +94,7 @@ def init_db() -> None:
                 tickets           INTEGER,
                 tickets_available INTEGER,
                 price             TEXT,
+                location          TEXT,              -- location id this day belongs to
                 position          INTEGER            -- preserve insertion order
             );
 
@@ -129,6 +130,7 @@ def init_db() -> None:
         conn.close()
 
     _migrate_ticket_columns()
+    _migrate_date_columns()
     _maybe_migrate_from_json()
 
 
@@ -148,6 +150,20 @@ def _migrate_ticket_columns() -> None:
         for col, decl in wanted.items():
             if col not in existing:
                 conn.execute(f"ALTER TABLE tickets ADD COLUMN {col} {decl}")
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _migrate_date_columns() -> None:
+    """Idempotently add the `location` column to an existing dates table.
+    CREATE TABLE IF NOT EXISTS never adds columns to a pre-existing table, so we
+    ALTER only when it is missing (guarded by PRAGMA table_info)."""
+    conn = get_db()
+    try:
+        existing = {r["name"] for r in conn.execute("PRAGMA table_info(dates)").fetchall()}
+        if "location" not in existing:
+            conn.execute("ALTER TABLE dates ADD COLUMN location TEXT")
         conn.commit()
     finally:
         conn.close()
@@ -285,6 +301,7 @@ def load_show() -> Dict[str, Any]:
             "tickets": d["tickets"],
             "tickets_available": d["tickets_available"],
             "price": d["price"],
+            "location": d["location"],
         }
     show["dates"] = dates
 
@@ -375,8 +392,8 @@ def save_show(data: dict) -> None:
                     """
                     INSERT INTO dates (
                         date_key, date, time, tickets, tickets_available,
-                        price, position
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        price, location, position
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         str(date_key),
@@ -385,6 +402,7 @@ def save_show(data: dict) -> None:
                         value.get("tickets"),
                         value.get("tickets_available"),
                         value.get("price"),
+                        value.get("location"),
                         position,
                     ),
                 )
@@ -415,6 +433,7 @@ def load_date(date: str):
         "tickets": d["tickets"],
         "tickets_available": d["tickets_available"],
         "price": d["price"],
+        "location": d["location"],
     }
     print("Found show:", result)
     return result
@@ -434,7 +453,8 @@ def save_date(date: str, updated_data) -> None:
                 time = ?,
                 tickets = ?,
                 tickets_available = ?,
-                price = ?
+                price = ?,
+                location = ?
             WHERE date = ?
             """,
             (
@@ -443,6 +463,7 @@ def save_date(date: str, updated_data) -> None:
                 updated_data.get("tickets"),
                 updated_data.get("tickets_available"),
                 updated_data.get("price"),
+                updated_data.get("location"),
                 date,
             ),
         )

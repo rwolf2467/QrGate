@@ -434,8 +434,65 @@ HTML;
                 </div>
 
                 <div class="container mx-auto px-4 py-8">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        <?php foreach ($shows['dates'] as $id => $show): ?>
+                    <?php
+                    // Group the available dates by their assigned location so the
+                    // shop can render one section per venue. Dates without a
+                    // location fall into the '' bucket, rendered last.
+                    $locations = (isset($shows['locations']) && is_array($shows['locations'])) ? $shows['locations'] : [];
+                    $grouped = [];
+                    foreach ($shows['dates'] as $id => $show) {
+                        $locId = $show['location'] ?? '';
+                        if (!isset($locations[$locId])) {
+                            $locId = '';
+                        }
+                        $grouped[$locId][$id] = $show;
+                    }
+                    // Order: known locations first (in their defined order), then ungrouped.
+                    $groupOrder = [];
+                    foreach (array_keys($locations) as $lid) {
+                        if (!empty($grouped[$lid])) {
+                            $groupOrder[] = $lid;
+                        }
+                    }
+                    if (!empty($grouped[''])) {
+                        $groupOrder[] = '';
+                    }
+                    $hasNamedLocations = false;
+                    foreach ($groupOrder as $lid) {
+                        if ($lid !== '') { $hasNamedLocations = true; break; }
+                    }
+                    foreach ($groupOrder as $locId):
+                        $group = $grouped[$locId];
+                        $loc = $locations[$locId] ?? null;
+                        ?>
+                        <?php if ($locId !== '' && $loc): ?>
+                            <div class="mb-6 mt-4 animate-fade-in-up">
+                                <div class="avo-kicker mb-2">// location</div>
+                                <h2 class="text-2xl md:text-4xl font-bold">
+                                    <?php echo htmlspecialchars($loc['name'] ?? ''); ?>
+                                </h2>
+                                <?php if (!empty(trim($loc['address'] ?? ''))): ?>
+                                    <p class="opacity-80 mt-1" style="display:inline-flex;align-items:center;gap:0.4rem;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                            stroke-linejoin="round" class="lucide lucide-map-pin-icon lucide-map-pin">
+                                            <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" />
+                                            <circle cx="12" cy="10" r="3" />
+                                        </svg>
+                                        <?php echo htmlspecialchars($loc['address']); ?>
+                                    </p>
+                                <?php endif; ?>
+                            </div>
+                        <?php elseif ($hasNamedLocations): ?>
+                            <div class="mb-6 mt-4 animate-fade-in-up">
+                                <div class="avo-kicker mb-2">// more</div>
+                                <h2 class="text-2xl md:text-4xl font-bold">
+                                    <?php echo $languages[$current_language]['other_dates'] ?? 'Other dates'; ?>
+                                </h2>
+                            </div>
+                        <?php endif; ?>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+                        <?php foreach ($group as $id => $show): ?>
                             <div class="card show-hover transform transition-all duration-300 hover:scale-105">
                                 <div class="p-6">
                                     <header class="mb-8">
@@ -559,6 +616,7 @@ HTML;
                             </div>
                         <?php endforeach; ?>
                     </div>
+                    <?php endforeach; ?>
                 </div>
             </div>
             <script>

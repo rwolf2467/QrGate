@@ -50,6 +50,15 @@ switch ($action) {
     case 'delete_day':
         deleteDay();
         break;
+    case 'add_location':
+        addLocation();
+        break;
+    case 'update_location':
+        updateLocation();
+        break;
+    case 'delete_location':
+        deleteLocation();
+        break;
     case 'upload_image':
         uploadImage();
         break;
@@ -377,7 +386,8 @@ function addDay() {
         'time' => $input['time'],
         'tickets' => (int)$input['tickets'],
         'tickets_available' => (int)$input['tickets'],
-        'price' => (string)$input['price']
+        'price' => (string)$input['price'],
+        'location' => isset($input['location']) ? (string)$input['location'] : ''
     ];
 
     
@@ -424,7 +434,10 @@ function updateDay() {
         'time' => $input['time'],
         'tickets' => (int)$input['tickets'],
         'tickets_available' => (int)$input['available'],
-        'price' => (string)$input['price']
+        'price' => (string)$input['price'],
+        'location' => isset($input['location'])
+            ? (string)$input['location']
+            : (string)($shows['dates'][$input['dateId']]['location'] ?? '')
     ];
 
     
@@ -481,6 +494,117 @@ function deleteDay() {
         $message = $result['message'] ?? 'Failed to delete day';
         error_log('deleteDay error: ' . $message);
         echo json_encode(['status' => 'error', 'message' => $message]);
+    }
+}
+
+function addLocation() {
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (!$input || !isset($input['name']) || trim($input['name']) === '') {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Location name is required']);
+        return;
+    }
+
+    $shows = getShows();
+    if (!$shows) {
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => 'Could not load shows']);
+        return;
+    }
+
+    if (!isset($shows['locations']) || !is_array($shows['locations'])) {
+        $shows['locations'] = [];
+    }
+
+    $locId = 'loc_' . time() . '_' . substr(bin2hex(random_bytes(3)), 0, 6);
+    $shows['locations'][$locId] = [
+        'name' => (string)$input['name'],
+        'address' => isset($input['address']) ? (string)$input['address'] : ''
+    ];
+
+    $result = updateShow($shows);
+    if (isset($result['status']) && $result['status'] === 'success') {
+        echo json_encode(['status' => 'success', 'message' => 'Location added', 'locationId' => $locId]);
+    } else {
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => $result['message'] ?? 'Failed to add location']);
+    }
+}
+
+function updateLocation() {
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (!$input || !isset($input['locationId']) || !isset($input['name']) || trim($input['name']) === '') {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Missing required fields']);
+        return;
+    }
+
+    $shows = getShows();
+    if (!$shows) {
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => 'Could not load shows']);
+        return;
+    }
+
+    if (!isset($shows['locations'][$input['locationId']])) {
+        http_response_code(404);
+        echo json_encode(['status' => 'error', 'message' => 'Location not found']);
+        return;
+    }
+
+    $shows['locations'][$input['locationId']] = [
+        'name' => (string)$input['name'],
+        'address' => isset($input['address']) ? (string)$input['address'] : ''
+    ];
+
+    $result = updateShow($shows);
+    if (isset($result['status']) && $result['status'] === 'success') {
+        echo json_encode(['status' => 'success', 'message' => 'Location updated']);
+    } else {
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => $result['message'] ?? 'Failed to update location']);
+    }
+}
+
+function deleteLocation() {
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (!$input || !isset($input['locationId'])) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Missing locationId']);
+        return;
+    }
+
+    $shows = getShows();
+    if (!$shows) {
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => 'Could not load shows']);
+        return;
+    }
+
+    if (!isset($shows['locations'][$input['locationId']])) {
+        http_response_code(404);
+        echo json_encode(['status' => 'error', 'message' => 'Location not found']);
+        return;
+    }
+
+    unset($shows['locations'][$input['locationId']]);
+
+    // Detach the deleted location from any day still referencing it so tickets
+    // don't print a dangling/empty location id.
+    if (isset($shows['dates']) && is_array($shows['dates'])) {
+        foreach ($shows['dates'] as $id => $d) {
+            if (isset($d['location']) && $d['location'] === $input['locationId']) {
+                $shows['dates'][$id]['location'] = '';
+            }
+        }
+    }
+
+    $result = updateShow($shows);
+    if (isset($result['status']) && $result['status'] === 'success') {
+        echo json_encode(['status' => 'success', 'message' => 'Location deleted']);
+    } else {
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => $result['message'] ?? 'Failed to delete location']);
     }
 }
 

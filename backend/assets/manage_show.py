@@ -64,6 +64,9 @@ def edit_show(app=quart.Quart):
             show["store_lock"] = bool(data.get("store_lock", show.get("store_lock")))
             show["payment_methods"] = data.get("payment_methods", show.get("payment_methods", "both"))
 
+            if "locations" in data:
+                show["locations"] = data["locations"]
+
             if "screens" in data:
                 show["screens"] = data["screens"]
 

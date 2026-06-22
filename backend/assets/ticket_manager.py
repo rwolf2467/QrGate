@@ -40,6 +40,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
+from email.mime.image import MIMEImage
 import qrcode, string, random
 from reds_simple_logger import Logger
 from datetime import datetime
@@ -59,8 +60,8 @@ def _authorized() -> bool:
 
 def ticket_token(tid: str) -> str:
     """Derive a short, unguessable per-ticket access token from the secret
-    auth_key. Used to gate the otherwise-unauthenticated /codes/show and
-    /codes/pdf endpoints so tids (low-entropy, sequential-ish) can't be
+    auth_key. Used to gate the otherwise-unauthenticated /codes/pdf
+    endpoint so tids (low-entropy, sequential-ish) can't be
     enumerated to harvest other people's QR/PDF and present them at the gate."""
     return hmac.new(
         str(config.Auth.auth_key).encode(),
@@ -102,26 +103,53 @@ def _fmt_ticket_date(d: str) -> str:
         return d
 
 
+def _location_for_date(date: str, show_data: dict):
+    """Resolve the (name, address) of the location a given event `date` belongs
+    to, using the show's `locations` map and the per-date `location` id. Returns
+    ("", "") for dateless/Unlimited tickets or when no location is assigned."""
+    if not date or date == "Unlimited":
+        return ("", "")
+    locations = show_data.get("locations") or {}
+    for d in (show_data.get("dates") or {}).values():
+        if isinstance(d, dict) and d.get("date") == date:
+            loc_id = d.get("location")
+            loc = locations.get(loc_id) if loc_id else None
+            if isinstance(loc, dict):
+                return (
+                    str(loc.get("name") or "").strip(),
+                    str(loc.get("address") or "").strip(),
+                )
+            break
+    return ("", "")
+
+
 def _meaningful(s) -> bool:
     """True if `s` is a real value (not blank / Unknown / None placeholder)."""
     return bool(s) and str(s).strip().lower() not in ("", "unknown", "none")
 
 
-def _ensure_qr(tid: str) -> str:
-    """Make sure ./codes/{tid}.png exists; return its path."""
-    qr_image_path = f"./codes/{tid}.png"
-    if not os.path.exists(qr_image_path):
-        os.makedirs("./codes", exist_ok=True)
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,  # type: ignore
-            box_size=10,
-            border=2,
-        )
-        qr.add_data(tid)
-        qr.make(fit=True)
-        qr.make_image(fill_color="black", back_color="white").save(qr_image_path)
-    return qr_image_path
+def _qr_png_bytes(tid: str) -> bytes:
+    """Render the QR for `tid` as PNG bytes, in memory. The QR is cheap to
+    regenerate and is only ever needed transiently (PDF build, email CID), so
+    we never persist it to disk anymore."""
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,  # type: ignore
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(tid)
+    qr.make(fit=True)
+    buf = io.BytesIO()
+    qr.make_image(fill_color="black", back_color="white").save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def _qr_image_flowable(tid: str, width: float, height: float) -> Image:
+    """A reportlab Image of the QR, fed from an in-memory PNG (no disk file).
+    A fresh BytesIO is handed to reportlab and kept alive by the returned
+    Image until the document is built."""
+    return Image(io.BytesIO(_qr_png_bytes(tid)), width=width, height=height)
 
 
 def simple_ticket_flowables(
@@ -137,7 +165,6 @@ def simple_ticket_flowables(
     coral header band, clean label/value info rows, framed QR, mono ID, footer.
     Shared by the single-ticket PDF and the combined batch PDF so they match.
     """
-    qr_image_path = _ensure_qr(tid)
     base = getSampleStyleSheet()
 
     eyebrow_style = ParagraphStyle(
@@ -200,6 +227,11 @@ def simple_ticket_flowables(
         rows.append(("DATE", date_val))
         if date != "Unlimited" and event_time:
             rows.append(("TIME", event_time))
+    loc_name, loc_addr = _location_for_date(date, show_data)
+    if loc_name:
+        rows.append(("LOCATION", loc_name))
+    if loc_addr:
+        rows.append(("ADDRESS", loc_addr))
     if rows:
         info = Table(
             [[Paragraph(l, label_style), Paragraph(v, value_style)] for l, v in rows],
@@ -217,7 +249,7 @@ def simple_ticket_flowables(
         els.append(Spacer(1, 28))
 
     # --- framed QR, centered ---
-    qr_box = Table([[Image(qr_image_path, width=156, height=156)]], colWidths=[188])
+    qr_box = Table([[_qr_image_flowable(tid, 156, 156)]], colWidths=[188])
     qr_box.hAlign = "CENTER"
     qr_box.setStyle(TableStyle([
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
@@ -251,7 +283,6 @@ def standard_ticket_flowables(
     a large framed QR with mono ID, concise usage notes, and a footer.
     Visual sibling of simple_ticket_flowables, scaled up for A4.
     """
-    qr_image_path = _ensure_qr(tid)
     base = getSampleStyleSheet()
 
     eyebrow_style = ParagraphStyle(
@@ -321,6 +352,11 @@ def standard_ticket_flowables(
         rows.append(("DATE", date_val))
         if date != "Unlimited" and event_time:
             rows.append(("TIME", event_time))
+    loc_name, loc_addr = _location_for_date(date, show_data)
+    if loc_name:
+        rows.append(("LOCATION", loc_name))
+    if loc_addr:
+        rows.append(("ADDRESS", loc_addr))
     if rows:
         info = Table(
             [[Paragraph(l, label_style), Paragraph(v, value_style)] for l, v in rows],
@@ -340,7 +376,7 @@ def standard_ticket_flowables(
         els.append(Spacer(1, 32))
 
     # --- large framed QR, centered, with mono ID ---
-    qr_box = Table([[Image(qr_image_path, width=200, height=200)]], colWidths=[244])
+    qr_box = Table([[_qr_image_flowable(tid, 200, 200)]], colWidths=[244])
     qr_box.hAlign = "CENTER"
     qr_box.setStyle(TableStyle([
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
@@ -790,31 +826,18 @@ def generate_ticket_pdf(
 ):
     """
     Generates a printable PDF ticket and saves it to ./codes/{tid}.pdf
-    Also generates the QR code image ./codes/{tid}.png
+    The QR code is rendered in memory and embedded directly into the PDF.
 
     Variants:
       - "standard": Full A4 ticket with banner and detailed info (default)
       - "simple": Minimal A5 ticket for fast printing at the box office
     """
-    qr_image_path = f"./codes/{tid}.png"
     pdf_filename = f"./codes/{tid}.pdf"
 
-    
     os.makedirs("./codes", exist_ok=True)
 
-    
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,  # type: ignore
-        box_size=10,
-        border=4,
-    )
-    qr.add_data(tid)
-    qr.make(fit=True)
-    img = qr.make_image(fill_color="black", back_color="white")
-    img.save(qr_image_path) 
-
-    
+    # The QR is drawn straight into the PDF from an in-memory PNG by the
+    # flowables below — no standalone .png file is written to disk.
     show_data = load_show()
     styles = getSampleStyleSheet()
 
@@ -857,6 +880,8 @@ def _ticket_email_html(
     full_name: str,
     date_val: str,
     event_time: str,
+    location_name: str,
+    location_address: str,
     tid: str,
     qr_url: str,
 ) -> str:
@@ -886,6 +911,10 @@ def _ticket_email_html(
         info.append(("DATE", date_val))
         if date_val != "Unlimited" and event_time:
             info.append(("TIME", event_time))
+    if location_name:
+        info.append(("LOCATION", location_name))
+    if location_address:
+        info.append(("ADDRESS", location_address))
     rows_html = "".join(
         _row(lbl, val, last=(i == len(info) - 1)) for i, (lbl, val) in enumerate(info)
     )
@@ -942,7 +971,7 @@ def _ticket_email_html(
             <td align="center" style="padding:0 36px 8px 36px;">
               <table role="presentation" cellpadding="0" cellspacing="0" style="border:1px solid #DCD8CB;border-radius:12px;background-color:#FFFFFF;">
                 <tr><td style="padding:18px;">
-                  <img src="{qr_url}" alt="Ticket QR code" width="200" height="200" style="display:block;width:200px;height:200px;">
+                  <img src="cid:qrcode" alt="Ticket QR code" width="200" height="200" style="display:block;width:200px;height:200px;">
                 </td></tr>
               </table>
               <div style="margin:14px 0 4px 0;font-family:'Courier New',Courier,monospace;font-size:16px;font-weight:bold;letter-spacing:1px;color:#141414;">
@@ -1004,7 +1033,7 @@ async def send_email(
     if not os.path.exists(pdf_path):
         generate_ticket_pdf(tid, first_name, last_name, date, event_time)
 
-    message = MIMEMultipart()
+    message = MIMEMultipart("mixed")
     message["From"] = config.Mail.smtp_user
     message["To"] = email
 
@@ -1020,11 +1049,15 @@ async def send_email(
         str(show_data.get("subtitle") or show_data.get("title") or "").strip()
     )
     event_time_e = escape(str(event_time)) if event_time else ""
+    loc_name, loc_addr = _location_for_date(date, show_data)
+    location_name = escape(loc_name) if loc_name else ""
+    location_address = escape(loc_addr) if loc_addr else ""
     safe_tid = escape(str(tid))
-    # Include the per-ticket HMAC token so the (otherwise public) /codes/show
-    # endpoint accepts this legitimate request while rejecting tid enumeration.
+    # The tid under the QR links to the ticket PDF. The per-ticket HMAC token
+    # lets the (otherwise public) /codes/pdf endpoint accept this legitimate
+    # request while still rejecting tid enumeration.
     qr_url = (
-        f"{config.API.backend_url}/codes/show?tid={tid}"
+        f"{config.API.backend_url}/codes/pdf?tid={tid}"
         f"&token={ticket_token(tid)}"
     )
 
@@ -1055,12 +1088,26 @@ async def send_email(
         full_name=full_name,
         date_val=date_val,
         event_time=event_time_e,
+        location_name=location_name,
+        location_address=location_address,
         tid=safe_tid,
         qr_url=qr_url,
     )
 
-    message.attach(MIMEText(html_content, "html"))
+    # Embed the QR as an inline (cid) image instead of a remote <img src> URL.
+    # A remote URL pointing at config.API.backend_url is often not publicly
+    # reachable, and most mail clients block remote images by default — a cid
+    # image lives in a multipart/related part next to the HTML and always
+    # renders offline. The PNG is rendered in memory; nothing is read from disk.
+    related = MIMEMultipart("related")
+    related.attach(MIMEText(html_content, "html"))
 
+    qr_img = MIMEImage(_qr_png_bytes(tid), _subtype="png")
+    qr_img.add_header("Content-ID", "<qrcode>")
+    qr_img.add_header("Content-Disposition", "inline", filename=f"{tid}.png")
+    related.attach(qr_img)
+
+    message.attach(related)
 
     with open(pdf_path, "rb") as pdf_file:
         part = MIMEApplication(pdf_file.read(), Name=os.path.basename(pdf_path))
@@ -1197,21 +1244,6 @@ def view_ticket(app=quart.Quart):
         except Exception as e:
             return quart.jsonify({"status": "error", "message": str(e)}), 500
 
-    @app.route("/codes/show", methods=["GET"])   # type: ignore
-    async def show_code():
-        tid = quart.request.args.get("tid")
-        if not tid:
-            return quart.jsonify({"error": "Missing tid"}), 400
-        # Require a valid per-ticket HMAC token so the bare (low-entropy) tid
-        # can't be enumerated to harvest other people's QR codes.
-        if not _token_valid(tid, quart.request.args.get("token")):
-            return quart.jsonify({"error": "Forbidden"}), 403
-        # Prevent path traversal: only serve files inside ./codes
-        safe_path = safe_join("./codes", f"{tid}.png")
-        if safe_path is None or not os.path.isfile(safe_path):
-            return quart.jsonify({"error": "Image not found"}), 404
-        return await quart.send_file(safe_path)
-
     @app.route("/codes/pdf", methods=["GET"])    # type: ignore
     async def show_pdf():
         # Batch: one combined multi-page PDF for ?tids=a,b,c (box-office print job).
@@ -1234,7 +1266,7 @@ def view_ticket(app=quart.Quart):
         tid = quart.request.args.get("tid")
         if not tid:
             return quart.jsonify({"error": "Missing tid"}), 400
-        # Require a valid per-ticket HMAC token (see /codes/show).
+        # Require a valid per-ticket HMAC token (see ticket_token).
         if not _token_valid(tid, quart.request.args.get("token")):
             return quart.jsonify({"error": "Forbidden"}), 403
         # Prevent path traversal: only serve files inside ./codes
