@@ -167,7 +167,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if ($result['status'] === 'success') {
-                $_SESSION['success'] = "Your tickets have been successfully submitted to the system. You will receive your tickets by email shortly. Please pay your tickets on the day of the event at our ticket counter.";
+                $lang = $_SESSION['language'] ?? 'en';
+                $successMessages = [
+                    'de' => 'Ihre Tickets wurden erfolgreich übermittelt. Sie erhalten Ihre Tickets in Kürze per E-Mail. Bitte bezahlen Sie Ihre Tickets am Veranstaltungstag an unserer Ticketkasse.',
+                    'en' => 'Your tickets have been successfully submitted to the system. You will receive your tickets by email shortly. Please pay your tickets on the day of the event at our ticket counter.',
+                ];
+                $_SESSION['success'] = $successMessages[$lang] ?? $successMessages['en'];
             } else {
                 throw new Exception('Ticket could not be created!');
             }
@@ -271,7 +276,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (($result['status'] ?? '') === 'success') {
-                $_SESSION['success'] = "Your tickets have been successfully entered and paid for. You will receive your tickets by email shortly.";
+                $lang = $_SESSION['language'] ?? 'en';
+                $successMessages = [
+                    'de' => 'Ihre Tickets wurden erfolgreich erfasst und bezahlt. Sie erhalten Ihre Tickets in Kürze per E-Mail.',
+                    'en' => 'Your tickets have been successfully entered and paid for. You will receive your tickets by email shortly.',
+                ];
+                $_SESSION['success'] = $successMessages[$lang] ?? $successMessages['en'];
             } else {
                 throw new Exception('Ticket could not be created. Please contact the organizer with your payment reference ' . $intentId . '.');
             }

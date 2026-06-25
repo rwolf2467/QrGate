@@ -292,16 +292,17 @@ HTML;
             </footer>
         </div>
     </dialog>
-    <dialog id="message-dialog" class="dialog" aria-labelledby="message-dialog-title"
+    <dialog id="message-dialog" class="dialog result-dialog" aria-labelledby="message-dialog-title"
         aria-describedby="message-dialog-description">
-        <div>
-            <header>
-                <h2 id="message-dialog-title" class="text-2xl inline-flex gap-x-2"></h2>
-                <p id="message-dialog-description" class="avo-text"></p>
-            </header>
-            <footer>
-                <button class="btn-primary" onclick="document.getElementById('message-dialog').close()">Okay</button>
-            </footer>
+        <div class="result-body">
+            <div class="result-icon" aria-hidden="true">
+                <span class="result-ring"></span>
+                <svg class="result-svg result-svg--success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                <svg class="result-svg result-svg--error" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+            </div>
+            <h2 id="message-dialog-title" class="result-title"></h2>
+            <p id="message-dialog-description" class="result-desc avo-text"></p>
+            <button class="btn-primary result-btn" onclick="document.getElementById('message-dialog').close()">Okay</button>
         </div>
     </dialog>
     <?php if (isset($_SESSION['error']) || isset($_SESSION['success'])): ?>
@@ -312,11 +313,13 @@ HTML;
                 const desc = dialog.querySelector('#message-dialog-description');
 
                 <?php if (isset($_SESSION['error'])): ?>
-                    title.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-alert-icon lucide-circle-alert"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg> Error';
+                    dialog.classList.add('is-error');
+                    title.textContent = <?php echo json_encode($current_language === 'de' ? 'Fehler' : 'Error'); ?>;
                     desc.textContent = <?php echo json_encode($_SESSION['error']); ?>;
                     <?php unset($_SESSION['error']); ?>
                 <?php elseif (isset($_SESSION['success'])): ?>
-                    title.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ticket-check-icon lucide-ticket-check"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="m9 12 2 2 4-4"/></svg> Success';
+                    dialog.classList.add('is-success');
+                    title.textContent = <?php echo json_encode($current_language === 'de' ? 'Geschafft!' : 'All set!'); ?>;
                     desc.textContent = <?php echo json_encode($_SESSION['success']); ?>;
                     <?php unset($_SESSION['success']); ?>
                 <?php endif; ?>
@@ -329,6 +332,74 @@ HTML;
         .wizard-dot { flex: 1; height: 4px; border-radius: 999px; background: var(--avo-border); transition: background .2s ease; }
         .wizard-dot.active { background: var(--avo-primary); }
         .wizard-dot.done { background: color-mix(in oklab, var(--avo-primary) 55%, transparent); }
+        input[aria-invalid="true"],
+        select[aria-invalid="true"] {
+            border-color: var(--avo-error) !important;
+            outline-color: var(--avo-error);
+        }
+        .field-error { color: var(--avo-error); font-size: .8rem; margin: 0; }
+        .field-error.hidden { display: none; }
+
+        /* ---- result dialog (purchase success / error) ---- */
+        .result-dialog .result-body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 1rem;
+            /* this element is basecoat's `.dialog>*` wrapper; our override replaces its padding */
+            padding: 2rem 1.75rem 1.75rem;
+        }
+        .result-icon {
+            position: relative;
+            width: 76px;
+            height: 76px;
+            display: grid;
+            place-items: center;
+            border-radius: 999px;
+        }
+        .result-dialog.is-success .result-icon { background: color-mix(in oklab, var(--avo-primary) 16%, transparent); color: var(--avo-primary); }
+        .result-dialog.is-error   .result-icon { background: color-mix(in oklab, var(--avo-error) 16%, transparent);   color: var(--avo-error); }
+        .result-ring {
+            position: absolute;
+            inset: 0;
+            border-radius: 999px;
+            border: 2px solid currentColor;
+            opacity: 0;
+        }
+        .result-svg { width: 38px; height: 38px; position: relative; z-index: 1; display: none; }
+        .result-dialog.is-success .result-svg--success { display: block; }
+        .result-dialog.is-error   .result-svg--error   { display: block; }
+        .result-svg--success path { stroke-dasharray: 30; stroke-dashoffset: 30; }
+        .result-title { font-size: 1.5rem; font-weight: 700; margin: 0; color: var(--avo-text); }
+        .result-desc { margin: 0; white-space: pre-line; max-width: 38ch; }
+        /* basecoat absolutely-positions `.dialog>*>button` (its close-X) top-right.
+           Our Okay button is a normal flow action — pin it back into the column. */
+        .result-dialog .result-btn {
+            position: static;
+            opacity: 1;
+            align-self: center;
+            margin-top: .5rem;
+            min-width: 150px;
+        }
+
+        @media (prefers-reduced-motion: no-preference) {
+            .result-dialog[open] .result-icon { animation: resultPop .45s cubic-bezier(.2, .8, .3, 1.25) both; }
+            .result-dialog[open] .result-ring { animation: resultRing 1s ease-out .2s both; }
+            .result-dialog.is-success[open] .result-svg--success path { animation: checkDraw .45s ease-out .38s forwards; }
+            .result-dialog.is-error[open] .result-body { animation: resultShake .42s ease .1s both; }
+            .result-dialog[open] .result-title,
+            .result-dialog[open] .result-desc,
+            .result-dialog[open] .result-btn { animation: resultRise .4s ease both; }
+            .result-dialog[open] .result-title { animation-delay: .12s; }
+            .result-dialog[open] .result-desc { animation-delay: .2s; }
+            .result-dialog[open] .result-btn { animation-delay: .28s; }
+        }
+        @keyframes resultPop { 0% { transform: scale(.5); opacity: 0; } 60% { transform: scale(1.06); } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes resultRing { 0% { transform: scale(.85); opacity: .55; } 100% { transform: scale(1.9); opacity: 0; } }
+        @keyframes checkDraw { to { stroke-dashoffset: 0; } }
+        @keyframes resultRise { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes resultShake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-7px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
     </style>
     <dialog id="bookingModal" class="dialog w-full sm:max-w-[425px]" aria-labelledby="demo-dialog-edit-profile-title"
         onclick="if (event.target === this) this.close()">
@@ -402,15 +473,18 @@ HTML;
                     <div class="wizard-step grid gap-4" data-step="1">
                         <div class="grid gap-2">
                             <label for="first_name"><?php echo $L['first_name']; ?></label>
-                            <input type="text" name="first_name" id="first_name" placeholder="Max" autocomplete="given-name" required autofocus>
+                            <input type="text" name="first_name" id="first_name" placeholder="Max" autocomplete="given-name" required autofocus aria-describedby="first_name_err">
+                            <p id="first_name_err" class="field-error hidden" role="alert"></p>
                         </div>
                         <div class="grid gap-2">
                             <label for="last_name"><?php echo $L['last_name']; ?></label>
-                            <input type="text" name="last_name" id="last_name" placeholder="Mustermann" autocomplete="family-name" required>
+                            <input type="text" name="last_name" id="last_name" placeholder="Mustermann" autocomplete="family-name" required aria-describedby="last_name_err">
+                            <p id="last_name_err" class="field-error hidden" role="alert"></p>
                         </div>
                         <div class="grid gap-2">
                             <label for="email"><?php echo $L['email']; ?></label>
-                            <input type="email" name="email" id="email" placeholder="max@mustermann.de" autocomplete="email" spellcheck="false" required>
+                            <input type="email" name="email" id="email" placeholder="max@mustermann.de" autocomplete="email" spellcheck="false" required aria-describedby="email_err">
+                            <p id="email_err" class="field-error hidden" role="alert"></p>
                         </div>
                     </div>
 
@@ -976,23 +1050,44 @@ HTML;
                     ).join('');
                 }
 
+                function setFieldError(input, message) {
+                    input.setAttribute('aria-invalid', 'true');
+                    const err = document.getElementById(input.id + '_err');
+                    if (err) { err.textContent = message; err.classList.remove('hidden'); }
+                }
+
+                function clearFieldError(input) {
+                    input.removeAttribute('aria-invalid');
+                    const err = document.getElementById(input.id + '_err');
+                    if (err) { err.textContent = ''; err.classList.add('hidden'); }
+                }
+
                 function validateStep1() {
                     const msg = wizardMessages();
-                    const firstName = document.querySelector('input[name="first_name"]').value.trim();
-                    const lastName = document.querySelector('input[name="last_name"]').value.trim();
-                    const email = document.querySelector('input[name="email"]').value.trim();
-                    const errors = [];
-                    if (!firstName) errors.push(msg.firstName);
-                    if (!lastName) errors.push(msg.lastName);
+                    const firstNameEl = document.querySelector('input[name="first_name"]');
+                    const lastNameEl = document.querySelector('input[name="last_name"]');
+                    const emailEl = document.querySelector('input[name="email"]');
+                    [firstNameEl, lastNameEl, emailEl].forEach(clearFieldError);
+
+                    let firstInvalid = null;
+                    if (!firstNameEl.value.trim()) { setFieldError(firstNameEl, msg.fieldRequired); firstInvalid = firstInvalid || firstNameEl; }
+                    if (!lastNameEl.value.trim()) { setFieldError(lastNameEl, msg.fieldRequired); firstInvalid = firstInvalid || lastNameEl; }
+                    const email = emailEl.value.trim();
                     if (!email) {
-                        errors.push(msg.emailRequired);
+                        setFieldError(emailEl, msg.fieldRequired); firstInvalid = firstInvalid || emailEl;
                     } else {
                         const re = /^[-a-z0-9!#$%&'*+/=?^_`{|}~]+(?:\.[-a-z0-9!#$%&'*+/=?^_`{|}~]+)*@(?:[a-z0-9](?:[-a-z0-9]*[a-z0-9])?\.)+[a-z0-9](?:[-a-z0-9]*[a-z0-9])?/;
-                        if (!re.test(email)) errors.push(msg.emailInvalid);
+                        if (!re.test(email)) { setFieldError(emailEl, msg.emailInvalid); firstInvalid = firstInvalid || emailEl; }
                     }
-                    if (errors.length) { showErrorDialog(errors.join('\n')); return false; }
+
+                    if (firstInvalid) { firstInvalid.focus(); return false; }
                     return true;
                 }
+
+                ['first_name', 'last_name', 'email'].forEach(function (id) {
+                    const el = document.getElementById(id);
+                    if (el) el.addEventListener('input', function () { clearFieldError(el); });
+                });
 
                 function validateStep2() {
                     const msg = wizardMessages();
@@ -1028,6 +1123,7 @@ HTML;
                     const currentLang = '<?php echo $current_language; ?>';
                     const messages = {
                         en: {
+                            fieldRequired: 'Please fill in this field.',
                             firstName: 'Please enter your first name.',
                             lastName: 'Please enter your last name.',
                             emailRequired: 'Please enter your email.',
@@ -1037,6 +1133,7 @@ HTML;
                             consent: '<?php echo addslashes($languages[$current_language]['consent_required']); ?>'
                         },
                         de: {
+                            fieldRequired: 'Bitte ausfüllen.',
                             firstName: 'Bitte geben Sie Ihren Vornamen ein.',
                             lastName: 'Bitte geben Sie Ihren Nachnamen ein.',
                             emailRequired: 'Bitte geben Sie Ihre E-Mail-Adresse ein.',
@@ -1183,35 +1280,14 @@ HTML;
                     document.getElementById('bookingForm').submit();
                 }
 
-                document.getElementById('bookingForm').addEventListener('submit', function (e) {
-                    const firstName = this.elements['first_name'].value.trim();
-                    const lastName = this.elements['last_name'].value.trim();
-                    const email = this.elements['email'].value.trim();
-                    const tickets = this.elements['tickets'].value;
-
-                    let errors = [];
-
-                    if (!firstName) {
-                        errors.push('Please enter your first name.');
-                    }
-
-                    if (!lastName) {
-                        errors.push('Please enter your last name.');
-                    }
-
-                    if (!email) {
-                        errors.push('Please enter your email.');
-                    }
-
-                    if (!tickets || tickets < 1) {
-                        errors.push('Please select the number of tickets.');
-                    }
-
-                    if (errors.length > 0) {
-                        e.preventDefault();
-                        showError(errors.join('\n'));
-                        return false;
-                    }
+                // Enter inside the wizard should behave like the visible "Next" button,
+                // not natively submit the whole form (which skipped step-by-step validation).
+                document.getElementById('bookingForm').addEventListener('keydown', function (e) {
+                    if (e.key !== 'Enter') return;
+                    if (e.target.tagName === 'TEXTAREA') return;
+                    e.preventDefault();
+                    const next = document.getElementById('wizardNext');
+                    if (next && !next.classList.contains('hidden')) next.click();
                 });
 
 
