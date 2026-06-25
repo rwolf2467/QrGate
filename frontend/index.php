@@ -2,7 +2,8 @@
 require_once 'config.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['language'])) {
-    $_SESSION['language'] = $_POST['language'];
+    $_SESSION['language'] = in_array($_POST['language'], ['de', 'en'], true) ? $_POST['language'] : 'en';
+    $_SESSION['language_selected'] = true;
     header("Location: index.php");
     exit();
 }
@@ -31,6 +32,9 @@ $languages = [
         'store_lock_message' => 'The ticket shop of {name} is currently closed. Maby there are currently no tickets to sell? Please check back later or contact the operator for more information.',
         'booking_notice_title' => 'Binding booking',
         'binding_notice' => 'Your booking is binding. By confirming, you commit to attending on the selected date.',
+        'booking_notice_title_card' => 'Binding purchase',
+        'binding_notice_card' => 'Your purchase is binding. By confirming you complete the payment and commit to attending on the selected date.',
+        'consent_label_card' => 'I confirm that this purchase is binding and that I will attend on the selected date.',
         'storno_card' => 'Paid by card: in case of cancellation, refunds are handled by the organizer.',
         'storno_cash' => 'Cash payment: you pay on site — nothing is charged now, but the booking is still binding.',
         'storno_contact' => 'Questions or cancellation? Please contact {contact}.',
@@ -48,6 +52,8 @@ $languages = [
         'summary' => 'Summary',
         'total' => 'Total',
         'choose_payment' => 'How would you like to pay?',
+        'date_label' => 'Date',
+        'location_label' => 'Location',
     ],
     'de' => [
         'flag' => '🇩🇪',
@@ -72,6 +78,9 @@ $languages = [
         'store_lock_message' => 'Der Ticketshop von {name} ist derzeit geschlossen. Möglicherweise sind derzeit keine Tickets zum Verkauf verfügbar? Bitte schauen Sie später wieder vorbei oder kontaktieren Sie den Betreiber für weitere Informationen.',
         'booking_notice_title' => 'Verbindliche Buchung',
         'binding_notice' => 'Ihre Buchung ist verbindlich. Mit der Bestätigung verpflichten Sie sich, am gewählten Termin zu erscheinen.',
+        'booking_notice_title_card' => 'Verbindlicher Kauf',
+        'binding_notice_card' => 'Ihr Kauf ist verbindlich. Mit der Bestätigung schließen Sie die Zahlung ab und verpflichten sich, am gewählten Termin zu erscheinen.',
+        'consent_label_card' => 'Ich bestätige, dass dieser Kauf verbindlich ist und ich am gewählten Termin erscheine.',
         'storno_card' => 'Zahlung per Karte: Bei Storno werden Rückerstattungen vom Veranstalter abgewickelt.',
         'storno_cash' => 'Barzahlung: Sie zahlen vor Ort — es wird jetzt nichts abgebucht, die Buchung ist dennoch verbindlich.',
         'storno_contact' => 'Fragen oder Storno? Bitte kontaktieren Sie {contact}.',
@@ -89,6 +98,8 @@ $languages = [
         'summary' => 'Übersicht',
         'total' => 'Gesamt',
         'choose_payment' => 'Wie möchten Sie bezahlen?',
+        'date_label' => 'Datum',
+        'location_label' => 'Ort',
     ],
 ];
 
@@ -96,6 +107,8 @@ $current_language = $_SESSION['language'] ?? 'en';
 if (!isset($languages[$current_language])) {
     $current_language = 'en';
 }
+// First visit (no language picked yet) → show the language chooser dialog on load.
+$showLangDialog = empty($_SESSION['language_selected']);
 $shows = getShows();
 
 $pageTitle = htmlspecialchars($shows['orga_name'] ?? 'QrGate') . ' - Tickets';
@@ -161,7 +174,7 @@ HTML;
             background-color: var(--card-background);
             color: var(--text-color);
             border: 1px solid var(--border-color);
-            border-radius: 4px;
+            border-radius: var(--avo-radius-sm);
             padding: 8px;
             cursor: pointer;
         }
@@ -229,6 +242,37 @@ HTML;
             </select>
         </form>
     </div>
+    <?php if ($showLangDialog): ?>
+    <dialog id="langDialog" class="dialog w-full sm:max-w-[400px]" aria-labelledby="langDialogTitle">
+        <div class="p-6 grid gap-5 text-center">
+            <div>
+                <div class="avo-kicker mb-2">// language · sprache</div>
+                <h2 id="langDialogTitle" class="text-xl font-bold">Choose your language</h2>
+                <p class="avo-muted text-sm mt-1">Wählen Sie Ihre Sprache</p>
+            </div>
+            <div class="grid gap-3">
+                <?php foreach ($languages as $code => $lang): ?>
+                    <form method="post">
+                        <input type="hidden" name="language" value="<?php echo $code; ?>">
+                        <button type="submit" class="btn-secondary w-full"
+                            style="display:flex;align-items:center;justify-content:center;gap:.6rem;min-height:52px;">
+                            <span style="font-size:1.4rem;line-height:1;" aria-hidden="true"><?php echo $lang['flag']; ?></span>
+                            <span><?php echo htmlspecialchars($lang['name']); ?></span>
+                        </button>
+                    </form>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </dialog>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var d = document.getElementById('langDialog');
+            if (d && !d.open) d.showModal();
+            // force a choice — don't let Escape dismiss it without picking
+            if (d) d.addEventListener('cancel', function (e) { e.preventDefault(); });
+        });
+    </script>
+    <?php endif; ?>
     <dialog id="error-dialog" class="dialog" aria-labelledby="error-dialog-title"
         aria-describedby="error-dialog-description">
         <div>
@@ -300,6 +344,25 @@ HTML;
                     </a>
                 </p>
             </header>
+            <!-- Persistent context: which date/location is being booked (visible on every step) -->
+            <div id="dialogContext" class="hidden grid gap-1 mb-4 p-3"
+                 style="border:1px solid var(--avo-border);border-radius:12px;background-color:var(--avo-surface);">
+                <div style="display:flex;align-items:center;gap:.5rem;font-weight:600;font-size:.9rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="var(--avo-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" />
+                    </svg>
+                    <span id="dialogDate"></span>
+                </div>
+                <div id="dialogLocationRow" style="display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--avo-text-muted);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" />
+                        <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    <span id="dialogLocation"></span>
+                </div>
+            </div>
             <section>
                 <form class="form grid gap-4" id="bookingForm" action="buy.php" method="POST">
                     <?php echo csrfField(); ?>
@@ -339,15 +402,15 @@ HTML;
                     <div class="wizard-step grid gap-4" data-step="1">
                         <div class="grid gap-2">
                             <label for="first_name"><?php echo $L['first_name']; ?></label>
-                            <input type="text" name="first_name" placeholder="Max" required autofocus>
+                            <input type="text" name="first_name" id="first_name" placeholder="Max" autocomplete="given-name" required autofocus>
                         </div>
                         <div class="grid gap-2">
                             <label for="last_name"><?php echo $L['last_name']; ?></label>
-                            <input type="text" name="last_name" placeholder="Mustermann" required>
+                            <input type="text" name="last_name" id="last_name" placeholder="Mustermann" autocomplete="family-name" required>
                         </div>
                         <div class="grid gap-2">
                             <label for="email"><?php echo $L['email']; ?></label>
-                            <input type="email" name="email" placeholder="max@mustermann.de" required>
+                            <input type="email" name="email" id="email" placeholder="max@mustermann.de" autocomplete="email" spellcheck="false" required>
                         </div>
                     </div>
 
@@ -355,7 +418,7 @@ HTML;
                     <div class="wizard-step hidden grid gap-4" data-step="2">
                         <div class="grid gap-2">
                             <label for="tickets"><?php echo $L['number_of_tickets']; ?></label>
-                            <select name="tickets" required>
+                            <select name="tickets" id="tickets" required>
                                 <?php for ($i = 1; $i <= 10; $i++) { ?>
                                     <option value="<?php echo $i; ?>">
                                         <?php echo $i . ' Ticket' . (($i > 1 ? 's' : '')); ?>
@@ -367,8 +430,8 @@ HTML;
                     </div>
 
                     <!-- STEP 3 — payment method -->
-                    <div class="wizard-step hidden grid gap-3" data-step="3">
-                        <label><?php echo $L['choose_payment']; ?></label>
+                    <div class="wizard-step hidden grid gap-3" data-step="3" role="group" aria-label="<?php echo htmlspecialchars($L['choose_payment']); ?>">
+                        <div class="font-semibold text-sm"><?php echo $L['choose_payment']; ?></div>
                         <div id="paymentMethodSelection" class="grid gap-3">
                             <button type="button" id="cashButton" class="btn-secondary payment-method-btn"
                                 onclick="pickMethod('bar')" data-method="cash"
@@ -413,17 +476,14 @@ HTML;
                                     <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
                                     <path d="M12 9v4" /><path d="M12 17h.01" />
                                 </svg>
-                                <?php echo htmlspecialchars($L['booking_notice_title']); ?>
+                                <span id="bookingNoticeTitle"><?php echo htmlspecialchars($L['booking_notice_title']); ?></span>
                             </div>
-                            <p style="margin:0;font-size:.9rem;color:var(--avo-text);"><?php echo htmlspecialchars($L['binding_notice']); ?></p>
-                            <ul style="margin:0;padding-left:1.1rem;list-style:disc;font-size:.85rem;color:var(--avo-text-muted);">
-                                <li><?php echo htmlspecialchars($L['storno_card']); ?></li>
-                                <li><?php echo htmlspecialchars($L['storno_cash']); ?></li>
-                            </ul>
+                            <p id="bindingNotice" style="margin:0;font-size:.9rem;color:var(--avo-text);"><?php echo htmlspecialchars($L['binding_notice']); ?></p>
+                            <ul id="stornoList" style="margin:0;padding-left:1.1rem;list-style:disc;font-size:.85rem;color:var(--avo-text-muted);"></ul>
                             <p style="margin:0;font-size:.85rem;color:var(--avo-text-muted);"><?php echo $stornoContact; ?></p>
                             <label class="flex items-start gap-2" style="cursor:pointer;font-size:.9rem;color:var(--avo-text);">
                                 <input type="checkbox" name="consent" id="consentCheckbox" value="1" required style="margin-top:.2rem;flex:none;">
-                                <span><?php echo htmlspecialchars($L['consent_label']); ?></span>
+                                <span id="consentLabel"><?php echo htmlspecialchars($L['consent_label']); ?></span>
                             </label>
                         </div>
 
@@ -439,7 +499,7 @@ HTML;
                         </button>
                         <div id="stripePaymentContainer" class="hidden">
                             <div id="stripe-payment-element"></div>
-                            <div id="stripe-payment-error" class="hidden mt-2 text-red-400 text-sm"></div>
+                            <div id="stripe-payment-error" class="hidden mt-2 text-sm" style="color:var(--avo-error);" role="alert" aria-live="polite"></div>
                             <button type="button" id="stripeConfirmButton" class="btn-primary w-full mt-3 hidden"
                                 onclick="confirmStripePayment()">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
@@ -540,7 +600,7 @@ HTML;
                     </div>
                 </div>
 
-                <div class="container mx-auto px-4 py-8">
+                <div class="container mx-auto max-w-6xl px-4 py-8">
                     <?php
                     // Group the available dates by their assigned location so the
                     // shop can render one section per venue. Dates without a
@@ -598,9 +658,11 @@ HTML;
                                 </h2>
                             </div>
                         <?php endif; ?>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+                    <!-- auto-fit: empty tracks collapse, so 1-2 events stretch to fill
+                         the row instead of leaving an empty column on the right. -->
+                    <div class="mb-12" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:2rem;">
                         <?php foreach ($group as $id => $show): ?>
-                            <div class="card show-hover transform transition-all duration-300 hover:scale-105">
+                            <div class="card show-hover transform transition-transform duration-300 hover:scale-105">
                                 <div class="p-6">
                                     <header class="mb-8">
                                         <div class="flex justify-between items-center mb-6">
@@ -690,7 +752,13 @@ HTML;
                                             </div>
                                             <?php if ($show['tickets_available'] > 0): ?>
                                                 <button
-                                                    onclick="showBookingForm('<?php echo $id; ?>', '<?php echo $show['date']; ?>', '<?php echo $show['price']; ?>', '<?php echo $show['tickets_available']; ?>')"
+                                                    <?php
+                                                $dDisp = (new DateTime($show['date']))->format('d.m.Y');
+                                                $locName = $loc['name'] ?? '';
+                                                $jsDisp = htmlspecialchars(addslashes($dDisp), ENT_QUOTES);
+                                                $jsLoc  = htmlspecialchars(addslashes($locName), ENT_QUOTES);
+                                                ?>
+                                                onclick="showBookingForm('<?php echo $id; ?>', '<?php echo $show['date']; ?>', '<?php echo $show['price']; ?>', '<?php echo $show['tickets_available']; ?>', '<?php echo $jsDisp; ?>', '<?php echo $jsLoc; ?>')"
                                                     class="btn-primary"
                                                     aria-label="<?php echo $languages[$current_language]['buy_tickets']; ?> - <?php $date = new DateTime($show['date']); echo $date->format('d.m.Y'); ?>">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
@@ -816,9 +884,45 @@ HTML;
                     if (wizardStep > 1) goToStep(wizardStep - 1);
                 }
 
+                // The notice differs by payment method: cash is a reservation paid on
+                // site (Buchung), card is paid now (Kauf). Title, intro, storno line
+                // and consent wording all switch accordingly.
+                const NOTICE = {
+                    bar: {
+                        title:   <?php echo json_encode($L['booking_notice_title']); ?>,
+                        binding: <?php echo json_encode($L['binding_notice']); ?>,
+                        consent: <?php echo json_encode($L['consent_label']); ?>,
+                        storno:  <?php echo json_encode($L['storno_cash']); ?>
+                    },
+                    stripe: {
+                        title:   <?php echo json_encode($L['booking_notice_title_card']); ?>,
+                        binding: <?php echo json_encode($L['binding_notice_card']); ?>,
+                        consent: <?php echo json_encode($L['consent_label_card']); ?>,
+                        storno:  <?php echo json_encode($L['storno_card']); ?>
+                    }
+                };
+
+                function applyStornoNotice(method) {
+                    const n = NOTICE[method === 'bar' ? 'bar' : 'stripe'];
+                    const title = document.getElementById('bookingNoticeTitle');
+                    const binding = document.getElementById('bindingNotice');
+                    const consent = document.getElementById('consentLabel');
+                    const list = document.getElementById('stornoList');
+                    if (title) title.textContent = n.title;
+                    if (binding) binding.textContent = n.binding;
+                    if (consent) consent.textContent = n.consent;
+                    if (list) {
+                        list.replaceChildren();
+                        const li = document.createElement('li');
+                        li.textContent = n.storno;
+                        list.appendChild(li);
+                    }
+                }
+
                 async function pickMethod(method) {
                     document.getElementById('paymentMethodInput').value = method; // 'bar' | 'stripe'
                     buildSummary(method);
+                    applyStornoNotice(method);
                     goToStep(4);
 
                     const cashBtn = document.getElementById('cashConfirmButton');
@@ -848,6 +952,7 @@ HTML;
                 function buildSummary(method) {
                     const fn = document.querySelector('input[name="first_name"]').value.trim();
                     const ln = document.querySelector('input[name="last_name"]').value.trim();
+                    const email = document.querySelector('input[name="email"]').value.trim();
                     const tickets = parseInt(document.querySelector('select[name="tickets"]').value, 10) || 1;
                     const price = parseFloat(document.getElementById('ticketPrice').value) || 0;
                     const total = (price * tickets).toFixed(2);
@@ -859,8 +964,13 @@ HTML;
                         ['<?php echo addslashes($L['first_name']); ?> / <?php echo addslashes($L['last_name']); ?>', (fn + ' ' + ln).trim()],
                         ['<?php echo addslashes($L['number_of_tickets']); ?>', tickets],
                         ['<?php echo addslashes($L['payment_method']); ?>', methodLabel],
-                        ['<?php echo addslashes($L['total']); ?>', total + ' €']
+                        ['<?php echo addslashes($L['email']); ?>', email],
+                        ['<?php echo addslashes($L['date_label']); ?>', selectedDateDisplay]
                     ];
+                    if (selectedLocation) {
+                        rows.push(['<?php echo addslashes($L['location_label']); ?>', selectedLocation]);
+                    }
+                    rows.push(['<?php echo addslashes($L['total']); ?>', total + ' €']);
                     document.getElementById('orderSummary').innerHTML = rows.map(r =>
                         '<div class="flex justify-between gap-3"><span>' + esc(r[0]) + '</span><span style="color:var(--avo-text);font-weight:600;">' + esc(r[1]) + '</span></div>'
                     ).join('');
@@ -907,7 +1017,7 @@ HTML;
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="status" aria-label="Loading" class="animate-spin">
             <path d="M21 12a9 9 0 1 1-6.219-8.56" />
         </svg>
-        Processing
+        Processing…
     `;
                     this.disabled = true;
 
@@ -1193,13 +1303,30 @@ HTML;
                 }
 
 
-                function showBookingForm(showId, date, price, ticketsAvailable) {
+                let selectedDateDisplay = '';
+                let selectedLocation = '';
+
+                function showBookingForm(showId, date, price, ticketsAvailable, dateDisplay, location) {
                     lastFocusedElement = document.activeElement;
                     document.getElementById('bookingModal').showModal();
 
                     document.getElementById('validDate').value = date;
                     document.getElementById('ticketPrice').value = price;
                     document.body.style.overflow = 'hidden';
+
+                    // Persistent context banner: show chosen date + location on every step.
+                    selectedDateDisplay = dateDisplay || '';
+                    selectedLocation = location || '';
+                    const ctx = document.getElementById('dialogContext');
+                    document.getElementById('dialogDate').textContent = selectedDateDisplay;
+                    const locRow = document.getElementById('dialogLocationRow');
+                    if (selectedLocation) {
+                        document.getElementById('dialogLocation').textContent = selectedLocation;
+                        locRow.style.display = 'flex';
+                    } else {
+                        locRow.style.display = 'none';
+                    }
+                    ctx.classList.remove('hidden');
 
                     const ticketsSelect = document.querySelector('select[name="tickets"]');
                     ticketsSelect.innerHTML = '';

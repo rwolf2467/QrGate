@@ -180,7 +180,7 @@ $extraHead = <<<HTML
             background-color: var(--avo-surface);
             color: var(--avo-text);
             border: 1px solid var(--avo-border);
-            border-radius: 4px;
+            border-radius: var(--avo-radius-sm);
             padding: 8px;
             cursor: pointer;
         }

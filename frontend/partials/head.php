@@ -40,8 +40,12 @@ if (!isset($faviconUrl)) {
                 document.documentElement.classList.add('dark');
                 <?php else: ?>
                 var t = localStorage.getItem('avo-theme');
+                var sysDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                // explicit choice wins; otherwise follow the OS/system preference
                 if (t === 'light') { document.documentElement.classList.remove('dark'); }
-                else { document.documentElement.classList.add('dark'); }
+                else if (t === 'dark') { document.documentElement.classList.add('dark'); }
+                else if (sysDark) { document.documentElement.classList.add('dark'); }
+                else { document.documentElement.classList.remove('dark'); }
                 <?php endif; ?>
             } catch (e) { document.documentElement.classList.add('dark'); }
         })();

@@ -316,3 +316,17 @@ html.dark .avo-theme-toggle .icon-moon { display: none; }
 .animate-fade-in-up { animation: avoFadeInUp 0.5s ease-out; }
 @keyframes avoFadeIn   { from { opacity: 0; } to { opacity: 1; } }
 @keyframes avoFadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ==========================================================================
+   Reduced motion — honor the OS/user preference. Kills the gradient bar loop,
+   fade-ins, pulses and hover scale for users who opted out of motion.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .avo-topbar { animation: none !important; }
+}
